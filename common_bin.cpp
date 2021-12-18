@@ -68,6 +68,8 @@ void CommonBin::openWholeExpSpace() {
 }
 
 CommonBin::~CommonBin() {
+    if(genes_ != nullptr)
+        free(genes_);
     H5Fclose(file_id_);
     H5Dclose(exp_dataset_id_);
     H5Sclose(exp_dataspace_id_);
@@ -196,7 +198,7 @@ Expression *CommonBin::getExpression() const {
     return expData;
 }
 
-Gene *CommonBin::getGene() const {
+Gene *CommonBin::getGene() {
     hid_t memtype, strtype;
 
     strtype = H5Tcopy(H5T_C_S1);
@@ -207,12 +209,11 @@ Gene *CommonBin::getGene() const {
     H5Tinsert(memtype, "offset", HOFFSET(Gene, offset), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "count", HOFFSET(Gene, count), H5T_NATIVE_UINT);
 
-    Gene* geneData;
-    geneData = (Gene*)malloc(gene_num_ * sizeof(Gene));
+    genes_ = (Gene*)malloc(gene_num_ * sizeof(Gene));
     H5Dread(gene_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, geneData);
     H5Tclose(strtype);
     H5Tclose(memtype);
-    return geneData;
+    return genes_;
 }
 
 void CommonBin::getDnbStatMatrix(unsigned int offset_x,
@@ -248,4 +249,15 @@ void CommonBin::getDnbStatMatrixT(unsigned int offset_x,
                                   unsigned char *matrix) const {
     getDnbStatMatrix(offset_y, offset_x, cols, rows, matrix);
 }
+
+map<unsigned long long int, vector<unsigned int>> CommonBin::getCellExpMap() {
+    map<unsigned long long int, vector<unsigned int>> cell_exp_map;
+
+    cell_exp_map.
+
+    return map<unsigned long long int, vector<unsigned int>>();
+}
+
+
+
 

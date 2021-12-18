@@ -1,32 +1,28 @@
-//
-// Created by huangzhibo on 2021/12/17.
-//
-
 #include <iostream>
 #include <fstream>
 #include "utils.h"
 
-bool copyFile(const string &inPath, const string &outPath) {
-    ifstream fin(inPath, ios::binary);
-    ofstream fout(outPath, ios::binary);
+bool copyFile(const string& src_file, const string& dst_file) {
+    ifstream fin(src_file, ios::binary);
+    ofstream fout(dst_file, ios::binary);
 
-    bool bRet = true;
+    bool ret = true;
 
     while(!fin.eof()){
-        char szBuf;
-        fin.read(&szBuf, sizeof(char));
+        char buf;
+        fin.read(&buf, sizeof(char));
 
         if(fin.eof()) break;
 
         if (fout.bad())
         {
-            bRet = false;
+            ret = false;
             break;
         }
-        fout.write(&szBuf, sizeof(char));
+        fout.write(&buf, sizeof(char));
     }
 
     fout.close();
     fin.close();
-    return bRet;
+    return ret;
 }

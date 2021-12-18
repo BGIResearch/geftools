@@ -1,6 +1,8 @@
-//
-// Created by huangzhibo on 2021/12/15.
-//
+/** @file cell_bin.h
+    @brief Declare a CellBin class and several related structs.
+
+    Created by huangzhibo on 2021/12/14.
+*/
 
 #ifndef GEFTOOLS__CELL_BIN_H_
 #define GEFTOOLS__CELL_BIN_H_
@@ -8,9 +10,12 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <map>
 #include "hdf5.h"
+#include "opencv2/opencv.hpp"
 
 using namespace std;
+using namespace cv;
 
 struct CellData {
   unsigned int x;
@@ -21,6 +26,24 @@ struct CellData {
   unsigned short dnbCount;
   unsigned short area;
   unsigned short cellTypeID;
+};
+
+struct CellAttr {
+    unsigned int x;
+    unsigned int y;
+    unsigned int averageArea;
+    unsigned int averageExpCount;
+    unsigned int averageDnbCount;
+    unsigned int averageGeneCount;
+    unsigned int minArea;
+    unsigned int minExpCount;
+    unsigned int minDnbCount;
+    unsigned int minGeneCount;
+    unsigned int maxArea;
+    unsigned int maxExpCount;
+    unsigned int maxDnbCount;
+    unsigned int maxGeneCount;
+    unsigned int cellTypeCount;
 };
 
 struct GeneData {
@@ -37,8 +60,8 @@ struct GeneData {
         cellCount = c;
     }
     char geneName[32] = {0};
-    unsigned int maxMIDCount;  //max MID count of current gene
-    unsigned int offset;  //Offset of current gene in geneExp, 0-based
+    unsigned int maxMIDCount;  ///< max MID count of current gene
+    unsigned int offset;  ///< Offset of current gene in geneExp, 0-based
     unsigned int cellCount;
 };
 
@@ -67,6 +90,15 @@ class CellBin{
     hid_t group_id_;
     void storeVersion();
 
+    map<unsigned long long , vector<CellExpData>> gene_exp_map_;
+    vector<CellExpData> cell_exp_list_;
+    vector<CellData> cell_list_;
+    vector<unsigned int> cell_offset_list_;
+    vector<unsigned short> cell_gene_count_list_;
+    vector<unsigned short> cell_exp_count_list_;  //offset
+    vector<unsigned short> cell_dnb_count_list_;
+    vector<unsigned int> cell_gene_exp_list_;  //offset
+
   public:
     CellBin(const string& filepath,  const string& mode);
     ~CellBin();
@@ -91,7 +123,8 @@ class CellBin{
 
     void storeGeneList();
 
-    void addDnbInCell(unsigned int * dnb_coordinates, unsigned int size);
+//    void addDnbInCell(unsigned int * dnb_coordinates, unsigned int size);
+    void addDnbInCell(vector<Point>& dnb_coordinates);
 
     void setGeneExpMap(const string &inPath);
 

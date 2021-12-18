@@ -1,6 +1,6 @@
 #include <vector>
 #include <opencv2/opencv.hpp> //Include file for every supported OpenCV function
-#include "polygen.h"
+#include "polygon.h"
 using namespace cv;
 using namespace std;
 
@@ -42,7 +42,7 @@ int main() {
     for( size_t k = 0; k < contours0.size(); k++ ){
 //        epsilon = 0.01 * arcLength(contours0[k], true);
 //        approxPolyDP(contours0[k], contours[k], epsilon, true);
-          Polygen p = Polygen(contours0[k]);
+          Polygon p = Polygon(contours0[k]);
 //        Moments mu = moments(contours[k], true);
 //        cout << contours[k] << endl;
         cout << p.border << endl;

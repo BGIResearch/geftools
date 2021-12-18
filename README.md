@@ -1,4 +1,7 @@
-### code style
+# geftools
+Tools for manipulating GEFs
+
+## code style
 https://google.github.io/styleguide/cppguide.html#Variable_Names
 https://zh-google-styleguide.readthedocs.io/en/latest/google-cpp-styleguide/contents/
 https://github.com/opencv/opencv/wiki/Coding_Style_Guide
@@ -13,5 +16,9 @@ https://github.com/opencv/opencv/wiki/Coding_Style_Guide
    2. 类的成员变量以下划线结尾，如: a_class_data_member_
 
 
-### TEST
+## TEST
  Gtest
+
+## Writing documentation on functions
+The documentation for contributed functions is written using inline Doxygen comments.
+https://www.doxygen.nl/manual

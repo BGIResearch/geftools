@@ -14,7 +14,7 @@ int view(int argc, char *argv[]) {
         .add_options()
             ("i,input-file", "input cell bin GEF file [request]", cxxopts::value<std::string>(), "FILE")
             ("g,output-gem", "output cell bin gem file", cxxopts::value<std::string>(), "FILE")
-            ("p,output-polygen-mask", "output border of polygens to mask format file", cxxopts::value<std::string>(), "FILE")
+            ("p,output-polygon-mask", "output border of polygons to mask format file", cxxopts::value<std::string>(), "FILE")
             ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
             ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
             ("help", "Print help");

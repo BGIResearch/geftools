@@ -40,3 +40,65 @@ void CellBin::storeVersion() {
     H5Aclose(attr);
 }
 
+
+//void CellBin::addDnbInCell(unsigned int *dnb_coordinates, unsigned int size) {
+void CellBin::addDnbInCell(vector<Point> & dnb_coordinates, Point center_point, unsigned short area) {
+    unsigned long long int bin_id;
+    map<unsigned short, unsigned short> gene_count_in_cell;
+    unsigned short gene_count = 0;
+    unsigned short exp_count = 0;
+
+
+
+    for (unsigned int i = 0; i < dnb_coordinates.size(); ++i) {
+        bin_id = static_cast<unsigned long long int>(dnb_coordinates[i].x);
+        bin_id = bin_id << 32 | static_cast<unsigned int>(dnb_coordinates[i].y);
+        auto iter = gene_exp_map_.find(bin_id);
+        if(iter != gene_exp_map_.end()){
+            vector<CellExpData> cxp = iter->second;
+            auto it = cxp.begin();
+            while (it != cxp.end()) {
+                exp_count += it->count;
+                auto iter_gene = gene_count_in_cell.find(it->geneID);
+                if(iter_gene != gene_count_in_cell.end()){
+                    iter_gene->second += it->count;
+                } else{
+                    gene_count_in_cell.insert(map<unsigned short, unsigned short>::value_type(it->geneID, it->count));
+                    gene_count++;
+                }
+                ++it;
+            }
+        }
+    }
+
+    CellData cell = {
+        static_cast<unsigned int>(center_point.x),
+        static_cast<unsigned int>(center_point.y),
+        0,
+        static_cast<unsigned short>(gene_count),
+        static_cast<unsigned short>(exp_count),
+        static_cast<unsigned short>(dnb_coordinates.size()),
+        area,
+        0
+    };
+
+    map<unsigned short, unsigned short> ::iterator iter_m;
+    iter_m = gene_count_in_cell.begin();
+    while(iter_m != gene_count_in_cell.end()) {
+        CellExpData cexp_tmp = {iter_m->first, iter_m->second};
+        cell_exp_list.emplace_back(cexp_tmp);
+        ++iter_m;
+    }
+
+
+
+    cell_exp_count_list.emplace_back(exp_count);
+
+    if(cell_gene_exp_list.empty()){
+        cell_gene_exp_list.emplace_back(0);
+    }else {
+        cell_gene_exp_list.emplace_back(cell_gene_exp_list.back()+cell_gene_count_list.back());
+    }
+    cell_gene_count_list.emplace_back(gene_count);
+}
+

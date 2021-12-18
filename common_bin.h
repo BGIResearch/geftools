@@ -1,6 +1,8 @@
-//
-// Created by huangzhibo on 2021/12/15.
-//
+/** @file common_bin.h
+    @brief Declare a CommonBin class and several related structs.
+
+    Created by huangzhibo on 2021/12/14.
+*/
 
 #ifndef GEFTOOLS__COMMON_BIN_H_
 #define GEFTOOLS__COMMON_BIN_H_
@@ -8,24 +10,31 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <map>
 #include "hdf5.h"
 
 using namespace std;
 
+/**
+ * @brief Expression struct
+ */
 struct Expression {
-    unsigned int x;
-    unsigned int y;
-    unsigned int cnt;
+    unsigned int x; ///< dnb coordinates x
+    unsigned int y; ///< dnb coordinates x
+    unsigned int cnt; ///< expression count (MIDcount)
 };
 
+/**
+ * @brief ExpressionAttr struct, record the attributes of the dataset named expressione
+ */
 struct ExpressionAttr
 {
-    unsigned int min_x;
-    unsigned int min_y;
-    unsigned int max_x;
-    unsigned int max_y;
-    unsigned int max_exp;
-    unsigned int resolution;
+    unsigned int min_x; ///< Min X of dnb coordinate
+    unsigned int min_y; ///< Min Y of dnb coordinate
+    unsigned int max_x; ///< Max X of dnb coordinate
+    unsigned int max_y; ///< Max Y of dnb coordinate
+    unsigned int max_exp;  ///< Max expression count
+    unsigned int resolution; ///< The resolution of stereo chip
 };
 
 struct Gene {
@@ -61,6 +70,7 @@ class CommonBin {
     ExpressionAttr expression_attr_{};
     bool expression_attr_init_ = false;
     unsigned int dnb_stat_matrix_shape_[2];
+    Gene* genes_ = nullptr;
 
     hid_t file_id_;
     hid_t exp_dataspace_id_{};
@@ -85,7 +95,8 @@ class CommonBin {
     unsigned long long int getExpressionNum() const;
     ExpressionAttr &getExpressionAttr();
 
-    Gene *getGene() const;
+    Gene *getGene();
+    Gene *getGeneIndexes();
     Expression * getExpression() const;
 
     void getDnbStatMatrix(unsigned int offset_x,
@@ -101,8 +112,10 @@ class CommonBin {
                           unsigned char * matrix) const;
 
     //sparse matrix indexes
-    vector<unsigned long long> getSparseMatrixIndexesOfExp(unsigned int * cell_index, unsigned int * count);
+    vector<unsigned long long int> getSparseMatrixIndexesOfExp(unsigned int * cell_index, unsigned int * count);
     vector<string> getSparseMatrixIndexesOfGene(unsigned int * gene_index) const;
+
+    map<unsigned long long int, vector<unsigned int>> getCellExpMap();
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

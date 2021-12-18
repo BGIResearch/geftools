@@ -7,6 +7,11 @@ Mask::Mask(const string& file){
     cv::Mat img = cv::imread(file,-1);
     if( img.empty() ) { exit(-1);}
 
+    img = img.t();
+
+    rows_ = img.rows;
+    cols_ = img.cols;
+
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
 
@@ -20,22 +25,22 @@ Mask::Mask(const string& file){
     );
 
     for(auto & contour : contours){
-        Polygen p = Polygen();
-        bool cell_polygen_is_good = p.applyContour(contour);
-        if(cell_polygen_is_good){
-            polygens_.emplace_back(p);
+        Polygon p = Polygon();
+        bool cell_polygon_is_good = p.applyContour(contour);
+        if(cell_polygon_is_good){
+            polygons_.emplace_back(p);
         }
     }
 
-    cell_num_ = polygens_.size();
+    cell_num_ = polygons_.size();
 }
 
-void Mask::write_polygens() {
+void Mask::write_polygons() {
 
 }
 
-const vector<Polygen> &Mask::getPolygens() const {
-    return polygens_;
+const vector<Polygon> &Mask::getPolygons() const {
+    return polygons_;
 }
 
 unsigned int Mask::getCellNum() const {

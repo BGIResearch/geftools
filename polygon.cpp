@@ -1,9 +1,9 @@
 //
 // Created by 黄志博 on 2021/12/13.
 //
-#include "polygen.h"
+#include "polygon.h"
 
-bool Polygen::applyContour(const vector<Point>& contour){
+bool Polygon::applyContour(const vector<Point>& contour){
     original_contour_size_ = static_cast<short>(contour.size());
     if(original_contour_size_ <= 2 ) return false;
 
@@ -28,27 +28,27 @@ bool Polygen::applyContour(const vector<Point>& contour){
     return true;
 }
 
-const vector<Point> &Polygen::getBorder() const {
+const vector<Point> &Polygon::getBorder() const {
     return border_;
 }
 
-const Point &Polygen::getCenter() const {
+const Point &Polygon::getCenter() const {
     return center_;
 }
 
-double Polygen::getArea() const {
+double Polygon::getArea() const {
     return area_;
 }
 
-short Polygen::getBorderSize() const {
+short Polygon::getBorderSize() const {
     return border_size_;
 }
 
-short Polygen::getOriginalContourSize() const {
+short Polygon::getOriginalContourSize() const {
     return original_contour_size_;
 }
 
-void Polygen::setMinMaxXY() {
+void Polygon::setMinMaxXY() {
     for(const auto& p : border_){
         min_x_ = p.x < min_x_ ? p.x : min_x_;
         max_x_ = p.x > max_x_ ? p.x : max_x_;
@@ -59,31 +59,31 @@ void Polygen::setMinMaxXY() {
     cols_ = max_y_ - min_y_ + 1;
 }
 
-int Polygen::getMinX() const {
+int Polygon::getMinX() const {
     return min_x_;
 }
 
-int Polygen::getMaxX() const {
+int Polygon::getMaxX() const {
     return max_x_;
 }
 
-int Polygen::getMinY() const {
+int Polygon::getMinY() const {
     return min_y_;
 }
 
-int Polygen::getMaxY() const {
+int Polygon::getMaxY() const {
     return max_y_;
 }
 
-int Polygen::getRows() const {
+int Polygon::getRows() const {
     return rows_;
 }
 
-int Polygen::getCols() const {
+int Polygon::getCols() const {
     return cols_;
 }
 
-Mat Polygen::getFillPolyMat() const {
+Mat Polygon::getFillPolyMat() const {
     Mat fill_points = Mat::zeros(rows_, cols_, CV_8UC1);
     fillPoly(border_, fill_points, 1);
     return fill_points;
