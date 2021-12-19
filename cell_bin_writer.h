@@ -7,12 +7,12 @@
 #ifndef GEFTOOLS__CELL_BIN_WRITER_H_
 #define GEFTOOLS__CELL_BIN_WRITER_H_
 
-#include <string>
-#include <vector>
-#include <iostream>
-#include "hdf5.h"
+#include "mask.h"
+#include "common_bin.h"
+#include "cell_bin.h"
 
 using namespace std;
+using namespace cv;
 
 /**
  * @brief Convert common bin gef to cell bin gef.

@@ -12,7 +12,6 @@
 using namespace std;
 
 /*!
- * \fn static bool copyFile(const string& inPath, const string& outPath)
  * \brief Copies one file to another path
  * \param src_file The source file path
  * \param dst_file The destination file path

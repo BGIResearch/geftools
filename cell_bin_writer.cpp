@@ -3,11 +3,6 @@
 //
 
 #include "cell_bin_writer.h"
-#include "mask.h"
-#include "common_bin.h"
-#include "cell_bin.h"
-
-using namespace cv;
 
 int cellBinWriter(const string &bin_gef, const string &mask_file, const string &outfile) {
     CommonBin common_bin_gef = CommonBin(bin_gef, 1);

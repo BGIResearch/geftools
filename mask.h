@@ -7,7 +7,6 @@
 
 #ifndef GEFTOOLS__MASK_H_
 #define GEFTOOLS__MASK_H_
-#include <vector>
 #include <string>
 #include "polygon.h"
 
@@ -18,11 +17,11 @@ using namespace std;
  */
 class Mask {
   private:
-    vector<Polygon> polygons_;
     unsigned int cell_num_;
     int rows_, cols_;
 
   public:
+    vector<Polygon> polygons_;
     explicit Mask(const string& file);
 
 
