@@ -10,9 +10,29 @@ KHASH_MAP_INIT_INT64(m64, unsigned int)
 CommonBin::CommonBin(const string &filename, int bin_size) {
     file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     bin_size_ = bin_size;
+
+    hid_t attr;
+    attr = H5Aopen(file_id_, "version", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &version_);
+    H5Aclose(attr);
+
     openExpressionSpace();
     openGeneSpace();
     openWholeExpSpace();
+}
+
+CommonBin::~CommonBin() {
+    if(genes_ != nullptr)
+        free(genes_);
+    if(expressions_ != nullptr)
+        free(expressions_);
+    H5Fclose(file_id_);
+    H5Dclose(exp_dataset_id_);
+    H5Sclose(exp_dataspace_id_);
+    H5Dclose(gene_dataset_id_);
+    H5Sclose(gene_dataspace_id_);
+    H5Dclose(whole_exp_dataset_id_);
+    H5Sclose(whole_exp_dataspace_id_);
 }
 
 void CommonBin::openExpressionSpace() {
@@ -67,18 +87,6 @@ void CommonBin::openWholeExpSpace() {
     dnb_stat_matrix_shape_[1] = dims[1];
 }
 
-CommonBin::~CommonBin() {
-    if(genes_ != nullptr)
-        free(genes_);
-    H5Fclose(file_id_);
-    H5Dclose(exp_dataset_id_);
-    H5Sclose(exp_dataspace_id_);
-    H5Dclose(gene_dataset_id_);
-    H5Sclose(gene_dataspace_id_);
-    H5Dclose(whole_exp_dataset_id_);
-    H5Sclose(whole_exp_dataspace_id_);
-}
-
 int CommonBin::getBinSize() const {
     return bin_size_;
 }
@@ -111,6 +119,7 @@ ExpressionAttr &CommonBin::getExpressionAttr() {
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
     attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.resolution));
+
     expression_attr_init_ = true;
 
     H5Aclose(attr);
@@ -158,16 +167,16 @@ vector<unsigned long long> CommonBin::getSparseMatrixIndexesOfExp(unsigned int *
     return uniq_cells;
 }
 
-vector<string> CommonBin::getSparseMatrixIndexesOfGene(unsigned int *gene_index) const {
-    Gene* geneData = getGene();
+vector<string> CommonBin::getSparseMatrixIndexesOfGene(unsigned int *gene_index) {
+    Gene* gene_data = getGene();
 
     vector<string> uniq_genes;
     unsigned long long exp_len_index = 0;
     for (unsigned int i = 0; i < gene_num_; ++i)
     {
-        const char* gene = geneData[i].gene;
+        const char* gene = gene_data[i].gene;
         uniq_genes.emplace_back(gene);
-        unsigned int c = geneData[i].count;
+        unsigned int c = gene_data[i].count;
         for (int j = 0; j < c; ++j)
         {
             gene_index[exp_len_index++] = i;
@@ -176,13 +185,13 @@ vector<string> CommonBin::getSparseMatrixIndexesOfGene(unsigned int *gene_index)
 
     assert(exp_len_index == expression_num_);
 
-    if (geneData != nullptr)
-        free(geneData);
-
     return uniq_genes;
 }
 
-Expression *CommonBin::getExpression() const {
+Expression *CommonBin::getExpression() {
+    if(expressions_ != nullptr)
+        return expressions_;
+
     hid_t memtype;
 
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
@@ -190,15 +199,17 @@ Expression *CommonBin::getExpression() const {
     H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "count", HOFFSET(Expression, cnt), H5T_NATIVE_UINT);
 
-    Expression *expData;
-    expData = (Expression *) malloc(expression_num_ * sizeof(Expression));
-    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expData);
+    expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
+    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expressions_);
 
     H5Tclose(memtype);
-    return expData;
+    return expressions_;
 }
 
 Gene *CommonBin::getGene() {
+    if(genes_ != nullptr)
+        return genes_;
+
     hid_t memtype, strtype;
 
     strtype = H5Tcopy(H5T_C_S1);
@@ -210,11 +221,18 @@ Gene *CommonBin::getGene() {
     H5Tinsert(memtype, "count", HOFFSET(Gene, count), H5T_NATIVE_UINT);
 
     genes_ = (Gene*)malloc(gene_num_ * sizeof(Gene));
-    H5Dread(gene_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, geneData);
+    H5Dread(gene_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, genes_);
     H5Tclose(strtype);
     H5Tclose(memtype);
     return genes_;
 }
+
+Mat CommonBin::getWholeExpMatrix(Rect roi){
+    if(whole_exp_matrix_t_.empty())
+        cacheWholeExpMatrix();
+    return whole_exp_matrix_t_(roi);
+}
+
 
 void CommonBin::getDnbStatMatrix(unsigned int offset_x,
                                  unsigned int offset_y,
@@ -250,12 +268,63 @@ void CommonBin::getDnbStatMatrixT(unsigned int offset_x,
     getDnbStatMatrix(offset_y, offset_x, cols, rows, matrix);
 }
 
-map<unsigned long long int, vector<unsigned int>> CommonBin::getCellExpMap() {
-    map<unsigned long long int, vector<unsigned int>> cell_exp_map;
+map<unsigned long long int, vector<unsigned int>> CommonBin::getBinGeneExpMap() {
+    map<unsigned long long int, vector<unsigned int>> bin_exp_map;
 
-    cell_exp_map.
+    Gene* gene_data = getGene();
+    Expression* expression_data = getExpression();
+    unsigned long long int bin_id, exp_len_index = 0;
+    unsigned int gene_exp = 0;
 
-    return map<unsigned long long int, vector<unsigned int>>();
+    for (unsigned int i = 0; i < gene_num_; ++i)
+    {
+        assert(exp_len_index + gene_data[i].count <= expression_num_);
+        for (unsigned int j = 0; j < gene_data[i].count; ++j)
+        {
+            Expression exp = expression_data[exp_len_index];
+            bin_id = static_cast<unsigned long long int>(exp.x);
+            bin_id = bin_id << 32 | exp.y;
+
+            gene_exp = exp.cnt;
+            gene_exp = gene_exp << 16 | i;
+
+            exp_len_index++;
+
+            auto iter = bin_exp_map.find(bin_id);
+            if(iter != bin_exp_map.end()){
+                iter->second.emplace_back(gene_exp);
+            }else{
+                vector<unsigned int> gene_exp_list;
+                gene_exp_list.emplace_back(gene_exp);
+                bin_exp_map.insert(map<unsigned long long, vector<unsigned int>>::value_type (bin_id, gene_exp_list));
+            }
+        }
+    }
+
+    return bin_exp_map;
+}
+
+void CommonBin::clear() {
+    if(genes_ != nullptr)
+        free(genes_);
+    if(expressions_ != nullptr)
+        free(expressions_);
+    whole_exp_matrix_t_.release();
+}
+
+void CommonBin::cacheWholeExpMatrix() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, 1);
+    // genecount的值大于255将读取为255
+    whole_exp_matrix_t_ = Mat::zeros(
+            (int)dnb_stat_matrix_shape_[0], (int)dnb_stat_matrix_shape_[1], CV_8UC1);
+    H5Tinsert(memtype, "genecount", 0, H5T_NATIVE_UCHAR);
+    H5Dread(whole_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, whole_exp_matrix_t_.data);
+    whole_exp_matrix_t_ = whole_exp_matrix_t_.t();
+}
+
+int CommonBin::getVersion() const {
+    return version_;
 }
 
 

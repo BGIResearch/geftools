@@ -1,6 +1,3 @@
-//
-// Created by 黄志博 on 2021/12/13.
-//
 #include "polygon.h"
 
 bool Polygon::applyContour(const vector<Point>& contour){
@@ -14,8 +11,6 @@ bool Polygon::applyContour(const vector<Point>& contour){
         border_ = contour;
     }
 
-    setMinMaxXY();
-
     Moments mu = moments(border_, true);
 
     border_size_ = static_cast<short>(border_.size());
@@ -24,7 +19,24 @@ bool Polygon::applyContour(const vector<Point>& contour){
     assert(mu.m00 > 0);
 
     center_ = Point(static_cast<int>(mu.m10/mu.m00), static_cast<int>(mu.m01/mu.m00));
+
     area_ = mu.m00;
+
+    for(const auto& p : border_){
+        min_x_ = p.x < min_x_ ? p.x : min_x_;
+        max_x_ = p.x > max_x_ ? p.x : max_x_;
+        min_y_ = p.y < min_y_ ? p.y : min_y_;
+        max_y_ = p.y > max_y_ ? p.y : max_y_;
+    }
+
+    for(const auto& p : border_){
+        Point relative_point = Point(p.x - min_x_, p.y - min_y_);
+        relative_border_.emplace_back(relative_point);
+    }
+
+    cols_ = max_x_ - min_x_ + 1;
+    rows_ = max_y_ - min_y_ + 1;
+
     return true;
 }
 
@@ -52,8 +64,8 @@ void Polygon::setMinMaxXY() {
     for(const auto& p : border_){
         min_x_ = p.x < min_x_ ? p.x : min_x_;
         max_x_ = p.x > max_x_ ? p.x : max_x_;
-        min_y_ = p.x < min_y_ ? p.x : min_y_;
-        max_y_ = p.x > max_y_ ? p.x : max_y_;
+        min_y_ = p.y < min_y_ ? p.y : min_y_;
+        max_y_ = p.y > max_y_ ? p.y : max_y_;
     }
     rows_ = max_x_ - min_x_ + 1;
     cols_ = max_y_ - min_y_ + 1;
@@ -85,6 +97,14 @@ int Polygon::getCols() const {
 
 Mat Polygon::getFillPolyMat() const {
     Mat fill_points = Mat::zeros(rows_, cols_, CV_8UC1);
-    fillPoly(border_, fill_points, 1);
+    fillPoly(fill_points, relative_border_, 1);
     return fill_points;
+}
+
+const vector<Point> &Polygon::getRelativeBorder() const {
+    return relative_border_;
+}
+
+unsigned short Polygon::getAreaUshort() const {
+    return static_cast<unsigned short>(area_);
 }

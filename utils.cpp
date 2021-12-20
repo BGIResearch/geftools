@@ -26,3 +26,10 @@ bool copyFile(const string& src_file, const string& dst_file) {
     fin.close();
     return ret;
 }
+
+void offsetCoordinates(vector<Point> & coordinates, vector<Point> & new_coordinates, Point & offset_point){
+    for (auto & coordinate: coordinates) {
+        Point p = Point(coordinate.x - offset_point.x, coordinate.y - offset_point.y);
+        new_coordinates.emplace_back(p);
+    }
+}

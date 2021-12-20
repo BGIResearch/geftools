@@ -10,6 +10,7 @@
 #include "mask.h"
 #include "common_bin.h"
 #include "cell_bin.h"
+#include "utils.h"
 
 using namespace std;
 using namespace cv;
@@ -21,6 +22,7 @@ using namespace cv;
  * @param outfile output filepath of cell bin gef
  * @return
  */
-int cell_bin_writer(const string & bin_gef, const string & mask_file, const string & outfile);
+int cellBinWriter(const string & bin_gef, const string & mask_file, const string & outfile);
+
 
 #endif //GEFTOOLS__CELL_BIN_WRITER_H_

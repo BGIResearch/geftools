@@ -17,33 +17,33 @@
 using namespace std;
 using namespace cv;
 
+/**
+ * @brief Describe the Cell dataset in the cell bin GEF file
+ */
 struct CellData {
-  unsigned int x;
-  unsigned int y;
-  unsigned int offset;  //Offset of current cell in cellExp, 0-based
-  unsigned short geneCount;
-  unsigned short expCount;
-  unsigned short dnbCount;
-  unsigned short area;
-  unsigned short cellTypeID;
+  unsigned int x; ///< Coordinate X of center point in this cell
+  unsigned int y; ///< Coordinate Y of center point in this cell
+  unsigned int offset;  ///< Offset of current cell in cellExp, 0-based
+  unsigned short gene_count; ///< The number of gene in this cell
+  unsigned short exp_count; ///< The total expression count of all genes in this cell
+  unsigned short dnb_count; ///< Dnb number in this cell
+  unsigned short area; ///< The polygon area of this cell
+  unsigned short cell_type_id; ///< Cell type ID to index the CellTypeList
 };
 
 struct CellAttr {
-    unsigned int x;
-    unsigned int y;
-    unsigned int averageArea;
-    unsigned int averageExpCount;
-    unsigned int averageDnbCount;
-    unsigned int averageGeneCount;
-    unsigned int minArea;
-    unsigned int minExpCount;
-    unsigned int minDnbCount;
-    unsigned int minGeneCount;
-    unsigned int maxArea;
-    unsigned int maxExpCount;
-    unsigned int maxDnbCount;
-    unsigned int maxGeneCount;
-    unsigned int cellTypeCount;
+    float average_gene_count;
+    float average_exp_count;
+    float average_dnb_count;
+    float average_area;
+    unsigned short min_gene_count;
+    unsigned short min_exp_count;
+    unsigned short min_dnb_count;
+    unsigned short min_area;
+    unsigned short max_gene_count;
+    unsigned short max_exp_count;
+    unsigned short max_dnb_count;
+    unsigned short max_area;
 };
 
 struct GeneData {
@@ -66,6 +66,14 @@ struct GeneData {
 };
 
 struct CellExpData {
+//    explicit CellExpData(unsigned int gene_exp){
+//        geneID = gene_exp >> 16;
+//        count = gene_exp  & 0xFFFF;
+//    }
+//    CellExpData(unsigned short g, unsigned short c){
+//        geneID = g;
+//        count = c;
+//    }
     unsigned short geneID;
     unsigned short count;
 };
@@ -77,10 +85,10 @@ struct GeneExpData {
 
 struct CellBinAttr
 {
-    unsigned int version = 1;
-    unsigned int resolution = 0;
-    unsigned int offsetX = 0;
-    unsigned int offsetY = 0;
+    unsigned int version;
+    unsigned int resolution;
+    unsigned int offsetX;
+    unsigned int offsetY;
 };
 
 
@@ -88,22 +96,29 @@ class CellBin{
   private:
     hid_t file_id_;
     hid_t group_id_;
-    void storeVersion();
+    CellBinAttr cell_bin_attr_;
 
-    map<unsigned long long , vector<CellExpData>> gene_exp_map_;
+    map<unsigned long long int, vector<CellExpData>> gene_exp_map_;
     vector<CellExpData> cell_exp_list_;
     vector<CellData> cell_list_;
-    vector<unsigned int> cell_offset_list_;
-    vector<unsigned short> cell_gene_count_list_;
-    vector<unsigned short> cell_exp_count_list_;  //offset
-    vector<unsigned short> cell_dnb_count_list_;
-    vector<unsigned int> cell_gene_exp_list_;  //offset
+    unsigned int current_cell_offset_ = 0;
+    CellAttr cell_attr_ = {
+        .min_gene_count=USHRT_MAX,
+        .min_exp_count=USHRT_MAX,
+        .min_dnb_count=USHRT_MAX,
+        .min_area=USHRT_MAX,
+        .max_gene_count=0,
+        .max_exp_count=0,
+        .max_dnb_count=0,
+        .max_area=0};
+    unsigned long long int gene_count_sum_ = 0;
+    unsigned long long int exp_count_sum_ = 0;
+    unsigned long long int dnb_count_sum_ = 0;
+    unsigned long long int area_sum_ = 0;
 
   public:
     CellBin(const string& filepath,  const string& mode);
     ~CellBin();
-
-    CellBinAttr cell_bin_attr;
 
     unsigned int gene_num_ = 0;
     unsigned int cell_num_ = 0;
@@ -113,26 +128,26 @@ class CellBin{
     unsigned int getCellNum() const;
     unsigned long long int getExpressionNum() const;
 
-    void storeCell(unsigned int * x, unsigned int * y, unsigned short * area, unsigned int size);
+    /**
+     * @brief Add dnb expression info of one cell
+     *
+     * This method can only be used when the class is constructed in mode="w"
+     * @param dnb_coordinates A vector of dnb coordinates inner one cell region
+     * @param bin_gene_exp_map  A map abort geneID and expCount of the genes for each bin, key is bin id: x << 32 | y, value is a vector of gene_exp compoud value (geneID << 16 | geneExpCount).
+     * @param center_point Center point of cell polygon
+     * @param area The polygon area of the cell
+     */
+    void addDnbInCell(vector<Point> & dnb_coordinates,
+                               map<unsigned long long int, vector<unsigned int>> & bin_gene_exp_map,
+                               const Point& center_point,
+                               unsigned short area);
 
+    void storeAttr(CellBinAttr& cell_attr) const;
+    void storeCell();
+    void storeGeneList(vector<string>& geneList) const;
     void storeCellExp();
-
-    void storeCellBorder(char* borderPath, unsigned int size);
-
-    void storeGeneList(vector<string>& geneList);
-
-    void storeGeneList();
-
-//    void addDnbInCell(unsigned int * dnb_coordinates, unsigned int size);
-    void addDnbInCell(vector<Point>& dnb_coordinates);
-
-    void setGeneExpMap(const string &inPath);
-
-    void storeAttr();
-
+    void storeCellBorder(char* borderPath, unsigned int cell_num) const;
 };
-
-
 
 
 #endif //GEFTOOLS__CELL_BIN_H_

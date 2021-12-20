@@ -8,8 +8,10 @@
 #define GEFTOOLS__UTILS_H_
 
 #include <string>
+#include "opencv2/opencv.hpp"
 
 using namespace std;
+using namespace cv;
 
 /*!
  * \brief Copies one file to another path
@@ -19,5 +21,12 @@ using namespace std;
  */
 bool copyFile(const string& src_file, const string& dst_file);
 
+/**
+ *
+ * @param coordinates
+ * @param new_coordinates
+ * @param offset_point
+ */
+void offsetCoordinates(vector<Point> & coordinates, vector<Point> & new_coordinates, Point & offset_point);
 
 #endif //GEFTOOLS__UTILS_H_

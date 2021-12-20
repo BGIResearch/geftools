@@ -12,8 +12,10 @@
 #include <iostream>
 #include <map>
 #include "hdf5.h"
+#include "opencv2/opencv.hpp"
 
 using namespace std;
+using namespace cv;
 
 /**
  * @brief Expression struct
@@ -71,6 +73,9 @@ class CommonBin {
     bool expression_attr_init_ = false;
     unsigned int dnb_stat_matrix_shape_[2];
     Gene* genes_ = nullptr;
+    Expression* expressions_ = nullptr;
+    Mat whole_exp_matrix_t_;
+    int version_;
 
     hid_t file_id_;
     hid_t exp_dataspace_id_{};
@@ -89,6 +94,7 @@ class CommonBin {
     const unsigned int *getDnbStatMatrixShape() const;
     CommonBin(const string &filename, int bin_size);
     virtual ~CommonBin();
+    int getVersion() const;
     int getBinSize() const;
     unsigned int getGeneNum() const;
     unsigned int getCellNum() const;
@@ -97,7 +103,11 @@ class CommonBin {
 
     Gene *getGene();
     Gene *getGeneIndexes();
-    Expression * getExpression() const;
+    Expression * getExpression();
+
+    void cacheWholeExpMatrix();
+
+    Mat getWholeExpMatrix(Rect roi);
 
     void getDnbStatMatrix(unsigned int offset_x,
                           unsigned int offset_y,
@@ -113,9 +123,18 @@ class CommonBin {
 
     //sparse matrix indexes
     vector<unsigned long long int> getSparseMatrixIndexesOfExp(unsigned int * cell_index, unsigned int * count);
-    vector<string> getSparseMatrixIndexesOfGene(unsigned int * gene_index) const;
+    vector<string> getSparseMatrixIndexesOfGene(unsigned int * gene_index);
 
-    map<unsigned long long int, vector<unsigned int>> getCellExpMap();
+    /**
+     * @brief Get geneID and expCount of this gene for each bin
+     * @return key is bin id: x << 32 | y, value is a vector of gene_exp compoud value (geneID << 16 | geneExpCount).
+     */
+    map<unsigned long long int, vector<unsigned int>> getBinGeneExpMap();
+
+    /**
+     * @brief Free memory for cache variables
+     */
+    void clear();
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

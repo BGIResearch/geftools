@@ -1,5 +1,5 @@
 /** @file polygon.h
-    @brief Declare a polygon class to describe cell shape.
+    @brief Declare a Polygon class to describe cell shape.
 
     Created by huangzhibo on 2021/12/13..
 */
@@ -18,11 +18,16 @@ using namespace std;
 class Polygon {
   private:
     vector<Point> border_;
+    vector<Point> relative_border_;
+public:
+    const vector<Point> &getRelativeBorder() const;
+
+private:
     Point center_;
     double area_;
     short border_size_;
     short original_contour_size_;
-    int min_x_{0}, max_x_{0}, min_y_{0}, max_y_{0}, rows_{0}, cols_{0};
+    int min_x_{INT_MAX}, max_x_{0}, min_y_{INT_MAX}, max_y_{0}, rows_{0}, cols_{0};
 
     void setMinMaxXY();
 
@@ -33,6 +38,8 @@ class Polygon {
      */
     const vector<Point> &getBorder() const;
 
+//    getBorderRelativeToCenter();
+
     /// Get border points number of this polygon
     short getBorderSize() const;
 
@@ -40,7 +47,7 @@ class Polygon {
     short getOriginalContourSize() const;
 
     /**
-     * @brief Get a matrix with value 1 filled in this polygon region, out of the region filled by 0
+     * @brief Get a matrix with value 1 filled in this polygon region, outside of the region filled by 0
      * @return A matrix with type CV_8UC1, new Mat::zeros(rows_, cols_, CV_8UC1), and fill 1 into this polygon region
      */
     Mat getFillPolyMat() const;
@@ -50,6 +57,9 @@ class Polygon {
 
     /// Get area of this polygon
     double getArea() const;
+
+    /// Get area of this polygon
+    unsigned short getAreaUshort() const;
 
     /// Get min X coordinate of this polygon.
     int getMinX() const;
