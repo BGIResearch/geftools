@@ -13,6 +13,24 @@
 using namespace std;
 using namespace cv;
 
+/**
+ * \brief Define a String type with 32 byte
+ *
+ * It is compatible with HDF5 H5T_C_S1 type.
+ *   strtype = H5Tcopy(H5T_C_S1);
+ *   H5Tset_size(strtype, 32);
+ */
+struct S32 {
+    explicit S32(const char *c) {
+        int i = 0;
+        while (c[i] != '\0') {
+            value[i] = c[i];
+            ++i;
+        }
+    }
+    char value[32] = {0};
+};
+
 /*!
  * \brief Copies one file to another path
  * \param src_file The source file path

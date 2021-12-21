@@ -327,6 +327,14 @@ int CommonBin::getVersion() const {
     return version_;
 }
 
+void CommonBin::getGeneNameList(vector<string> & gene_list) {
+    Gene * genes = getGene();
+    for(unsigned int i = 0; i < gene_num_; i++){
+        string name = genes[i].gene;
+        gene_list.emplace_back(name);
+    }
+}
+
 
 
 

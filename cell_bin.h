@@ -47,22 +47,22 @@ struct CellAttr {
 };
 
 struct GeneData {
-    GeneData(const char* g, unsigned int m, unsigned int o, unsigned c)
+    GeneData(const char* g, unsigned int o, unsigned int c, unsigned m)
     {
         int i = 0;
         while (g[i] != '\0')
         {
-            geneName[i] = g[i];
+            gene_name[i] = g[i];
             ++i;
         }
-        maxMIDCount = m;
         offset = o;
-        cellCount = c;
+        cell_count = c;
+        max_mid_count = m;
     }
-    char geneName[32] = {0};
-    unsigned int maxMIDCount;  ///< max MID count of current gene
+    char gene_name[32] = {0};
     unsigned int offset;  ///< Offset of current gene in geneExp, 0-based
-    unsigned int cellCount;
+    unsigned int cell_count;
+    unsigned short max_mid_count;  ///< max MID count of current gene
 };
 
 struct CellExpData {
@@ -79,8 +79,19 @@ struct CellExpData {
 };
 
 struct GeneExpData {
-    unsigned int cellID;
+    unsigned int cell_id;
     unsigned short count;
+};
+
+struct CellType {
+    explicit CellType(const char *c) {
+        int i = 0;
+        while (c[i] != '\0') {
+            cell_type[i] = c[i];
+            ++i;
+        }
+    }
+    char cell_type[32] = {0};
 };
 
 struct CellBinAttr
@@ -98,10 +109,21 @@ class CellBin{
     hid_t group_id_;
     CellBinAttr cell_bin_attr_;
 
-    map<unsigned long long int, vector<CellExpData>> gene_exp_map_;
-    vector<CellExpData> cell_exp_list_;
+//    map<unsigned long long int, vector<CellExpData>> cell_exp_map_;
+    map<unsigned short, vector<GeneExpData>> gene_exp_map_;
     vector<CellData> cell_list_;
-    unsigned int current_cell_offset_ = 0;
+    vector<CellExpData> cell_exp_list_;
+    vector<CellType> cell_type_list_;
+    vector<GeneData> gene_list_;
+    vector<string> gene_name_list_;
+public:
+    const vector<string> &getGeneNameList() const;
+
+    void setGeneNameList(const vector<string> &gene_name_list);
+
+private:
+
+    vector<GeneExpData> gene_exp_list_;
     CellAttr cell_attr_ = {
         .min_gene_count=USHRT_MAX,
         .min_exp_count=USHRT_MAX,
@@ -111,18 +133,16 @@ class CellBin{
         .max_exp_count=0,
         .max_dnb_count=0,
         .max_area=0};
-    unsigned long long int gene_count_sum_ = 0;
     unsigned long long int exp_count_sum_ = 0;
     unsigned long long int dnb_count_sum_ = 0;
     unsigned long long int area_sum_ = 0;
+    unsigned int gene_num_ = 0;
+    unsigned int cell_num_ = 0;
+    unsigned int expression_num_ = 0;
 
   public:
     CellBin(const string& filepath,  const string& mode);
     ~CellBin();
-
-    unsigned int gene_num_ = 0;
-    unsigned int cell_num_ = 0;
-    unsigned long long int expression_num_ = 0;
 
     unsigned int getGeneNum() const;
     unsigned int getCellNum() const;
@@ -142,11 +162,17 @@ class CellBin{
                                const Point& center_point,
                                unsigned short area);
 
+    static unsigned short calcMaxCountOfGeneExp(vector<GeneExpData> & gene_exps);
+
     void storeAttr(CellBinAttr& cell_attr) const;
     void storeCell();
     void storeGeneList(vector<string>& geneList) const;
+    void storeGeneList(GeneData * gene) const;
     void storeCellExp();
     void storeCellBorder(char* borderPath, unsigned int cell_num) const;
+    void storeCellTypeList();
+    void storeGeneExp();
+    void storeGeneAndGeneExp(const vector<string> &gene_name_list);
 };
 
 

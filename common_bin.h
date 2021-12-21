@@ -13,6 +13,7 @@
 #include <map>
 #include "hdf5.h"
 #include "opencv2/opencv.hpp"
+#include "utils.h"
 
 using namespace std;
 using namespace cv;
@@ -102,6 +103,7 @@ class CommonBin {
     ExpressionAttr &getExpressionAttr();
 
     Gene *getGene();
+    void getGeneNameList(vector<string> & gene_list);
     Gene *getGeneIndexes();
     Expression * getExpression();
 

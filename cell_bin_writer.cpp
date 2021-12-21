@@ -48,6 +48,14 @@ int cellBinWriter(const string &bin_gef, const string &mask_file, const string &
     cell_bin_gef.storeCellBorder(borders, mask.getCellNum());
     cell_bin_gef.storeCell();
     cell_bin_gef.storeCellExp();
+    cell_bin_gef.storeCellTypeList();
+
+    vector<string> gene_name_list;
+    gene_name_list.reserve(common_bin_gef.getGeneNum());
+    common_bin_gef.getGeneNameList(gene_name_list);
+//    cell_bin_gef.setGeneNameList(gene_name_list);
+
+    cell_bin_gef.storeGeneAndGeneExp(gene_name_list);
 
 
     return 0;
