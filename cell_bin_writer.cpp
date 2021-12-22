@@ -26,7 +26,7 @@ int cellBinWriter(const string &bin_gef, const string &mask_file, const string &
         Point offset = Point(-p.getMinX(), -p.getMinY());
         offsetCoordinates(non_zero_coordinates, non_zero_coordinates_offset, offset);
 
-        cell_bin_gef.addDnbInCell(
+        cell_bin_gef.addDnbExp(
                 non_zero_coordinates_offset,
                 bin_gene_exp_map,
                 p.getCenter(),

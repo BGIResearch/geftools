@@ -73,7 +73,7 @@ struct CellExpData {
 //        geneID = g;
 //        count = c;
 //    }
-    unsigned short geneID;
+    unsigned short gene_id;
     unsigned short count;
 };
 
@@ -82,12 +82,15 @@ struct GeneExpData {
     unsigned short count;
 };
 
+/**
+ * @brief Attributes of the cell bin GEF.
+ */
 struct CellBinAttr
 {
-    unsigned int version;
-    unsigned int resolution;
-    unsigned int offsetX;
-    unsigned int offsetY;
+    unsigned int version; ///< Cell Bin GEF version
+    unsigned int resolution; ///< Pitch (nm) between neighbor spots
+    unsigned int offsetX; ///< Minimum value of x-axis coordinate with offset
+    unsigned int offsetY; ///< Minimum value of y-axis coordinate with offset
 };
 
 
@@ -103,9 +106,6 @@ class CellBin{
     vector<S32> cell_type_list_;
     vector<GeneData> gene_list_;
     vector<string> gene_name_list_;
-
-private:
-
     vector<GeneExpData> gene_exp_list_;
     CellAttr cell_attr_ = {
         .min_gene_count=USHRT_MAX,
@@ -122,6 +122,7 @@ private:
     unsigned int gene_num_ = 0;
     unsigned int cell_num_ = 0;
     unsigned int expression_num_ = 0;
+    unsigned short max_mid_count_ = 0;
 
   public:
     CellBin(const string& filepath,  const string& mode);
@@ -140,7 +141,7 @@ private:
      * @param center_point Center point of cell polygon
      * @param area The polygon area of the cell
      */
-    void addDnbInCell(vector<Point> & dnb_coordinates,
+    void addDnbExp(vector<Point> & dnb_coordinates,
                                map<unsigned long long int, vector<unsigned int>> & bin_gene_exp_map,
                                const Point& center_point,
                                unsigned short area);
@@ -149,12 +150,9 @@ private:
 
     void storeAttr(CellBinAttr& cell_attr) const;
     void storeCell();
-    void storeGeneList(vector<string>& geneList) const;
-    void storeGeneList(GeneData * gene) const;
     void storeCellExp();
     void storeCellBorder(char* borderPath, unsigned int cell_num) const;
     void storeCellTypeList();
-    void storeGeneExp();
     void storeGeneAndGeneExp(const vector<string> &gene_name_list);
 };
 
