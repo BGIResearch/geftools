@@ -1,4 +1,3 @@
 .idea
 cmake-build-debug/
-doc/html
 test_data/
