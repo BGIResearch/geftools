@@ -1,0 +1,21 @@
+var searchData=
+[
+  ['getarea_0',['getArea',['../class_polygon.html#ae1ae9dd5e5613f119af3e31488427b01',1,'Polygon']]],
+  ['getareaushort_1',['getAreaUshort',['../class_polygon.html#afa8e2fc0812c09e27a7f430c4c84947f',1,'Polygon']]],
+  ['getbingeneexpmap_2',['getBinGeneExpMap',['../class_common_bin.html#a96d88d90b7850e457359e4fd7e0c70f0',1,'CommonBin']]],
+  ['getborder_3',['getBorder',['../class_polygon.html#a7feed47d0bc448efabb4f20a1e5991fe',1,'Polygon']]],
+  ['getborders_4',['getBorders',['../class_mask.html#a26eb1ff695b9b35b968a915837f917d8',1,'Mask']]],
+  ['getbordersize_5',['getBorderSize',['../class_polygon.html#ae87f697e644340e59b44ece93ca872ac',1,'Polygon']]],
+  ['getcellnum_6',['getCellNum',['../class_mask.html#a683d99d7cdce1747bd46dc83ec0d3e44',1,'Mask']]],
+  ['getcenter_7',['getCenter',['../class_polygon.html#ab31c47d61af9f6acde76d4ba595e68fb',1,'Polygon']]],
+  ['getcols_8',['getCols',['../class_polygon.html#afdfa9a0a9167797f920580b3ac870760',1,'Polygon']]],
+  ['getfillpolymat_9',['getFillPolyMat',['../class_polygon.html#a424f1ac9a409811d363640d6feb67802',1,'Polygon']]],
+  ['getmaxx_10',['getMaxX',['../class_polygon.html#a523bedf2f3a6b02c0e400702332e3cdd',1,'Polygon']]],
+  ['getmaxy_11',['getMaxY',['../class_polygon.html#ab6a07a2ad5c72b565c74ff466ab9b68d',1,'Polygon']]],
+  ['getminx_12',['getMinX',['../class_polygon.html#aaf3fd68764e1f849a6a2a493493596b3',1,'Polygon']]],
+  ['getminy_13',['getMinY',['../class_polygon.html#a351eacfa57e013d434d62ec796e59103',1,'Polygon']]],
+  ['getoriginalcontoursize_14',['getOriginalContourSize',['../class_polygon.html#a9245055acf9ccce20fccf127baf17806',1,'Polygon']]],
+  ['getpolygons_15',['getPolygons',['../class_mask.html#a1d012e76752fdfa83eaa519eb38c3475',1,'Mask']]],
+  ['getrows_16',['getRows',['../class_polygon.html#a67920d9bbc687bd4865bc602a9e6740e',1,'Polygon']]],
+  ['getstrftime_17',['getStrfTime',['../utils_8h.html#abab6a9fd0a9d11aecf5c896a739fc526',1,'utils.h']]]
+];
