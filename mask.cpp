@@ -24,6 +24,10 @@ Mask::Mask(const string& file){
         bool cell_polygon_is_good = p.applyContour(contour);
         if(cell_polygon_is_good){
             polygons_.emplace_back(p);
+            min_x_ = p.getMinX() < min_x_ ? p.getMinX() : min_x_;
+            max_x_ = p.getMaxX() > max_x_ ? p.getMaxX() : max_x_;
+            min_y_ = p.getMinY() < min_y_ ? p.getMinY() : min_y_;
+            max_y_ = p.getMaxY() > max_y_ ? p.getMaxY() : max_y_;
         }
     }
 
@@ -67,4 +71,15 @@ void Mask::getBorders(char * border_array) {
             }
         }
     }
+}
+
+/**
+ * @brief Gets the coordinates of effective rectangle region.
+ * @param effective_rect  Should be a int array with 4 size. They represent min_x, min_y, max_x, max_y in turn.
+ */
+void Mask::getEffectiveRectangle(unsigned int* effective_rect) const {
+    effective_rect[0] = min_x_;
+    effective_rect[1] = min_y_;
+    effective_rect[2] = max_x_;
+    effective_rect[3] = max_y_;
 }

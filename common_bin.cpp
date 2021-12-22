@@ -233,39 +233,8 @@ Mat CommonBin::getWholeExpMatrix(Rect roi){
     return whole_exp_matrix_t_(roi);
 }
 
-
-void CommonBin::getDnbStatMatrix(unsigned int offset_x,
-                                 unsigned int offset_y,
-                                 unsigned int rows,
-                                 unsigned int cols,
-                                 unsigned char *matrix) const {
-    hsize_t start[2] = {offset_x, offset_y},
-            count[2] = {rows, cols},
-            offset_out[2] = {0, 0};
-
-    hid_t memtype;
-    memtype = H5Tcreate(H5T_COMPOUND, 1);
-    // genecount的值大于255将读取为255
-    H5Tinsert(memtype, "genecount", 0, H5T_NATIVE_UCHAR);
-
-    // Define memory dataspace.
-    hid_t memspace = H5Screate_simple(2, count,NULL);
-    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out, NULL, count, NULL);
-
-    H5Sselect_hyperslab (whole_exp_dataspace_id_, H5S_SELECT_SET, start, NULL, count, NULL);
-    H5Dread (whole_exp_dataset_id_, memtype, memspace, whole_exp_dataspace_id_, H5P_DEFAULT, matrix);
-}
-
 const unsigned int *CommonBin::getDnbStatMatrixShape() const {
     return dnb_stat_matrix_shape_;
-}
-
-void CommonBin::getDnbStatMatrixT(unsigned int offset_x,
-                                  unsigned int offset_y,
-                                  unsigned int rows,
-                                  unsigned int cols,
-                                  unsigned char *matrix) const {
-    getDnbStatMatrix(offset_y, offset_x, cols, rows, matrix);
 }
 
 map<unsigned long long int, vector<unsigned int>> CommonBin::getBinGeneExpMap() {

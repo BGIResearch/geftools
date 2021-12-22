@@ -45,7 +45,10 @@ int cellBinWriter(const string &bin_gef, const string &mask_file, const string &
     };
 
     cell_bin_gef.storeAttr(cell_bin_attr);
-    cell_bin_gef.storeCellBorder(borders, mask.getCellNum());
+
+    unsigned int effective_rect[4];
+    mask.getEffectiveRectangle(effective_rect);
+    cell_bin_gef.storeCellBorderWithAttr(borders, mask.getCellNum(), effective_rect);
     cell_bin_gef.storeCell();
     cell_bin_gef.storeCellExp();
     cell_bin_gef.storeCellTypeList();

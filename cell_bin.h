@@ -152,6 +152,7 @@ class CellBin{
     void storeCell();
     void storeCellExp();
     void storeCellBorder(char* borderPath, unsigned int cell_num) const;
+    void storeCellBorderWithAttr(char* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
     void storeCellTypeList();
     void storeGeneAndGeneExp(const vector<string> &gene_name_list);
 };

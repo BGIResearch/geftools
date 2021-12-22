@@ -19,10 +19,10 @@ using namespace std;
 class Mask {
   private:
     unsigned int cell_num_;
-    int rows_, cols_;
     vector<vector<Point> > contours_;
     vector<Vec4i> hierarchy_;
     vector<Polygon> polygons_;
+    int min_x_{INT_MAX}, max_x_{0}, min_y_{INT_MAX}, max_y_{0}, rows_{0}, cols_{0};
 
   public:
     /**
@@ -52,6 +52,8 @@ class Mask {
      * @param border_array A pointer to a memory block, size = cell_num * 16 * 2 *sizeof(char)
      */
     void getBorders(char * border_array);
+
+    void getEffectiveRectangle(unsigned int* effective_rect) const;
 };
 
 #endif //GEFTOOLS__MASK_H_

@@ -69,11 +69,11 @@ class CommonBin {
     unsigned long long expression_num_ = 0;
     ExpressionAttr expression_attr_{};
     bool expression_attr_init_ = false;
-    unsigned int dnb_stat_matrix_shape_[2];
+    unsigned int dnb_stat_matrix_shape_[2] = {0};
     Gene* genes_ = nullptr;
     Expression* expressions_ = nullptr;
     Mat whole_exp_matrix_t_;
-    int version_;
+    int version_{};
 
     hid_t file_id_;
     hid_t exp_dataspace_id_{};
@@ -107,18 +107,6 @@ class CommonBin {
     void cacheWholeExpMatrix();
 
     Mat getWholeExpMatrix(Rect roi);
-
-    void getDnbStatMatrix(unsigned int offset_x,
-                          unsigned int offset_y,
-                          unsigned int rows,
-                          unsigned int cols,
-                          unsigned char * matrix) const;
-
-    void getDnbStatMatrixT(unsigned int offset_x,
-                          unsigned int offset_y,
-                          unsigned int rows,
-                          unsigned int cols,
-                          unsigned char * matrix) const;
 
     //sparse matrix indexes
     vector<unsigned long long int> getSparseMatrixIndexesOfExp(unsigned int * cell_index, unsigned int * count);

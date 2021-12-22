@@ -45,6 +45,29 @@ void CellBin::storeCellBorder(char* borderPath, unsigned int cell_num) const {
     H5Dclose(dataset_id);
 }
 
+
+void CellBin::storeCellBorderWithAttr(char *borderPath, unsigned int cell_num, unsigned int *effective_rect) const {
+    storeCellBorder(borderPath, cell_num);
+
+    hid_t dataset_id = H5Dopen(group_id_, "cellBorder", H5P_DEFAULT);
+
+    hsize_t dims_attr[1] = {1};
+    hid_t attr;
+    hid_t attr_dataspace = H5Screate_simple(1, dims_attr, NULL);
+    attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, effective_rect);
+    attr = H5Acreate(dataset_id, "minY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[1]);
+    attr = H5Acreate(dataset_id, "maxX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[2]);
+    attr = H5Acreate(dataset_id, "maxY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[3]);
+
+    H5Aclose(attr);
+    H5Sclose(attr_dataspace);
+    H5Dclose(dataset_id);
+}
+
 void CellBin::storeCellExp() {
 
     hsize_t dims[1] = {cell_exp_list_.size()};
@@ -354,4 +377,3 @@ unsigned short CellBin::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps) {
     }
     return max;
 }
-
