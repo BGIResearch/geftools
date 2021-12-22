@@ -7,12 +7,9 @@
 #ifndef GEFTOOLS__COMMON_BIN_H_
 #define GEFTOOLS__COMMON_BIN_H_
 
-#include <string>
 #include <vector>
-#include <iostream>
 #include <map>
 #include "hdf5.h"
-#include "opencv2/opencv.hpp"
 #include "utils.h"
 
 using namespace std;

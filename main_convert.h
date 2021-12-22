@@ -6,6 +6,8 @@
 #define GEFTOOLS__MAIN_CONVERT_H_
 
 #include <string>
+#include "cell_bin_writer.h"
+#include "cxxopts.h"
 
 using namespace std;
 

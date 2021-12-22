@@ -8,6 +8,9 @@
 #define GEFTOOLS__UTILS_H_
 
 #include <string>
+#include <ctime>
+#include <iostream>
+#include <fstream>
 #include "opencv2/opencv.hpp"
 
 using namespace std;
@@ -21,6 +24,8 @@ using namespace cv;
  *   H5Tset_size(strtype, 32);
  */
 struct S32 {
+    S32() = default;
+
     explicit S32(const char *c) {
         int i = 0;
         while (c[i] != '\0') {
@@ -28,8 +33,14 @@ struct S32 {
             ++i;
         }
     }
+
     char value[32] = {0};
 };
+
+/**
+ * @brief Gets the format string of now time.
+ */
+S32 getStrfTime();
 
 /*!
  * \brief Copies one file to another path

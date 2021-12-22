@@ -7,12 +7,11 @@
 #ifndef GEFTOOLS__CELL_BIN_H_
 #define GEFTOOLS__CELL_BIN_H_
 
-#include <string>
 #include <vector>
-#include <iostream>
 #include <map>
 #include "hdf5.h"
 #include "opencv2/opencv.hpp"
+#include "utils.h"
 
 using namespace std;
 using namespace cv;
@@ -83,17 +82,6 @@ struct GeneExpData {
     unsigned short count;
 };
 
-struct CellType {
-    explicit CellType(const char *c) {
-        int i = 0;
-        while (c[i] != '\0') {
-            cell_type[i] = c[i];
-            ++i;
-        }
-    }
-    char cell_type[32] = {0};
-};
-
 struct CellBinAttr
 {
     unsigned int version;
@@ -107,19 +95,14 @@ class CellBin{
   private:
     hid_t file_id_;
     hid_t group_id_;
-    CellBinAttr cell_bin_attr_;
+    hid_t str32_type;
 
-//    map<unsigned long long int, vector<CellExpData>> cell_exp_map_;
     map<unsigned short, vector<GeneExpData>> gene_exp_map_;
     vector<CellData> cell_list_;
     vector<CellExpData> cell_exp_list_;
-    vector<CellType> cell_type_list_;
+    vector<S32> cell_type_list_;
     vector<GeneData> gene_list_;
     vector<string> gene_name_list_;
-public:
-    const vector<string> &getGeneNameList() const;
-
-    void setGeneNameList(const vector<string> &gene_name_list);
 
 private:
 

@@ -5,15 +5,16 @@
 #include "cell_bin.h"
 
 CellBin::CellBin(const string &filepath, const string &mode) {
-    //    bool r = copyFile(inPath, outPath);
-    //    if(!r) cerr << "Error writing to file (" << outPath << ") is failed!" << endl;
+    str32_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(str32_type, 32);
 
-    printf("create h5 file: %s\n", filepath.c_str());
+//    cout << "create h5 file: " <<  filepath << endl;
     file_id_ = H5Fcreate(filepath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     group_id_ = H5Gcreate(file_id_, "/cellBin", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 }
 
 CellBin::~CellBin() {
+    H5Tclose(str32_type);
     H5Fclose(file_id_);
     H5Gclose(group_id_);
 }
@@ -32,13 +33,11 @@ unsigned long long int CellBin::getExpressionNum() const {
 
 void CellBin::storeGeneList(vector<string> & geneList) const {
     hsize_t dims[1] = {geneList.size()};
-    hid_t strtype = H5Tcopy(H5T_C_S1);
-    H5Tset_size(strtype, 32);
 
     hid_t dataspace_id = H5Screate_simple(1, dims, NULL);
-    hid_t dataset_id = H5Dcreate(group_id_, "geneList", strtype, dataspace_id, H5P_DEFAULT,
+    hid_t dataset_id = H5Dcreate(group_id_, "geneList", str32_type, dataspace_id, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, strtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &geneList[0]);
+    H5Dwrite(dataset_id, str32_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, &geneList[0]);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
 }
@@ -253,14 +252,17 @@ void CellBin::storeAttr(CellBinAttr & cell_bin_attr) const {
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.offsetX);
     attr = H5Acreate(file_id_, "offsetY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.offsetY);
+    S32 time_str = getStrfTime();
+    attr = H5Acreate(file_id_, "createTime", str32_type, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, str32_type, &time_str);
 
+    H5Aclose(attr);
+    H5Sclose(attr_dataspace);
 }
 
 void CellBin::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
     gene_num_ = gene_name_list.size();
     hsize_t dims[1] = {gene_num_};
-    hid_t strtype = H5Tcopy(H5T_C_S1);
-    H5Tset_size(strtype, 32);
 
     GeneData* gene_data_list;
     gene_data_list = static_cast<GeneData *>(malloc(gene_num_ * sizeof(GeneData)));
@@ -286,13 +288,13 @@ void CellBin::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
 
     hid_t memtype, filetype;
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneData));
-    H5Tinsert(memtype, "geneName", HOFFSET(GeneData, gene_name), strtype);
+    H5Tinsert(memtype, "geneName", HOFFSET(GeneData, gene_name), str32_type);
     H5Tinsert(memtype, "offset", HOFFSET(GeneData, offset), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "cellCount", HOFFSET(GeneData, cell_count), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "maxMIDcount", HOFFSET(GeneData, max_mid_count), H5T_NATIVE_USHORT);
 
     filetype = H5Tcreate(H5T_COMPOUND, 42);
-    H5Tinsert(filetype, "geneName", 0, strtype);
+    H5Tinsert(filetype, "geneName", 0, str32_type);
     H5Tinsert(filetype, "offset", 32, H5T_STD_U32LE);
     H5Tinsert(filetype, "cellCount", 36, H5T_STD_U32LE);
     H5Tinsert(filetype, "maxMIDcount", 40, H5T_STD_U16LE);
@@ -324,16 +326,14 @@ void CellBin::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
 
 void CellBin::storeCellTypeList() {
     hsize_t dims[1] = {1};
-    hid_t strtype = H5Tcopy(H5T_C_S1);
-    H5Tset_size(strtype, 32);
 
-    CellType cell_type = CellType("default");
+    S32 cell_type = S32("default");
     cell_type_list_.emplace_back(cell_type);
 
     hid_t dataspace_id = H5Screate_simple(1, dims, NULL);
-    hid_t dataset_id = H5Dcreate(group_id_, "cellTypeList", strtype, dataspace_id, H5P_DEFAULT,
+    hid_t dataset_id = H5Dcreate(group_id_, "cellTypeList", str32_type, dataspace_id, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, strtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_type_list_[0]);
+    H5Dwrite(dataset_id, str32_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_type_list_[0]);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
 }
@@ -346,10 +346,3 @@ unsigned short CellBin::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps) {
     return max;
 }
 
-const vector<string> &CellBin::getGeneNameList() const {
-    return gene_name_list_;
-}
-
-void CellBin::setGeneNameList(const vector<string> &gene_name_list) {
-    gene_name_list_ = gene_name_list;
-}

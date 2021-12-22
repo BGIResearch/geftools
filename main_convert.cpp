@@ -3,7 +3,6 @@
 //
 
 #include "main_convert.h"
-#include "cxxopts.h"
 
 int convert(int argc, char *argv[]) {
 
@@ -53,7 +52,7 @@ int convert(int argc, char *argv[]) {
         result["verbose"].as<bool>()
     };
 
+    cellBinWriter(convert_options.input_file, convert_options.mask_file, convert_options.output_file);
 
-
-  return 0;
+    return 0;
 }

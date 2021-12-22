@@ -53,10 +53,7 @@ int cellBinWriter(const string &bin_gef, const string &mask_file, const string &
     vector<string> gene_name_list;
     gene_name_list.reserve(common_bin_gef.getGeneNum());
     common_bin_gef.getGeneNameList(gene_name_list);
-//    cell_bin_gef.setGeneNameList(gene_name_list);
-
     cell_bin_gef.storeGeneAndGeneExp(gene_name_list);
-
 
     return 0;
 }

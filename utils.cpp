@@ -1,6 +1,13 @@
-#include <iostream>
-#include <fstream>
 #include "utils.h"
+
+S32 getStrfTime()
+{
+    time_t timep;
+    time (&timep);
+    S32 tmp;
+    strftime(tmp.value, sizeof(tmp), "%Y-%m-%d %H:%M:%S",localtime(&timep) );
+    return tmp;
+};
 
 bool copyFile(const string& src_file, const string& dst_file) {
     ifstream fin(src_file, ios::binary);
