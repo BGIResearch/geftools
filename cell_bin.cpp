@@ -172,7 +172,7 @@ void CellBin::storeCell() {
 }
 
 void CellBin::addDnbExp(vector<Point> & dnb_coordinates,
-                           map<unsigned long long int, vector<unsigned int>> & bin_gene_exp_map,
+                           map<unsigned long long int, vector<CellExpData>> & bin_gene_exp_map,
                            const Point& center_point,
                            unsigned short area) {
     unsigned long long int bin_id;
@@ -185,12 +185,8 @@ void CellBin::addDnbExp(vector<Point> & dnb_coordinates,
         bin_id = bin_id << 32 | static_cast<unsigned int>(dnb_coordinate.y);
         auto iter = bin_gene_exp_map.find(bin_id);
         if(iter != bin_gene_exp_map.end()){
-            vector<unsigned int> gene_exps = iter->second;
-            for (auto gene_exp : gene_exps) {
-//                CellExpData cell_gene_exp = CellExpData(gene_exp);
-                CellExpData cell_gene_exp{};
-                memcpy(&cell_gene_exp, &gene_exp, sizeof(unsigned int));
-
+            vector<CellExpData> gene_exps = iter->second;
+            for (auto cell_gene_exp : gene_exps) {
                 exp_count += cell_gene_exp.count;
                 auto iter_gene = gene_count_in_cell.find(cell_gene_exp.gene_id);
                 if(iter_gene != gene_count_in_cell.end()){

@@ -12,87 +12,7 @@
 #include "hdf5.h"
 #include "opencv2/opencv.hpp"
 #include "utils.h"
-
-using namespace std;
-using namespace cv;
-
-/**
- * @brief Describe the Cell dataset in the cell bin GEF file
- */
-struct CellData {
-  unsigned int x; ///< Coordinate X of center point in this cell
-  unsigned int y; ///< Coordinate Y of center point in this cell
-  unsigned int offset;  ///< Offset of current cell in cellExp, 0-based
-  unsigned short gene_count; ///< The number of gene in this cell
-  unsigned short exp_count; ///< The total expression count of all genes in this cell
-  unsigned short dnb_count; ///< Dnb number in this cell
-  unsigned short area; ///< The polygon area of this cell
-  unsigned short cell_type_id; ///< Cell type ID to index the CellTypeList
-};
-
-struct CellAttr {
-    float average_gene_count;
-    float average_exp_count;
-    float average_dnb_count;
-    float average_area;
-    unsigned short min_gene_count;
-    unsigned short min_exp_count;
-    unsigned short min_dnb_count;
-    unsigned short min_area;
-    unsigned short max_gene_count;
-    unsigned short max_exp_count;
-    unsigned short max_dnb_count;
-    unsigned short max_area;
-};
-
-struct GeneData {
-    GeneData(const char* g, unsigned int o, unsigned int c, unsigned m)
-    {
-        int i = 0;
-        while (g[i] != '\0')
-        {
-            gene_name[i] = g[i];
-            ++i;
-        }
-        offset = o;
-        cell_count = c;
-        max_mid_count = m;
-    }
-    char gene_name[32] = {0};
-    unsigned int offset;  ///< Offset of current gene in geneExp, 0-based
-    unsigned int cell_count;
-    unsigned short max_mid_count;  ///< max MID count of current gene
-};
-
-struct CellExpData {
-//    explicit CellExpData(unsigned int gene_exp){
-//        geneID = gene_exp >> 16;
-//        count = gene_exp  & 0xFFFF;
-//    }
-//    CellExpData(unsigned short g, unsigned short c){
-//        geneID = g;
-//        count = c;
-//    }
-    unsigned short gene_id;
-    unsigned short count;
-};
-
-struct GeneExpData {
-    unsigned int cell_id;
-    unsigned short count;
-};
-
-/**
- * @brief Attributes of the cell bin GEF.
- */
-struct CellBinAttr
-{
-    unsigned int version; ///< Cell Bin GEF version
-    unsigned int resolution; ///< Pitch (nm) between neighbor spots
-    unsigned int offsetX; ///< Minimum value of x-axis coordinate with offset
-    unsigned int offsetY; ///< Minimum value of y-axis coordinate with offset
-};
-
+#include "gef.h"
 
 class CellBin{
   private:
@@ -142,7 +62,7 @@ class CellBin{
      * @param area The polygon area of the cell
      */
     void addDnbExp(vector<Point> & dnb_coordinates,
-                               map<unsigned long long int, vector<unsigned int>> & bin_gene_exp_map,
+                               map<unsigned long long int, vector<CellExpData>> & bin_gene_exp_map,
                                const Point& center_point,
                                unsigned short area);
 

@@ -105,6 +105,7 @@ const vector<Point> &Polygon::getRelativeBorder() const {
     return relative_border_;
 }
 
+// ceil up to the nearest (unsigned short) integer
 unsigned short Polygon::getAreaUshort() const {
-    return static_cast<unsigned short>(area_);
+    return ceil(area_);
 }

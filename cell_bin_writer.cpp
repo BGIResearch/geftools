@@ -6,7 +6,8 @@
 
 int cellBinWriter(const string &bin_gef, const string &mask_file, const string &outfile) {
     CommonBin common_bin_gef = CommonBin(bin_gef, 1);
-    map<unsigned long long int, vector<unsigned int>> bin_gene_exp_map = common_bin_gef.getBinGeneExpMap();
+    map<unsigned long long int, vector<CellExpData>> bin_gene_exp_map;
+    common_bin_gef.getBinGeneExpMap(bin_gene_exp_map);
 
     CellBin cell_bin_gef = CellBin(outfile, "w");
 

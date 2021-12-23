@@ -1,0 +1,133 @@
+/** @file gef.h
+    @brief Declare GEFs related structs.
+
+    Created by huangzhibo on 2021/12/23.
+*/
+
+#ifndef GEFTOOLS_GEF_H
+#define GEFTOOLS_GEF_H
+
+/**
+ * @brief Expression struct
+ */
+struct Expression {
+    unsigned int x; ///< dnb coordinates x
+    unsigned int y; ///< dnb coordinates x
+    unsigned int cnt; ///< expression count (MIDcount)
+};
+
+/**
+ * @brief ExpressionAttr struct, record the attributes of the dataset named expressione
+ */
+struct ExpressionAttr
+{
+    unsigned int min_x; ///< Min X of dnb coordinate
+    unsigned int min_y; ///< Min Y of dnb coordinate
+    unsigned int max_x; ///< Max X of dnb coordinate
+    unsigned int max_y; ///< Max Y of dnb coordinate
+    unsigned int max_exp;  ///< Max expression count
+    unsigned int resolution; ///< The resolution of stereo chip
+};
+
+struct Gene {
+    Gene(const char* g, unsigned int o, unsigned c)
+    {
+        int i = 0;
+        while (g[i] != '\0')
+        {
+            gene[i] = g[i];
+            ++i;
+        }
+        offset = o;
+        count = c;
+    }
+    char gene[32] = {0};
+    unsigned int offset;
+    unsigned int count;
+};
+
+// wholeExp Matrix
+struct BinStat {
+    unsigned int MIDcount;
+    unsigned short genecount;
+};
+
+/**
+ * @brief Describe the Cell dataset in the cell bin GEF file
+ */
+struct CellData {
+    unsigned int x; ///< Coordinate X of center point in this cell
+    unsigned int y; ///< Coordinate Y of center point in this cell
+    unsigned int offset;  ///< Offset of current cell in cellExp, 0-based
+    unsigned short gene_count; ///< The number of gene in this cell
+    unsigned short exp_count; ///< The total expression count of all genes in this cell
+    unsigned short dnb_count; ///< Dnb number in this cell
+    unsigned short area; ///< The polygon area of this cell
+    unsigned short cell_type_id; ///< Cell type ID to index the CellTypeList
+};
+
+struct CellAttr {
+    float average_gene_count;
+    float average_exp_count;
+    float average_dnb_count;
+    float average_area;
+    unsigned short min_gene_count;
+    unsigned short min_exp_count;
+    unsigned short min_dnb_count;
+    unsigned short min_area;
+    unsigned short max_gene_count;
+    unsigned short max_exp_count;
+    unsigned short max_dnb_count;
+    unsigned short max_area;
+};
+
+struct GeneData {
+    GeneData(const char* g, unsigned int o, unsigned int c, unsigned m)
+    {
+        int i = 0;
+        while (g[i] != '\0')
+        {
+            gene_name[i] = g[i];
+            ++i;
+        }
+        offset = o;
+        cell_count = c;
+        max_mid_count = m;
+    }
+    char gene_name[32] = {0};
+    unsigned int offset;  ///< Offset of current gene in geneExp, 0-based
+    unsigned int cell_count;
+    unsigned short max_mid_count;  ///< max MID count of current gene
+};
+
+struct CellExpData {
+//    explicit CellExpData(unsigned int gene_exp){
+//        geneID = gene_exp >> 16;
+//        count = gene_exp  & 0xFFFF;
+//    }
+//    CellExpData(unsigned short g, unsigned short c){
+//        geneID = g;
+//        count = c;
+//    }
+    unsigned short gene_id;
+    unsigned short count;
+};
+
+struct GeneExpData {
+    unsigned int cell_id;
+    unsigned short count;
+};
+
+/**
+ * @brief Attributes of the cell bin GEF.
+ */
+struct CellBinAttr
+{
+    unsigned int version; ///< Cell Bin GEF version
+    unsigned int resolution; ///< Pitch (nm) between neighbor spots
+    unsigned int offsetX; ///< Minimum value of x-axis coordinate with offset
+    unsigned int offsetY; ///< Minimum value of y-axis coordinate with offset
+};
+
+
+#endif //GEFTOOLS_GEF_H

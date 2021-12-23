@@ -58,7 +58,12 @@ private:
     /// Get area of this polygon
     double getArea() const;
 
-    /// Get area of this polygon
+    /**
+     * @brief Gets area of this polygon.
+     *
+     * Ceil up to the nearest (unsigned short) integer
+     */
+
     unsigned short getAreaUshort() const;
 
     /// Get min X coordinate of this polygon.

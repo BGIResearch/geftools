@@ -91,7 +91,7 @@ int CommonBin::getBinSize() const {
     return bin_size_;
 }
 
-unsigned int CommonBin::getGeneNum() const {
+unsigned short CommonBin::getGeneNum() const {
     return gene_num_;
 }
 
@@ -172,7 +172,7 @@ vector<string> CommonBin::getSparseMatrixIndexesOfGene(unsigned int *gene_index)
 
     vector<string> uniq_genes;
     unsigned long long exp_len_index = 0;
-    for (unsigned int i = 0; i < gene_num_; ++i)
+    for (unsigned short i = 0; i < gene_num_; ++i)
     {
         const char* gene = gene_data[i].gene;
         uniq_genes.emplace_back(gene);
@@ -237,15 +237,12 @@ const unsigned int *CommonBin::getDnbStatMatrixShape() const {
     return dnb_stat_matrix_shape_;
 }
 
-map<unsigned long long int, vector<unsigned int>> CommonBin::getBinGeneExpMap() {
-    map<unsigned long long int, vector<unsigned int>> bin_exp_map;
-
+void CommonBin::getBinGeneExpMap(map<unsigned long long int, vector<CellExpData>>& bin_exp_map) {
     Gene* gene_data = getGene();
     Expression* expression_data = getExpression();
     unsigned long long int bin_id, exp_len_index = 0;
-    unsigned int gene_exp = 0;
 
-    for (unsigned int i = 0; i < gene_num_; ++i)
+    for (unsigned short i = 0; i < gene_num_; ++i)
     {
         assert(exp_len_index + gene_data[i].count <= expression_num_);
         for (unsigned int j = 0; j < gene_data[i].count; ++j)
@@ -254,8 +251,7 @@ map<unsigned long long int, vector<unsigned int>> CommonBin::getBinGeneExpMap() 
             bin_id = static_cast<unsigned long long int>(exp.x);
             bin_id = bin_id << 32 | exp.y;
 
-            gene_exp = exp.cnt;
-            gene_exp = gene_exp << 16 | i;
+            CellExpData gene_exp = {i, static_cast<unsigned short>(exp.cnt)};
 
             exp_len_index++;
 
@@ -263,14 +259,12 @@ map<unsigned long long int, vector<unsigned int>> CommonBin::getBinGeneExpMap() 
             if(iter != bin_exp_map.end()){
                 iter->second.emplace_back(gene_exp);
             }else{
-                vector<unsigned int> gene_exp_list;
+                vector<CellExpData> gene_exp_list;
                 gene_exp_list.emplace_back(gene_exp);
-                bin_exp_map.insert(map<unsigned long long, vector<unsigned int>>::value_type (bin_id, gene_exp_list));
+                bin_exp_map.insert(map<unsigned long long, vector<CellExpData>>::value_type (bin_id, gene_exp_list));
             }
         }
     }
-
-    return bin_exp_map;
 }
 
 void CommonBin::clear() {
