@@ -4,31 +4,168 @@
 
 #include "cell_bin.h"
 
-CellBin::CellBin(const string &filepath, const string &mode) {
-    str32_type = H5Tcopy(H5T_C_S1);
-    H5Tset_size(str32_type, 32);
+CellBin::CellBin(const string &filename, const string &mode) {
+    str32_type_ = H5Tcopy(H5T_C_S1);
+    H5Tset_size(str32_type_, 32);
 
-//    cout << "create h5 file: " <<  filepath << endl;
-    file_id_ = H5Fcreate(filepath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-    group_id_ = H5Gcreate(file_id_, "/cellBin", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    mode_ = mode;
+
+    if(mode == "r"){
+        file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        group_id_ = H5Gopen(file_id_, "/cellBin", H5P_DEFAULT);
+        openCellDataset();
+        openCellExpDataset();
+        openGeneDataset();
+        openGeneExpDataset();
+    } else if(mode == "w"){
+        cerr << "create h5 file: " <<  filename << endl;
+        file_id_ = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        group_id_ = H5Gcreate(file_id_, "/cellBin", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
 }
 
 CellBin::~CellBin() {
-    H5Tclose(str32_type);
+    H5Tclose(str32_type_);
     H5Fclose(file_id_);
     H5Gclose(group_id_);
+    if(mode_ == "r"){
+        H5Dclose(cell_dataset_id_);
+        H5Dclose(gene_dataset_id_);
+        H5Dclose(cell_exp_dataset_id_);
+        H5Dclose(gene_exp_dataset_id_);
+    }
+    if(gene_array_ != nullptr)
+        free(gene_array_);
+    if(cell_array_ != nullptr)
+        free(cell_array_);
 }
 
-unsigned int CellBin::getGeneNum() const {
-    return gene_num_;
+void CellBin::openCellDataset() {
+    hsize_t dims[1];
+    cell_dataset_id_ = H5Dopen(group_id_, "cell", H5P_DEFAULT);
+    if (cell_dataset_id_ < 0){
+        cerr<<"failed open dataset: cell" <<endl;
+        return;
+    }
+    hid_t cell_dataspace_id = H5Dget_space(cell_dataset_id_);
+    H5Sget_simple_extent_dims(cell_dataspace_id, dims, NULL);
+    cell_num_ = dims[0];
+    H5Sclose(cell_dataspace_id);
+}
+
+void CellBin::openGeneDataset() {
+    hsize_t dims[1];
+    gene_dataset_id_ = H5Dopen(group_id_, "gene", H5P_DEFAULT);
+    if (gene_dataset_id_ < 0){
+        cerr<<"failed open dataset: gene" <<endl;
+        return;
+    }
+    hid_t gene_dataspace_id = H5Dget_space(gene_dataset_id_);
+    H5Sget_simple_extent_dims(gene_dataspace_id, dims, NULL);
+    gene_num_ = dims[0];
+    H5Sclose(gene_dataspace_id);
+}
+
+
+void CellBin::openCellExpDataset() {
+    hsize_t dims[1];
+    cell_exp_dataset_id_ = H5Dopen(group_id_, "cellExp", H5P_DEFAULT);
+    if (cell_exp_dataset_id_ < 0){
+        cerr<<"failed open dataset: cellExp" <<endl;
+        return;
+    }
+    hid_t cell_exp_dataspace_id = H5Dget_space(cell_exp_dataset_id_);
+    H5Sget_simple_extent_dims(cell_exp_dataspace_id, dims, NULL);
+    expression_num_ = dims[0];
+    H5Sclose(cell_exp_dataspace_id);
+}
+
+void CellBin::openGeneExpDataset() {
+    hsize_t dims[1];
+    gene_exp_dataset_id_ = H5Dopen(group_id_, "geneExp", H5P_DEFAULT);
+    if (gene_exp_dataset_id_ < 0){
+        cerr<<"failed open dataset: geneExp" <<endl;
+        return;
+    }
 }
 
 unsigned int CellBin::getCellNum() const {
     return cell_num_;
 }
 
+unsigned short CellBin::getGeneNum() const {
+    return gene_num_;
+}
+
 unsigned long long int CellBin::getExpressionNum() const {
     return expression_num_;
+}
+
+GeneData *CellBin::getGene() {
+    if(gene_array_ != nullptr)
+        return gene_array_;
+
+    hid_t memtype = getMemtypeOfGeneData();
+    gene_array_ = (GeneData*)malloc(gene_num_ * sizeof(GeneData));
+    H5Dread(gene_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_array_);
+    H5Tclose(memtype);
+    return gene_array_;
+}
+
+CellData *CellBin::getCell() {
+    if(cell_array_ != nullptr)
+        return cell_array_;
+
+    hid_t memtype = getMemtypeOfCellData();
+    cell_array_ = (CellData*)malloc(cell_num_ * sizeof(CellData));
+    H5Dread(cell_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_array_);
+    H5Tclose(memtype);
+    return cell_array_;
+}
+
+//GeneExpData * CellBin::getGeneExp(){
+//
+//}
+
+hid_t CellBin::getMemtypeOfGeneData() const{
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneData));
+    H5Tinsert(memtype, "geneName", HOFFSET(GeneData, gene_name), str32_type_);
+    H5Tinsert(memtype, "offset", HOFFSET(GeneData, offset), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "cellCount", HOFFSET(GeneData, cell_count), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "maxMIDcount", HOFFSET(GeneData, max_mid_count), H5T_NATIVE_USHORT);
+    return memtype;
+}
+
+hid_t CellBin::getMemtypeOfGeneExpData() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneExpData));
+    H5Tinsert(memtype, "cellID", HOFFSET(GeneExpData, cell_id), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "count", HOFFSET(GeneExpData, count), H5T_NATIVE_USHORT);
+    return memtype;
+}
+
+
+hid_t CellBin::getMemtypeOfCellData() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(CellData));
+    H5Tinsert(memtype, "x", HOFFSET(CellData, x), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "y", HOFFSET(CellData, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "offset", HOFFSET(CellData, offset), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "geneCount", HOFFSET(CellData, gene_count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "expCount", HOFFSET(CellData, exp_count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "dnbCount", HOFFSET(CellData, dnb_count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "area", HOFFSET(CellData, area), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
+    return memtype;
+}
+
+hid_t CellBin::getMemtypeOfCellExpData() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(CellExpData));
+    H5Tinsert(memtype, "geneID", HOFFSET(CellExpData, gene_id), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "count", HOFFSET(CellExpData, count), H5T_NATIVE_USHORT);
+    return memtype;
 }
 
 void CellBin::storeCellBorder(char* borderPath, unsigned int cell_num) const {
@@ -105,15 +242,7 @@ void CellBin::storeCell() {
     hsize_t dims[1] = {(hsize_t)cell_num_};
 
     hid_t memtype, filetype;
-    memtype = H5Tcreate(H5T_COMPOUND, sizeof(CellData));
-    H5Tinsert(memtype, "x", HOFFSET(CellData, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(CellData, y), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "offset", HOFFSET(CellData, offset), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "geneCount", HOFFSET(CellData, gene_count), H5T_NATIVE_USHORT);
-    H5Tinsert(memtype, "expCount", HOFFSET(CellData, exp_count), H5T_NATIVE_USHORT);
-    H5Tinsert(memtype, "dnbCount", HOFFSET(CellData, dnb_count), H5T_NATIVE_USHORT);
-    H5Tinsert(memtype, "area", HOFFSET(CellData, area), H5T_NATIVE_USHORT);
-    H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
+    memtype = getMemtypeOfCellData();
 
     filetype = H5Tcreate(H5T_COMPOUND, 22);
     H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
@@ -234,7 +363,7 @@ void CellBin::addDnbExp(vector<Point> & dnb_coordinates,
     map<unsigned short, unsigned short> ::iterator iter_m;
     iter_m = gene_count_in_cell.begin();
     while(iter_m != gene_count_in_cell.end()) {
-//        gene_list_[iter_m->first].
+//        gene_array_[iter_m->first].
         unsigned short gene_id = iter_m->first;
         unsigned short count = iter_m->second;
         max_mid_count_ = count > max_mid_count_ ? count : max_mid_count_;
@@ -273,8 +402,8 @@ void CellBin::storeAttr(CellBinAttr & cell_bin_attr) const {
 
     //Write createTime into cell bin gef
 //    S32 time_str = getStrfTime();
-//    attr = H5Acreate(file_id_, "createTime", str32_type, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-//    H5Awrite(attr, str32_type, &time_str);
+//    attr = H5Acreate(file_id_, "createTime", str32_type_, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+//    H5Awrite(attr, str32_type_, &time_str);
 
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
@@ -307,14 +436,9 @@ void CellBin::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
     }
 
     hid_t memtype, filetype;
-    memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneData));
-    H5Tinsert(memtype, "geneName", HOFFSET(GeneData, gene_name), str32_type);
-    H5Tinsert(memtype, "offset", HOFFSET(GeneData, offset), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "cellCount", HOFFSET(GeneData, cell_count), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "maxMIDcount", HOFFSET(GeneData, max_mid_count), H5T_NATIVE_USHORT);
-
+    memtype = getMemtypeOfGeneData();
     filetype = H5Tcreate(H5T_COMPOUND, 42);
-    H5Tinsert(filetype, "geneName", 0, str32_type);
+    H5Tinsert(filetype, "geneName", 0, str32_type_);
     H5Tinsert(filetype, "offset", 32, H5T_STD_U32LE);
     H5Tinsert(filetype, "cellCount", 36, H5T_STD_U32LE);
     H5Tinsert(filetype, "maxMIDcount", 40, H5T_STD_U16LE);
@@ -324,10 +448,7 @@ void CellBin::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
                                  H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_data_list);
 
-    memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneExpData));
-    H5Tinsert(memtype, "cellID", HOFFSET(GeneExpData, cell_id), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "count", HOFFSET(GeneExpData, count), H5T_NATIVE_USHORT);
-
+    memtype = getMemtypeOfGeneExpData();
     filetype = H5Tcreate(H5T_COMPOUND, 6);
     H5Tinsert(filetype, "cellID", 0, H5T_STD_U32LE);
     H5Tinsert(filetype, "count", 4, H5T_STD_U16LE);
@@ -359,9 +480,9 @@ void CellBin::storeCellTypeList() {
     cell_type_list_.emplace_back(cell_type);
 
     hid_t dataspace_id = H5Screate_simple(1, dims, NULL);
-    hid_t dataset_id = H5Dcreate(group_id_, "cellTypeList", str32_type, dataspace_id, H5P_DEFAULT,
+    hid_t dataset_id = H5Dcreate(group_id_, "cellTypeList", str32_type_, dataspace_id, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, str32_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_type_list_[0]);
+    H5Dwrite(dataset_id, str32_type_, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_type_list_[0]);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
 }
@@ -372,4 +493,76 @@ unsigned short CellBin::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps) {
         max = gene_exp.count > max ? gene_exp.count : max;
     }
     return max;
+}
+
+void CellBin::getGeneNameList(char *gene_list) {
+    GeneData * genes = getGene();
+    for(unsigned int i = 0; i < gene_num_; i++){
+        memcpy(&gene_list[i], genes[i].gene_name, 32);
+    }
+}
+
+int CellBin::getSparseMatrixIndicesOfExp(unsigned int *indices, unsigned int *indptr, unsigned int *count,
+                                         const char *order) {
+    if(order[0] == 'g'){
+        getCellIdAndCount(indices, count);
+        GeneData * gene_data = getGene();
+        //indptr length = gene_num_ + 1
+        indptr[0] = 0;
+        for(unsigned int i = 1; i < cell_num_; i++){
+            indptr[i] = gene_data->cell_count;
+        }
+    }else if(order[0] == 'c'){
+        getGeneIdAndCount(indices, count);
+        //indptr length = gene_num_ + 1
+        CellData * cell_data = getCell();
+        indptr[0] = 0;
+        for(unsigned int i = 1; i < cell_num_; i++){
+            indptr[i] = cell_data->gene_count;
+        }
+    }else {
+        return -1;
+    }
+    return 0;
+}
+
+int CellBin::getSparseMatrixIndicesOfExp2(unsigned int *cell_ind,
+                                          unsigned int *gene_ind,
+                                          unsigned int *count) {
+    getCellIdAndCount(cell_ind, count);
+    GeneData * gene_data = getGene();
+    unsigned int n = 0;
+    for(unsigned short i = 0; i < gene_num_; i++){
+        unsigned int cell_count = gene_data->cell_count;
+        for(unsigned int j = 0; j < cell_count; j++){
+            gene_ind[n++] = i;
+        }
+    }
+    return 0;
+}
+
+void CellBin::getCellIdAndCount(unsigned int *cell_id, unsigned int *count) const{
+    hid_t memtype = getMemtypeOfGeneExpData();
+    GeneExpData* gene_exp_data;
+    gene_exp_data = (GeneExpData*)malloc(expression_num_ * sizeof(GeneExpData));
+    H5Dread(gene_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_exp_data);
+    for(unsigned int i = 0; i < expression_num_; i++){
+        cell_id[i] = gene_exp_data->cell_id;
+        count[i] = gene_exp_data->count;
+    }
+    free(gene_exp_data);
+    H5Tclose(memtype);
+}
+
+void CellBin::getGeneIdAndCount(unsigned int *gene_id, unsigned int *count) const{
+    hid_t memtype = getMemtypeOfCellExpData();
+    CellExpData* cell_exp_data;
+    cell_exp_data = (CellExpData*)malloc(expression_num_ * sizeof(CellExpData));
+    H5Dread(cell_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_exp_data);
+    for(unsigned int i = 0; i < expression_num_; i++){
+        gene_id[i] = cell_exp_data->gene_id;
+        count[i] = cell_exp_data->count;
+    }
+    free(cell_exp_data);
+    H5Tclose(memtype);
 }

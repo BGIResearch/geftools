@@ -11,10 +11,13 @@
 
 using namespace std;
 
+/**
+ * @brief Parameters parsed from command lines.
+ */
 struct ViewOptions {
     string input_file;
-    string mask_file;
-    string output_file;
+    string output_gem;
+    string output_mask;
     int threads;
     bool verbose;
 };
