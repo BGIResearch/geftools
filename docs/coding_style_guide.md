@@ -9,13 +9,13 @@ https://github.com/opencv/opencv/wiki/Coding_Style_Guide -->
 - All the file names are written in lower case for better compatibility with both POSIX and Windows.
 - C++ interface headers have .h extension.
 - Implementation files have .cpp extension.
-- Documentation is written in .h files and any additional files (bibliographic reference, images) can be put into doc/ directory.
+- Documentation is written in .h files and any additional files (bibliographic reference, images) can be put into docs/ directory.
 - Accuracy tests are put to test/ directory, performance tests - to perf/.
 
 --------------
 
 ## File Structure
-- Code lines should not be very long. Normally, they should be limited to 100 characters.
+- Code lines should not be very long. Normally, they should be limited to 120 characters.
 - No tabulation should be used. Set your editor to use spaces instead.
 - Indentation is 4 spaces.
 

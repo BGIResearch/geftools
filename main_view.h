@@ -7,7 +7,7 @@
 #ifndef GEFTOOLS__MAIN_VIEW_H_
 #define GEFTOOLS__MAIN_VIEW_H_
 
-#include <string>
+#include "utils.h"
 
 using namespace std;
 
@@ -18,6 +18,8 @@ struct ViewOptions {
     string input_file;
     string output_gem;
     string output_mask;
+    vector<string> region;
+    vector<string> genes;
     int threads;
     bool verbose;
 };

@@ -11,6 +11,7 @@
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <array>
 #include "opencv2/opencv.hpp"
 
 using namespace std;
@@ -36,6 +37,37 @@ struct S32 {
 
     char value[32] = {0};
 };
+
+/**
+ * @brief Split string based on a character delimiter.
+ * @param s   The string to split.
+ * @param delim  The delimiter, a character.
+ * @return
+ */
+vector<string> split(const string &s, char delim);
+
+/**
+ * @brief Read lines from txt file.
+ * @param filename
+ * @return
+ */
+vector<string> readLines(const string &filename);
+
+/**
+ * @brief Print time.
+ * @param prev   Previous time， ( the start time ).
+ * @param message  Message of the step.
+ * @return Current time, used as the next previous time.
+ */
+time_t printTime(time_t prev, string message);
+
+/**
+ * @brief Print cpu time.
+ * @param prev   Previous clock time， ( the start time ).
+ * @param message  Message of the step.
+ * @return Current clock time, used as the next previous clock time.
+ */
+unsigned long printCpuTime(unsigned long prev, string message);
 
 /**
  * @brief Gets the format string of now time.

@@ -2,20 +2,22 @@
 // Created by huangzhibo on 2021/12/14.
 //
 
-#include "main_gen.h"
+#include <unistd.h>
+#include "main_cgef.h"
 
-int gen(int argc, char *argv[]) {
+int cgef(int argc, char *argv[]) {
 
-    cxxopts::Options options("geftools gen",
-                       "About:  Generate cell bin GEF according to common bin GEF file and mask file\n");
+    cxxopts::Options options("geftools cgef",
+                       "About:  Generate cell bin GEF (.cgef) according to"
+                       " common bin GEF (.bgef) file and mask file\n");
     options
-    .set_width(70)
+    .set_width(120)
     .add_options()
     ("i,input-file", "input bin GEF file [request]", cxxopts::value<std::string>(), "FILE")
     ("m,mask-file", "input mask file [request]", cxxopts::value<std::string>(), "FILE")
-    ("o,output-file", "output cell bin GEF file [request]", cxxopts::value<std::string>(), "FILE")
+    ("o,output-file", "output cell bin GEF file (.cgef) [request]", cxxopts::value<std::string>(), "FILE")
 //    ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
-//    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+    ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -44,15 +46,22 @@ int gen(int argc, char *argv[]) {
         exit(1);
     }
 
-    genOptions gen_options = {
+    cgefOptions opts = {
         result["input-file"].as<string>(),
         result["mask-file"].as<string>(),
         result["output-file"].as<string>(),
 //        result["threads"].as<int>(),
-//        result["verbose"].as<bool>()
     };
+    opts.verbose = result["verbose"].as<bool>();
 
-    cellBinWriter(gen_options.input_file, gen_options.mask_file, gen_options.output_file);
+    time_t prev;
+    time(&prev);
+    unsigned long cprev=clock();
+    cellBinWriter(opts.input_file, opts.mask_file, opts.output_file);
+    if(opts.verbose){
+        prev = printTime(prev, "cellBinWriter");
+        cprev = printCpuTime(cprev, "cellBinWriter");
+    }
 
     return 0;
 }
