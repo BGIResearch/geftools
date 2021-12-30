@@ -29,7 +29,7 @@ class Mask {
      * @brief Constructor of Mask class.
      * @param file   Mask file of cell shape.
      */
-    explicit Mask(const string& file);
+    Mask(const string& file, const int block_size[]);
 
     /**
      * @brief Displays cell contours in a window.
@@ -54,6 +54,12 @@ class Mask {
     void getBorders(char * border_array);
 
     void getEffectiveRectangle(unsigned int* effective_rect) const;
+
+    void preBlocking(int x_block_size, int y_block_size);
+
+    void preBlockSort();
+
+    static bool polygonComp(Polygon& p1, Polygon& p2);
 };
 
 #endif //GEFTOOLS__MASK_H_

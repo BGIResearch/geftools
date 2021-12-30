@@ -1,0 +1,44 @@
+#include "gef.h"
+
+hid_t getMemtypeOfGeneData(){
+    hid_t memtype;
+    hid_t str32_type_ = H5Tcopy(H5T_C_S1);
+    H5Tset_size(str32_type_, 32);
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneData));
+    H5Tinsert(memtype, "geneName", HOFFSET(GeneData, gene_name), str32_type_);
+    H5Tinsert(memtype, "offset", HOFFSET(GeneData, offset), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "cellCount", HOFFSET(GeneData, cell_count), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "maxMIDcount", HOFFSET(GeneData, max_mid_count), H5T_NATIVE_USHORT);
+    return memtype;
+}
+
+hid_t getMemtypeOfGeneExpData() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneExpData));
+    H5Tinsert(memtype, "cellID", HOFFSET(GeneExpData, cell_id), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "count", HOFFSET(GeneExpData, count), H5T_NATIVE_USHORT);
+    return memtype;
+}
+
+
+hid_t getMemtypeOfCellData() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(CellData));
+    H5Tinsert(memtype, "x", HOFFSET(CellData, x), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "y", HOFFSET(CellData, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "offset", HOFFSET(CellData, offset), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "geneCount", HOFFSET(CellData, gene_count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "expCount", HOFFSET(CellData, exp_count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "dnbCount", HOFFSET(CellData, dnb_count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "area", HOFFSET(CellData, area), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
+    return memtype;
+}
+
+hid_t getMemtypeOfCellExpData() {
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(CellExpData));
+    H5Tinsert(memtype, "geneID", HOFFSET(CellExpData, gene_id), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "count", HOFFSET(CellExpData, count), H5T_NATIVE_USHORT);
+    return memtype;
+}

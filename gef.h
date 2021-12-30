@@ -7,6 +7,8 @@
 #ifndef GEFTOOLS_GEF_H
 #define GEFTOOLS_GEF_H
 
+#include "hdf5.h"
+
 /**
  * @brief Expression struct
  */
@@ -79,6 +81,8 @@ struct CellAttr {
     unsigned short max_exp_count;
     unsigned short max_dnb_count;
     unsigned short max_area;
+    unsigned int block_size[2];  ///< x_block_size, y_block_size
+    unsigned int* block_index;  ///< block_id, offset, count
 };
 
 struct GeneData {
@@ -128,6 +132,11 @@ struct CellBinAttr
     unsigned int offsetX; ///< Minimum value of x-axis coordinate with offset
     unsigned int offsetY; ///< Minimum value of y-axis coordinate with offset
 };
+
+hid_t getMemtypeOfGeneData();
+hid_t getMemtypeOfGeneExpData();
+hid_t getMemtypeOfCellData();
+hid_t getMemtypeOfCellExpData();
 
 
 #endif //GEFTOOLS_GEF_H

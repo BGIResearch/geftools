@@ -3,7 +3,7 @@
 //
 
 #include "mask.h"
-Mask::Mask(const string& file){
+Mask::Mask(const string& file, const int block_size[]){
     cv::Mat img = cv::imread(file,-1);
     if( img.empty() ) { exit(-1);}
 
@@ -18,11 +18,13 @@ Mask::Mask(const string& file){
       RETR_EXTERNAL,
       CHAIN_APPROX_SIMPLE
     );
+    int x_block_num = ceil(cols_ * 1.0 / block_size[0]);
 
     for(auto & contour : contours_){
         Polygon p = Polygon();
         bool cell_polygon_is_good = p.applyContour(contour);
         if(cell_polygon_is_good){
+            p.setBlockId(block_size[0], block_size[1], x_block_num);
             polygons_.emplace_back(p);
             min_x_ = p.getMinX() < min_x_ ? p.getMinX() : min_x_;
             max_x_ = p.getMaxX() > max_x_ ? p.getMaxX() : max_x_;
@@ -30,6 +32,8 @@ Mask::Mask(const string& file){
             max_y_ = p.getMaxY() > max_y_ ? p.getMaxY() : max_y_;
         }
     }
+
+    preBlockSort();
 
     cell_num_ = polygons_.size();
 }
@@ -82,4 +86,21 @@ void Mask::getEffectiveRectangle(unsigned int* effective_rect) const {
     effective_rect[1] = min_y_;
     effective_rect[2] = max_x_;
     effective_rect[3] = max_y_;
+}
+
+void Mask::preBlockSort() {
+    sort(polygons_.begin(), polygons_.end(), polygonComp);
+}
+
+bool Mask::polygonComp(Polygon& p1, Polygon& p2) {
+    return p1.getBlockId() < p2.getBlockId();
+}
+
+void Mask::preBlocking(int x_block_size, int y_block_size) {
+    int x_block_num = ceil(cols_ * 1.0 / x_block_size);
+    for(auto & p : polygons_){
+        p.setBlockId(x_block_size, y_block_size, x_block_num);
+    }
+
+    sort(polygons_.begin(), polygons_.end(), polygonComp);
 }

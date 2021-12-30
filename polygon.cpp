@@ -109,3 +109,13 @@ const vector<Point> &Polygon::getRelativeBorder() const {
 unsigned short Polygon::getAreaUshort() const {
     return ceil(area_);
 }
+
+int Polygon::getBlockId() const {
+    return block_id_;
+}
+
+void Polygon::setBlockId(int x_block_size, int y_block_size, int x_block_num) {
+    int block_id = center_.x / x_block_size;
+    int block_id_y = center_.y / y_block_size;
+    block_id_ = block_id + block_id_y * x_block_num;
+}

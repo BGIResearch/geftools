@@ -13,16 +13,21 @@ int view(int argc, char *argv[]) {
         .set_width(120)
         .add_options()
             ("i,input-file", "Input cell bin GEF file [request]", cxxopts::value<std::string>(), "FILE")
-            ("o,output-gem", "Output cell bin gem file", cxxopts::value<std::string>(), "FILE")
-            ("m,output-mask", "Output border of polygons to mask format file", cxxopts::value<std::string>(), "FILE")
+            ("o,output-gem", "Output cell bin gem file",
+                    cxxopts::value<std::string>()->default_value("stdout"), "FILE")
+            ("m,output-mask", "Output border of polygons to mask format file",
+                    cxxopts::value<std::string>()->default_value(""), "FILE")
             ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
-                         "of two vertex coordinates (minX,minY,maxX,maxY)", cxxopts::value<std::string>(), "STR")
+                         "of two vertex coordinates (minX,minY,maxX,maxY)",
+                         cxxopts::value<std::string>()->default_value(""), "STR")
             ("g,genes", "Comma separated list of genes to include (or exclude with \"^\" prefix)",
                     cxxopts::value<std::string>(), "[^]STR")
             ("G,genes-file", "File of genes to include (or exclude with \"^\" prefix))",
                     cxxopts::value<std::string>(), "[^]FILE")
+            ("force-genes", "Only warn about unknown subset genes",
+                    cxxopts::value<bool>()->default_value("false"))
 //            ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
-//            ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+            ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
             ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -39,36 +44,30 @@ int view(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (result.count("output-gem") != 1){
-        std::cerr << "[ERROR] The -g,--output-gem parameter must be given correctly.\n" << std::endl;
-        std::cerr << options.help() << std::endl;
-        exit(1);
-    }
+    ViewOptions viewopts;
 
-    if (result.count("output-mask") != 1){
-        std::cerr << "[ERROR] The -m,--output-mask parameter must be given correctly.\n" << std::endl;
-        std::cerr << options.help() << std::endl;
-        exit(1);
-    }
+    viewopts.input_file = result["input-file"].as<string>();
+    viewopts.output_gem = result["output-gem"].as<string>();
+    viewopts.output_mask = result["output-mask"].as<string>();
+    viewopts.verbose = result["verbose"].as<bool>();
+    viewopts.force_genes = result["force-genes"].as<bool>();
 
-
-    ViewOptions view_options = {
-        result["input-file"].as<string>(),
-        result["output-gem"].as<string>(),
-        result["output-mask"].as<string>(),
-//        result["threads"].as<int>(),
-//        result["verbose"].as<bool>()
-    };
-
-    if (result.count("region") != 1){
+    if (result.count("region") == 1){
         string region_tmp = result["region"].as<string>();
-        view_options.region = split(region_tmp, ',');
+        viewopts.region = split(region_tmp, ',');
     }
 
     unsigned long n_genes = result.count("genes");
     if (n_genes == 1){
         string genes_tmp = result["genes"].as<string>();
-        view_options.genes = split(genes_tmp, ',');
+        string::iterator it = genes_tmp.begin();
+        if(*it == '^') {
+            genes_tmp.erase(it);
+            viewopts.exclude = true;
+        }else {
+            viewopts.exclude = false;
+        }
+        viewopts.genes = split(genes_tmp, ',');
     }else if(n_genes > 1){
         std::cerr << "[ERROR] The -g,--genes parameter must be given correctly.\n" << std::endl;
         std::cerr << options.help() << std::endl;
@@ -83,11 +82,25 @@ int view(int argc, char *argv[]) {
             exit(1);
         }
         string genes_file = result["genes-file"].as<string>();
-        view_options.genes = readLines(genes_file);
+        viewopts.genes = readLines(genes_file);
     }else if(n_genes_file > 1){
         std::cerr << "[ERROR] The -G,--genes-file parameter must be given correctly.\n" << std::endl;
         std::cerr << options.help() << std::endl;
         exit(1);
+    }
+
+    time_t prev;
+    time(&prev);
+    unsigned long cprev=clock();
+
+    CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
+//    cgef_reader.setVerbose(viewopts.verbose);
+
+    cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
+
+    if(viewopts.verbose){
+        prev = printTime(prev, "CgefReader init");
+        cprev = printCpuTime(cprev, "CgefReader init");
     }
 
     return 0;

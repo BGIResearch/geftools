@@ -19,25 +19,26 @@ class Polygon {
   private:
     vector<Point> border_;
     vector<Point> relative_border_;
-public:
-    const vector<Point> &getRelativeBorder() const;
-
-private:
     Point center_;
     double area_;
     short border_size_;
     short original_contour_size_;
     int min_x_{INT_MAX}, max_x_{0}, min_y_{INT_MAX}, max_y_{0}, rows_{0}, cols_{0};
-
+    int block_id_;
     void setMinMaxXY();
 
   public:
+    int getBlockId() const;
+
+    void setBlockId(int x_block_size, int y_block_size, int x_block_num);
+
     /**
      * @brief Get border points of this polygon
      * @return A vector of points, point num \<= 16
      */
     const vector<Point> &getBorder() const;
 
+    const vector<Point> &getRelativeBorder() const;
 //    getBorderRelativeToCenter();
 
     /// Get border points number of this polygon

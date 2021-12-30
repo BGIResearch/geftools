@@ -8,6 +8,7 @@
 #define GEFTOOLS__MAIN_VIEW_H_
 
 #include "utils.h"
+#include "cgef_reader.h"
 
 using namespace std;
 
@@ -21,6 +22,8 @@ struct ViewOptions {
     vector<string> region;
     vector<string> genes;
     int threads;
+    bool force_genes;
+    bool exclude; ///< Set the list of genes to exclude, not include.
     bool verbose;
 };
 

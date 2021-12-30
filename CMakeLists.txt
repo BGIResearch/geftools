@@ -9,10 +9,10 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(HDF5 REQUIRED COMPONENTS C)
 include_directories(${HDF5_INCLUDE_DIRS})
 
-set(Headers cell_bin.h common_bin.h polygon.h cell_bin_writer.h  mask.h  utils.h)
+set(Headers common_bin.h polygon.h mask.h  utils.h cgef_writer.h)
 
 aux_source_directory(. SRC_LIST)
-add_library(objlib OBJECT ${SRC_LIST})
+add_library(objlib OBJECT ${SRC_LIST} gef.cpp cgef_reader.cpp cgef_reader.h)
 add_library(gef-static STATIC $<TARGET_OBJECTS:objlib>)
 add_library(gef SHARED $<TARGET_OBJECTS:objlib>)
 add_executable(geftools $<TARGET_OBJECTS:objlib>)
