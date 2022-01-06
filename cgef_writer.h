@@ -28,18 +28,18 @@ class CgefWriter {
      * This method can only be used when the class is constructed in mode="w"
      * @param dnb_coordinates A vector of dnb coordinates inner one cell region
      * @param bin_gene_exp_map  A map abort geneID and expCount of the genes for each bin, key is bin id: x << 32 | y, value is a vector of gene_exp compoud value (geneID << 16 | geneExpCount).
-     * @param center_point Center point of cell polygon
+     * @param center_point Center point of the cell polygon
      * @param area The polygon area of the cell
      */
     void addDnbExp(vector<Point> & dnb_coordinates,
-    map<unsigned long long int, vector<CellExpData>> & bin_gene_exp_map,
-    const Point& center_point,
-    unsigned short area);
+                   map<unsigned long long int, vector<CellExpData>> & bin_gene_exp_map,
+                   const Point& center_point,
+                   unsigned short area);
 
     static unsigned short calcMaxCountOfGeneExp(vector<GeneExpData> & gene_exps);
 
     void storeAttr(CellBinAttr& cell_attr) const;
-    void storeCell();
+    void storeCell(unsigned int block_num, unsigned int *block_index, const unsigned int * block_size);
     void storeCellExp();
     void storeCellBorder(char* borderPath, unsigned int cell_num) const;
     void storeCellBorderWithAttr(char* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
@@ -68,10 +68,14 @@ class CgefWriter {
     vector<CellExpData> cell_exp_list_;
     vector<S32> cell_type_list_;
     CellAttr cell_attr_ = {
+        .min_x=USHRT_MAX,
+        .min_y=USHRT_MAX,
         .min_gene_count=USHRT_MAX,
         .min_exp_count=USHRT_MAX,
         .min_dnb_count=USHRT_MAX,
         .min_area=USHRT_MAX,
+        .max_x=0,
+        .max_y=0,
         .max_gene_count=0,
         .max_exp_count=0,
         .max_dnb_count=0,

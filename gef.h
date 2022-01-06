@@ -73,16 +73,18 @@ struct CellAttr {
     float average_exp_count;
     float average_dnb_count;
     float average_area;
+    unsigned short min_x;
+    unsigned short min_y;
     unsigned short min_gene_count;
     unsigned short min_exp_count;
     unsigned short min_dnb_count;
     unsigned short min_area;
+    unsigned short max_x;
+    unsigned short max_y;
     unsigned short max_gene_count;
     unsigned short max_exp_count;
     unsigned short max_dnb_count;
     unsigned short max_area;
-    unsigned int block_size[2];  ///< x_block_size, y_block_size
-    unsigned int* block_index;  ///< block_id, offset, count
 };
 
 struct GeneData {

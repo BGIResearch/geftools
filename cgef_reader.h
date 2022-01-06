@@ -35,6 +35,19 @@ class CgefReader {
     GeneData getGeneData(unsigned short gene_id);
     CellData getCellData(unsigned int cell_id);
 
+    unsigned int getActiveBlockId();
+
+    /**
+     * @brief Use blocks that intersect the input region.
+     *
+     * Some member variables (e.g. cell_num_) of this class will be updated.
+     * @param min_x
+     * @param max_x
+     * @param min_y
+     * @param max_y
+     */
+    void useRegion(unsigned int min_x, unsigned int max_x, unsigned int min_y, unsigned int max_y);
+
     /**
      * @brief Gets gene name array, 32 bit for each string.
      * @param gene_list
@@ -113,7 +126,7 @@ class CgefReader {
      * @return Number of output entries.
      */
     unsigned int toGem(string & filename,
-                       vector<string> & gene_name_list,
+                       const vector<string> & gene_name_list = vector<string>(),
                        bool force_genes = false,
                        bool exclude = false);
 
@@ -123,16 +136,25 @@ class CgefReader {
     hid_t group_id_;
     hid_t str32_type_;
     hid_t cell_dataset_id_;
+    hid_t cell_dataspace_id_;
     hid_t cell_exp_dataset_id_;
+    hid_t cell_exp_dataspace_id_;
     hid_t gene_dataset_id_;
     hid_t gene_exp_dataset_id_;
     hid_t gene_exp_dataspace_id_;
 
     GeneData* gene_array_ = nullptr;
     CellData* cell_array_ = nullptr;
+    unsigned int* cell_id_array_ = nullptr;
     unsigned short gene_num_ = 0;
     unsigned int cell_num_ = 0;
     unsigned int expression_num_ = 0;
+    unsigned int block_num_;
+    unsigned int block_size_[4];  ///< x_block_size, y_block_size, x_block_num, y_block_num
+    unsigned int* block_index_;  ///< offset, count
+    unsigned int* active_block_ids_ = nullptr;
+    unsigned int active_block_ids_num_ = 0;
+    CellAttr cell_attr_;
 
     void openCellDataset();
     void openCellExpDataset();
@@ -140,11 +162,23 @@ class CgefReader {
     void openGeneExpDataset();
 
     bool verbose_ = false;
+    bool use_region_ = false;
+  public:
+
+    /**
+     * @brief Determine whether the useRegion function is run to limit to a rectangular region.
+     * @return
+     */
+    bool isUseRegion() const;
+
   public:
     bool isVerbose() const;
 
     void setVerbose(bool verbose);
 
+    void selectCells(unsigned int offset, unsigned int cell_count, CellData *cell) const;
+
+    void selectCellExp(unsigned int offset, unsigned int exp_count, CellExpData *cell_exp_data) const;
 };
 
 #endif //GEFTOOLS_CGEF_READER_H

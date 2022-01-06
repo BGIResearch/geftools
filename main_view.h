@@ -19,9 +19,10 @@ struct ViewOptions {
     string input_file;
     string output_gem;
     string output_mask;
-    vector<string> region;
+    unsigned int region[4];
     vector<string> genes;
     int threads;
+    bool use_region;
     bool force_genes;
     bool exclude; ///< Set the list of genes to exclude, not include.
     bool verbose;

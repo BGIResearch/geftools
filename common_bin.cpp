@@ -47,7 +47,7 @@ void CommonBin::openExpressionSpace() {
         return;
     }
     exp_dataspace_id_ = H5Dget_space(exp_dataset_id_);
-    H5Sget_simple_extent_dims(exp_dataspace_id_, dims, NULL);
+    H5Sget_simple_extent_dims(exp_dataspace_id_, dims, nullptr);
     expression_num_ = dims[0];
 }
 
@@ -64,7 +64,7 @@ void CommonBin::openGeneSpace() {
         return;
     }
     gene_dataspace_id_ = H5Dget_space(gene_dataset_id_);
-    H5Sget_simple_extent_dims(gene_dataspace_id_, dims, NULL);
+    H5Sget_simple_extent_dims(gene_dataspace_id_, dims, nullptr);
     gene_num_ = dims[0];
 }
 
@@ -81,7 +81,7 @@ void CommonBin::openWholeExpSpace() {
         return;
     }
     whole_exp_dataspace_id_ = H5Dget_space(whole_exp_dataset_id_);
-    H5Sget_simple_extent_dims(whole_exp_dataspace_id_, dims, NULL);
+    H5Sget_simple_extent_dims(whole_exp_dataspace_id_, dims, nullptr);
 
     dnb_stat_matrix_shape_[0] = dims[0];
     dnb_stat_matrix_shape_[1] = dims[1];
