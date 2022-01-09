@@ -16,7 +16,6 @@ bool Polygon::applyContour(const vector<Point>& contour){
     border_size_ = static_cast<short>(border_.size());
 
     assert(border_size_ > 2);
-    assert(mu.m00 > 0);
 
     center_ = Point(static_cast<int>(mu.m10/mu.m00), static_cast<int>(mu.m01/mu.m00));
 

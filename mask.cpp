@@ -102,7 +102,7 @@ void Mask::preBlockSort() {
     sort(polygons_.begin(), polygons_.end(), polygonComp);
 }
 
-bool Mask::polygonComp(Polygon& p1, Polygon& p2) {
+bool Mask::polygonComp(const Polygon& p1, const Polygon& p2) {
     return p1.getBlockId() < p2.getBlockId();
 }
 
@@ -114,16 +114,18 @@ unsigned int * Mask::getBlockIndex() {
     if(block_index_ != nullptr)
         return block_index_;
 
-    block_index_ = (unsigned int *) calloc(block_num_ * 2, sizeof(unsigned int));
-    auto b_arr = (int (*)[2])block_index_;
+    unsigned int block_index_size = block_num_ + 1;
+
+    block_index_ = (unsigned int *) calloc(block_index_size, sizeof(unsigned int));
 
     for(unsigned int i = 0; i< cell_num_; i++){
         Polygon p = polygons_[i];
-        b_arr[p.getBlockId()][1] += 1;
+        block_index_[p.getBlockId()] += 1;
     }
 
-    for(unsigned int i = 1; i< block_num_; i++){
-        b_arr[i][0] = b_arr[i-1][0] + b_arr[i-1][1];
+    block_index_[block_num_] = cell_num_;
+    for(unsigned int i = block_num_; i > 0; i--){
+        block_index_[i-1] = block_index_[i] - block_index_[i-1];
     }
     return block_index_;
 }

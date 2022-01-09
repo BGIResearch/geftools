@@ -73,14 +73,14 @@ struct CellAttr {
     float average_exp_count;
     float average_dnb_count;
     float average_area;
-    unsigned short min_x;
-    unsigned short min_y;
+    unsigned int min_x;
+    unsigned int min_y;
     unsigned short min_gene_count;
     unsigned short min_exp_count;
     unsigned short min_dnb_count;
     unsigned short min_area;
-    unsigned short max_x;
-    unsigned short max_y;
+    unsigned int max_x;
+    unsigned int max_y;
     unsigned short max_gene_count;
     unsigned short max_exp_count;
     unsigned short max_dnb_count;
@@ -88,7 +88,7 @@ struct CellAttr {
 };
 
 struct GeneData {
-    GeneData(const char* g, unsigned int o, unsigned int c, unsigned m)
+    GeneData(const char* g, unsigned int o, unsigned int c, unsigned int e, unsigned m)
     {
         int i = 0;
         while (g[i] != '\0')
@@ -98,11 +98,13 @@ struct GeneData {
         }
         offset = o;
         cell_count = c;
+        exp_count = e;
         max_mid_count = m;
     }
     char gene_name[32] = {0};
     unsigned int offset;  ///< Offset of current gene in geneExp, 0-based
     unsigned int cell_count;
+    unsigned int exp_count;
     unsigned short max_mid_count;  ///< max MID count of current gene
 };
 

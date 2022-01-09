@@ -35,8 +35,6 @@ class CgefReader {
     GeneData getGeneData(unsigned short gene_id);
     CellData getCellData(unsigned int cell_id);
 
-    unsigned int getActiveBlockId();
-
     /**
      * @brief Use blocks that intersect the input region.
      *
@@ -152,8 +150,6 @@ class CgefReader {
     unsigned int block_num_;
     unsigned int block_size_[4];  ///< x_block_size, y_block_size, x_block_num, y_block_num
     unsigned int* block_index_;  ///< offset, count
-    unsigned int* active_block_ids_ = nullptr;
-    unsigned int active_block_ids_num_ = 0;
     CellAttr cell_attr_;
 
     void openCellDataset();

@@ -1,12 +1,16 @@
 #include "cgef_writer.h"
 
-CgefWriter::CgefWriter(const string& output_cell_gef) {
+CgefWriter::CgefWriter(const string& output_cell_gef, bool verbose) {
     str32_type_ = H5Tcopy(H5T_C_S1);
     H5Tset_size(str32_type_, 32);
+    verbose_ = verbose;
 
     cerr << "create h5 file: " <<  output_cell_gef << endl;
-    file_id_ = H5Fcreate(output_cell_gef.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t fpid = H5Pcreate (H5P_FILE_ACCESS);
+    H5Pset_libver_bounds (fpid, H5F_LIBVER_V110, H5F_LIBVER_LATEST);
+    file_id_ = H5Fcreate(output_cell_gef.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fpid);
     group_id_ = H5Gcreate(file_id_, "/CellBin", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Pclose(fpid);
 }
 
 CgefWriter::~CgefWriter() {
@@ -102,8 +106,11 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Tinsert(filetype, "cellTypeID", 20, H5T_STD_U16LE);
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
 
+
+    hid_t dpid = H5Pcreate (H5P_DATASET_CREATE);
+    H5Pset_attr_phase_change(dpid, 0, 0);
     hid_t dataset_id = H5Dcreate(group_id_, "cell", filetype, dataspace_id, H5P_DEFAULT,
-                                 H5P_DEFAULT, H5P_DEFAULT);
+                                 dpid, H5P_DEFAULT);
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_list_[0]);
 
     // Create cell attribute
@@ -149,10 +156,8 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Awrite(attr, H5T_NATIVE_USHORT, &cell_attr_.max_area);
 
     // write block index
-    hsize_t dimsAttr2[2];
-    dimsAttr2[0] = block_num;
-    dimsAttr2[1] = 2;
-    attr_dataspace = H5Screate_simple(2, dimsAttr2, nullptr);
+    dimsAttr[0] = block_num + 1;
+    attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
     attr = H5Acreate(dataset_id, "blockIndex", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, block_index);
 
@@ -164,6 +169,7 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Aclose(attr);
     H5Tclose(memtype);
     H5Tclose(filetype);
+    H5Sclose(attr_dataspace);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
 }
@@ -199,6 +205,8 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
         }
     }
 
+    unsigned short cell_type_id = random_cell_type_num_ == 0 ? 0 : rand()%(random_cell_type_num_ + 1);
+
     CellData cell = {
             static_cast<unsigned int>(center_point.x),
             static_cast<unsigned int>(center_point.y),
@@ -207,7 +215,7 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
             static_cast<unsigned short>(exp_count),
             static_cast<unsigned short>(dnb_coordinates.size()),
             area,
-            0
+            cell_type_id
     };
     expression_num_ += gene_count;
 
@@ -288,7 +296,9 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
     GeneData* gene_data_list;
     gene_data_list = static_cast<GeneData *>(malloc(gene_num_ * sizeof(GeneData)));
 
-    unsigned int offset = 0;
+    unsigned int offset = 0, exp_count;
+    unsigned short max_MID_count;
+
     vector<GeneExpData> gene_exp_list;
     gene_exp_list.reserve(expression_num_);
     for(unsigned int i = 0; i < gene_num_; i++){
@@ -297,28 +307,50 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
             vector<GeneExpData> tmp = iter_gene_exp_map->second;
             gene_exp_list.insert(gene_exp_list.end(), tmp.begin(), tmp.end());
 
-            gene_data_list[i] = {
+            max_MID_count = 0;
+            exp_count = 0;
+            for (auto gene_exp :tmp) {
+                exp_count += gene_exp.count;
+                max_MID_count = gene_exp.count > max_MID_count ? gene_exp.count : max_MID_count;
+            }
+
+            gene_data_list[i] = GeneData(
                     gene_name_list[i].c_str(),
                     offset,
                     static_cast<unsigned int>(tmp.size()),
-                    calcMaxCountOfGeneExp(tmp)};
+                    exp_count,
+                    max_MID_count);
 
             offset += tmp.size();
+        }else{
+            gene_data_list[i] = GeneData(
+                    gene_name_list[i].c_str(),
+                    offset,
+                    0,
+                    0,
+                    0);
         }
     }
 
     hid_t memtype, filetype;
     memtype = getMemtypeOfGeneData();
-    filetype = H5Tcreate(H5T_COMPOUND, 42);
+    filetype = H5Tcreate(H5T_COMPOUND, 46);
     H5Tinsert(filetype, "geneName", 0, str32_type_);
     H5Tinsert(filetype, "offset", 32, H5T_STD_U32LE);
     H5Tinsert(filetype, "cellCount", 36, H5T_STD_U32LE);
-    H5Tinsert(filetype, "maxMIDcount", 40, H5T_STD_U16LE);
+    H5Tinsert(filetype, "expCount", 40, H5T_STD_U32LE);
+    H5Tinsert(filetype, "maxMIDcount", 44, H5T_STD_U16LE);
 
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
     hid_t dataset_id = H5Dcreate(group_id_, "gene", filetype, dataspace_id, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_data_list);
+
+    hsize_t dims_attr[1] = {1};
+    hid_t attr;
+    hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
+    attr = H5Acreate(dataset_id, "maxCount", H5T_STD_U16LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_USHORT, &max_mid_count_);
 
     memtype = getMemtypeOfGeneExpData();
     filetype = H5Tcreate(H5T_COMPOUND, 6);
@@ -331,9 +363,6 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
                            H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &gene_exp_list[0]);
 
-    hsize_t dims_attr[1] = {1};
-    hid_t attr;
-    hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
     attr = H5Acreate(dataset_id, "maxCount", H5T_STD_U16LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_USHORT, &max_mid_count_);
 
@@ -346,11 +375,19 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
 }
 
 void CgefWriter::storeCellTypeList() {
-    hsize_t dims[1] = {1};
-
     S32 cell_type = S32("default");
     cell_type_list_.emplace_back(cell_type);
 
+    int i = 0;
+    while(i < random_cell_type_num_){
+        i++;
+        cell_type = S32();
+        sprintf(cell_type.value, "type%d", i);
+        cell_type_list_.emplace_back(cell_type);
+    }
+
+    hsize_t dims[1];
+    dims[0] = random_cell_type_num_ + 1;
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
     hid_t dataset_id = H5Dcreate(group_id_, "cellTypeList", str32_type_, dataspace_id, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
@@ -372,7 +409,13 @@ int CgefWriter::write(CommonBin &common_bin_gef, Mask &mask) {
     common_bin_gef.getBinGeneExpMap(bin_gene_exp_map);
     const vector<Polygon>& polygons = mask.getPolygons();
 
+    if(verbose_) {
+        cout << "addDnbExp start" << endl;
+    }
+
+    unsigned long cprev=clock();
     for(unsigned int i = 0; i < mask.getCellNum(); i++){
+        cout << ".";
         Polygon p = polygons[i];
         Rect roi = Rect(p.getMinX(),p.getMinY(),p.getCols(),p.getRows());
         Mat roi_mat = common_bin_gef.getWholeExpMatrix(roi);
@@ -389,6 +432,11 @@ int CgefWriter::write(CommonBin &common_bin_gef, Mask &mask) {
             bin_gene_exp_map,
             p.getCenter(),
             p.getAreaUshort());
+    }
+
+    if(verbose_) {
+        cout << "addDnbExp done" << endl;
+        printCpuTime(cprev, "generateCgef");
     }
 
     char* borders = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
@@ -417,4 +465,20 @@ int CgefWriter::write(CommonBin &common_bin_gef, Mask &mask) {
     storeGeneAndGeneExp(gene_name_list);
 
     return 0;
+}
+
+unsigned short CgefWriter::getRandomCellTypeNum() const {
+    return random_cell_type_num_;
+}
+
+void CgefWriter::setRandomCellTypeNum(unsigned short random_cell_type_num) {
+    random_cell_type_num_ = random_cell_type_num;
+}
+
+bool CgefWriter::isVerbose() const {
+    return verbose_;
+}
+
+void CgefWriter::setVerbose(bool verbose) {
+    verbose_ = verbose;
 }

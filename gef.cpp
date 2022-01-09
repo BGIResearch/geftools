@@ -1,4 +1,5 @@
 #include "gef.h"
+#include "utils.h"
 
 hid_t getMemtypeOfGeneData(){
     hid_t memtype;
@@ -8,6 +9,7 @@ hid_t getMemtypeOfGeneData(){
     H5Tinsert(memtype, "geneName", HOFFSET(GeneData, gene_name), str32_type_);
     H5Tinsert(memtype, "offset", HOFFSET(GeneData, offset), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "cellCount", HOFFSET(GeneData, cell_count), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "expCount", HOFFSET(GeneData, exp_count), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "maxMIDcount", HOFFSET(GeneData, max_mid_count), H5T_NATIVE_USHORT);
     return memtype;
 }

@@ -386,42 +386,33 @@ void CgefReader::useRegion(unsigned int min_x, unsigned int max_x, unsigned int 
     unsigned long cprev=clock();
     use_region_ = true;
     unsigned int x_block_num = block_size_[2];
+    unsigned int y_block_num = block_size_[3];
     unsigned int min_block_x = min_x/block_size_[0];
     unsigned int max_block_x = max_x/block_size_[0];
     unsigned int min_block_y = min_y/block_size_[1];
     unsigned int max_block_y = max_y/block_size_[1];
 
-    active_block_ids_num_ = (max_block_y - min_block_y + 1) * (max_block_x - min_block_x + 1);
-    active_block_ids_ = static_cast<unsigned int *>(malloc(active_block_ids_num_ * sizeof(unsigned int)));
+    max_block_x = max_block_x > x_block_num ? x_block_num : max_block_x;
+    max_block_y = max_block_y > y_block_num ? y_block_num : max_block_y;
 
-    auto b_arr = (int (*)[2])block_index_;
-
-    unsigned int cell_num_tmp = 0;
-    int index = 0;
-    unsigned int block_id, block_id_y;
+    unsigned int block_id_y, offset, cell_num_tmp=0;
     for(unsigned int y = min_block_y; y <= max_block_y; y++) {
         block_id_y = y * x_block_num;
-        for (unsigned int x = min_block_x; x <= max_block_x; x++) {
-            block_id = x + block_id_y;
-            active_block_ids_[index++] = block_id;
-            cell_num_tmp += b_arr[block_id][1];
-        }
+        cell_num_tmp += block_index_[max_block_x+block_id_y+1] - block_index_[min_block_x+block_id_y];
     }
 
     cell_num_ = 0;
-    auto * cell_data = static_cast<CellData *>(malloc(cell_num_tmp * sizeof(CellData)));
     cell_array_ = static_cast<CellData *>(malloc(cell_num_tmp * sizeof(CellData)));
     cell_id_array_ = static_cast<unsigned int *>(malloc(cell_num_tmp * sizeof(unsigned int)));
+    auto * cell_data = static_cast<CellData *>(malloc(cell_num_tmp * sizeof(CellData)));
 
-    unsigned int offset, count;
-    for(unsigned int i = 0; i < index; i++){
-        block_id = active_block_ids_[i];
-        offset = b_arr[block_id][0];
-        count = b_arr[block_id][1];
+    for(unsigned int y = min_block_y; y <= max_block_y; y++) {
+        block_id_y = y * x_block_num;
+        offset = block_index_[min_block_x+block_id_y];
+        cell_num_tmp = block_index_[max_block_x+block_id_y+1] - offset;
+        selectCells(offset, cell_num_tmp, cell_data);
 
-        selectCells(offset, count, cell_data);
-
-        for(unsigned int j = 0; j < count; j++){
+        for(unsigned int j = 0; j < cell_num_tmp; j++){
             CellData cell = cell_data[j];
             if(cell.x < min_x || cell.x > max_x || cell.y < min_y || cell.y > max_y)
                 continue;
@@ -469,10 +460,6 @@ void CgefReader::selectCellExp(unsigned int offset,
 
     H5Sselect_hyperslab(cell_exp_dataspace_id_, H5S_SELECT_SET, start, nullptr, count, nullptr);
     H5Dread(cell_exp_dataset_id_, memtype, memspace, cell_exp_dataspace_id_, H5P_DEFAULT, cell_exp_data);
-}
-
-unsigned int CgefReader::getActiveBlockId() {
-    return 0;
 }
 
 bool CgefReader::isUseRegion() const {

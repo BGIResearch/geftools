@@ -18,7 +18,7 @@
 
 class CgefWriter {
   public:
-    explicit CgefWriter(const string& output_cell_gef);
+    explicit CgefWriter(const string& output_cell_gef, bool verbose = false);
     ~CgefWriter();
 
 
@@ -57,6 +57,14 @@ class CgefWriter {
      */
     int write(CommonBin& common_bin_gef, Mask& mask);
 
+    bool isVerbose() const;
+
+    void setVerbose(bool verbose);
+
+    unsigned short getRandomCellTypeNum() const;
+
+    void setRandomCellTypeNum(unsigned short random_cell_type_num);
+
   private:
     hid_t file_id_;
     hid_t group_id_;
@@ -67,7 +75,12 @@ class CgefWriter {
     vector<CellData> cell_list_;
     vector<CellExpData> cell_exp_list_;
     vector<S32> cell_type_list_;
+
     CellAttr cell_attr_ = {
+        .average_gene_count=0.0,
+        .average_exp_count=0.0,
+        .average_dnb_count=0.0,
+        .average_area=0.0,
         .min_x=USHRT_MAX,
         .min_y=USHRT_MAX,
         .min_gene_count=USHRT_MAX,
@@ -87,6 +100,8 @@ class CgefWriter {
     unsigned int cell_num_ = 0;
     unsigned int expression_num_ = 0;
     unsigned short max_mid_count_ = 0;
+    unsigned short random_cell_type_num_ = 0;
+    bool verbose_ = false;
 
 };
 

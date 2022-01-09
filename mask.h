@@ -66,7 +66,7 @@ class Mask {
 
     void preBlockSort();
 
-    static bool polygonComp(Polygon& p1, Polygon& p2);
+    static bool polygonComp(const Polygon& p1, const Polygon& p2);
 
     virtual ~Mask();
 };
