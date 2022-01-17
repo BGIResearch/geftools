@@ -17,6 +17,7 @@ struct cgefOptions {
   string input_file;
   string mask_file;
   string output_file;
+  int rand_celltype_num;
   int block_size[2];
   int threads;
   bool verbose;

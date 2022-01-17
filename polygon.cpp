@@ -16,7 +16,6 @@ bool Polygon::applyContour(const vector<Point>& contour){
     border_size_ = static_cast<short>(border_.size());
 
     assert(border_size_ > 2);
-    assert(mu.m00 > 0);
 
     center_ = Point(static_cast<int>(mu.m10/mu.m00), static_cast<int>(mu.m01/mu.m00));
 
@@ -110,12 +109,12 @@ unsigned short Polygon::getAreaUshort() const {
     return ceil(area_);
 }
 
-int Polygon::getBlockId() const {
+unsigned int Polygon::getBlockId() const {
     return block_id_;
 }
 
-void Polygon::setBlockId(int x_block_size, int y_block_size, int x_block_num) {
-    int block_id = center_.x / x_block_size;
-    int block_id_y = center_.y / y_block_size;
-    block_id_ = block_id + block_id_y * x_block_num;
+void Polygon::setBlockId(const unsigned int* block_size) {
+    unsigned int block_id = center_.x / block_size[0];
+    unsigned int block_id_y = center_.y / block_size[1];
+    block_id_ = block_id + block_id_y * block_size[2];
 }

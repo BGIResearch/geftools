@@ -12,10 +12,19 @@
 #include <iostream>
 #include <fstream>
 #include <array>
+#include <iomanip>
 #include "opencv2/opencv.hpp"
 
 using namespace std;
 using namespace cv;
+
+static union
+{
+    char c[4];
+    unsigned long l;
+}endian_test = { { 'l','?','?','b' } };
+#define ENDIANNESS ((char)endian_test.l)
+
 
 /**
  * \brief Define a String type with 32 byte

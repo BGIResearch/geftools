@@ -25,6 +25,8 @@ CgefReader::~CgefReader() {
     H5Dclose(gene_dataset_id_);
     H5Dclose(cell_exp_dataset_id_);
     H5Dclose(gene_exp_dataset_id_);
+    H5Sclose(cell_dataspace_id_);
+    H5Sclose(cell_exp_dataspace_id_);
     H5Sclose(gene_exp_dataspace_id_);
     if(gene_array_ != nullptr)
         free(gene_array_);
@@ -39,10 +41,27 @@ void CgefReader::openCellDataset() {
         cerr<<"failed open dataset: cell" <<endl;
         return;
     }
-    hid_t cell_dataspace_id = H5Dget_space(cell_dataset_id_);
-    H5Sget_simple_extent_dims(cell_dataspace_id, dims, NULL);
+    cell_dataspace_id_ = H5Dget_space(cell_dataset_id_);
+    H5Sget_simple_extent_dims(cell_dataspace_id_, dims, nullptr);
     cell_num_ = dims[0];
-    H5Sclose(cell_dataspace_id);
+
+    hsize_t dims_attr[2];
+    hid_t attr, attr_dataspace;
+    attr = H5Aopen (cell_dataset_id_, "blockIndex", H5P_DEFAULT);
+    attr_dataspace = H5Aget_space(attr);
+    H5Sget_simple_extent_dims (attr_dataspace, dims_attr, nullptr);
+
+    block_num_ = dims_attr[0];
+    block_index_ = static_cast<unsigned int *>(
+            malloc(dims_attr[0] * dims_attr[1] * sizeof(unsigned int)));
+
+    H5Aread (attr, H5T_NATIVE_UINT32, block_index_);
+
+    attr = H5Aopen (cell_dataset_id_, "blockSize", H5P_DEFAULT);
+    H5Aread (attr, H5T_NATIVE_UINT32, block_size_);
+
+    H5Aclose(attr);
+    H5Sclose(attr_dataspace);
 }
 
 void CgefReader::openGeneDataset() {
@@ -53,7 +72,7 @@ void CgefReader::openGeneDataset() {
         return;
     }
     hid_t gene_dataspace_id = H5Dget_space(gene_dataset_id_);
-    H5Sget_simple_extent_dims(gene_dataspace_id, dims, NULL);
+    H5Sget_simple_extent_dims(gene_dataspace_id, dims, nullptr);
     gene_num_ = dims[0];
     H5Sclose(gene_dataspace_id);
 }
@@ -66,10 +85,9 @@ void CgefReader::openCellExpDataset() {
         cerr<<"failed open dataset: cellExp" <<endl;
         return;
     }
-    hid_t cell_exp_dataspace_id = H5Dget_space(cell_exp_dataset_id_);
-    H5Sget_simple_extent_dims(cell_exp_dataspace_id, dims, NULL);
+    cell_exp_dataspace_id_ = H5Dget_space(cell_exp_dataset_id_);
+    H5Sget_simple_extent_dims(cell_exp_dataspace_id_, dims, nullptr);
     expression_num_ = dims[0];
-    H5Sclose(cell_exp_dataspace_id);
 }
 
 void CgefReader::openGeneExpDataset() {
@@ -80,7 +98,7 @@ void CgefReader::openGeneExpDataset() {
         return;
     }
     gene_exp_dataspace_id_ = H5Dget_space(gene_exp_dataset_id_);
-    H5Sget_simple_extent_dims(gene_exp_dataspace_id_, dims, NULL);
+    H5Sget_simple_extent_dims(gene_exp_dataspace_id_, dims, nullptr);
 }
 
 unsigned int CgefReader::getCellNum() const {
@@ -125,40 +143,48 @@ CellData *CgefReader::getCell() {
     return cell_array_;
 }
 
-void CgefReader::getGeneNameList(char *gene_list) {
+void CgefReader::getGeneNameList(vector<string> & gene_list) {
     GeneData * genes = getGene();
     for(unsigned int i = 0; i < gene_num_; i++){
-        memcpy(&gene_list[i], genes[i].gene_name, 32);
+        gene_list.emplace_back(genes[i].gene_name);
+//        memcpy(&gene_list[i*32], genes[i].gene_name, 32);
     }
 }
 
-int CgefReader::getSparseMatrixIndicesOfExp(unsigned int *indices, unsigned int *indptr, unsigned int *count,
-                                         const char *order) {
+void CgefReader::getCellPosList(unsigned long long int *cell_pos_list) {
+    CellData * cells = getCell();
+    for(unsigned int i = 0; i < cell_num_; i++){
+        cell_pos_list[i] = cells[i].x;
+        cell_pos_list[i] = cell_pos_list[i] << 32 | cells[i].y;
+    }
+}
+
+//indptr length = gene_num_ + 1
+int CgefReader::getSparseMatrixIndices(unsigned int *indices, unsigned int *indptr, unsigned int *count,
+                                            const char *order) {
     if(order[0] == 'g'){
         getCellIdAndCount(indices, count);
         GeneData * gene_data = getGene();
-        //indptr length = gene_num_ + 1
         indptr[0] = 0;
-        for(unsigned int i = 1; i < cell_num_; i++){
-            indptr[i] = gene_data->cell_count;
+        for(unsigned int i = 1; i < gene_num_; i++){
+            indptr[i] = gene_data[i].offset;
         }
+        indptr[gene_num_] = gene_data[gene_num_-1].offset + gene_data[gene_num_-1].cell_count;
     }else if(order[0] == 'c'){
         getGeneIdAndCount(indices, count);
-        //indptr length = gene_num_ + 1
         CellData * cell_data = getCell();
         indptr[0] = 0;
         for(unsigned int i = 1; i < cell_num_; i++){
-            indptr[i] = cell_data->gene_count;
+            indptr[i] = cell_data[i].gene_count;
         }
+        indptr[cell_num_] = cell_data[cell_num_-1].offset + cell_data[cell_num_-1].gene_count;
     }else {
         return -1;
     }
     return 0;
 }
 
-int CgefReader::getSparseMatrixIndicesOfExp2(unsigned int *cell_ind,
-                                          unsigned int *gene_ind,
-                                          unsigned int *count) {
+int CgefReader::getSparseMatrixIndices2(unsigned int *cell_ind, unsigned int *gene_ind, unsigned int *count) {
     getCellIdAndCount(cell_ind, count);
     GeneData * gene_data = getGene();
     unsigned int n = 0;
@@ -220,10 +246,10 @@ void CgefReader::getGeneExpByOffset(unsigned int offset, unsigned int cell_count
     hid_t memtype = getMemtypeOfGeneExpData();
 
     // Define memory dataspace.
-    hid_t memspace = H5Screate_simple(1, count,NULL);
-    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out, NULL, count, NULL);
+    hid_t memspace = H5Screate_simple(1, count,nullptr);
+    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out, nullptr, count, nullptr);
 
-    H5Sselect_hyperslab (gene_exp_dataspace_id_, H5S_SELECT_SET, start, NULL, count, NULL);
+    H5Sselect_hyperslab (gene_exp_dataspace_id_, H5S_SELECT_SET, start, nullptr, count, nullptr);
     H5Dread (gene_exp_dataset_id_, memtype, memspace, gene_exp_dataspace_id_, H5P_DEFAULT, expressions);
 }
 
@@ -252,15 +278,16 @@ int CgefReader::getGeneId(string &gene_name) {
     return -1;
 }
 
-unsigned int CgefReader::toGem(string &filename, vector<string> &gene_name_list, bool force_genes, bool exclude) {
+unsigned int CgefReader::toGem(string &filename, const vector<string> &gene_name_list, bool force_genes, bool exclude) {
     unsigned long cprev=clock();
     unsigned short gene_ids[gene_num_];
     unsigned short n = 0;
+    unsigned int cell_num = 0;
+    unordered_map<string,bool> genename_map;
+    for (const auto& gene_name: gene_name_list) {
+        genename_map[gene_name] = true;
+    }
     if(exclude){
-        unordered_map<string,bool> genename_map;
-        for (const auto& gene_name: gene_name_list) {
-            genename_map[gene_name] = true;
-        }
         for(unsigned short i = 0; i < gene_num_; i++){
             if(genename_map.find(gene_array_[i].gene_name) == genename_map.end()){
                 gene_ids[n++] = i;
@@ -289,39 +316,70 @@ unsigned int CgefReader::toGem(string &filename, vector<string> &gene_name_list,
         cout << "#geneName\tx\ty\tcount\tcellID" << endl;
     }
 
-    unsigned int max_malloc = 1000;
-    auto *expression = static_cast<GeneExpData *>(malloc(max_malloc * sizeof(GeneExpData)));
+    if(use_region_){
+        if(verbose_) cerr << "toGem use_region_ true" << endl;
+        auto *cell_exp_data = static_cast<CellExpData *>(malloc(gene_num_ * sizeof(CellExpData)));
+        for(unsigned int i = 0; i < cell_num_; i++){
+            CellData cell = cell_array_[i];
+            unsigned int cell_id = cell_id_array_[i];
+            selectCellExp(cell.offset, cell.gene_count, cell_exp_data);
 
-    for (unsigned short i = 0; i < n; i++) {
-        unsigned short gene_id = gene_ids[i];
-        GeneData gene_data = getGeneDataByGeneId(gene_id);
+            for(unsigned int j = 0; j < cell.gene_count; j++){
+                string gene_name = gene_array_[cell_exp_data[j].gene_id].gene_name;
 
-        unsigned int cell_count = gene_data.cell_count;
+                if ( !gene_name_list.empty() && (
+                        (exclude && genename_map.find(gene_name) != genename_map.end())
+                        || (!exclude && genename_map.find(gene_name) == genename_map.end())
+                        ) ) continue;
 
-        if(cell_count > max_malloc){
-            expression = static_cast<GeneExpData *>(realloc(expression, cell_count));
-            max_malloc = cell_count;
-        }
-
-        getGeneExpByOffset(gene_data.offset, cell_count, expression);
-
-        for(unsigned int j = 0; j < cell_count; j++){
-            CellData cell_data = getCellData(expression[j].cell_id);
-            if(to_file){
-                fout << gene_data.gene_name << "\t" << cell_data.x << "\t" << cell_data.y
-                     << "\t" << expression[j].count << "\t" << expression[j].cell_id <<endl;
-            }else {
-                cout << gene_data.gene_name << "\t" << cell_data.x << "\t" << cell_data.y
-                     << "\t" << expression[j].count << "\t" << expression[j].cell_id <<endl;
+                cell_num ++;
+                if(to_file){
+                    fout << gene_name << "\t" << cell.x << "\t" << cell.y
+                         << "\t" << cell_exp_data[j].count << "\t" << cell_id <<endl;
+                }else {
+                    cout << gene_name << "\t" << cell.x << "\t" << cell.y
+                         << "\t" << cell_exp_data[j].count << "\t" << cell_id <<endl;
+                }
             }
         }
+
+        free(cell_exp_data);
+    }else {
+        unsigned int max_malloc = 1000;
+        auto *expression = static_cast<GeneExpData *>(malloc(max_malloc * sizeof(GeneExpData)));
+
+        for (unsigned short i = 0; i < n; i++) {
+            unsigned short gene_id = gene_ids[i];
+            GeneData gene_data = getGeneDataByGeneId(gene_id);
+            unsigned int cell_count = gene_data.cell_count;
+
+            cell_num += cell_count;
+
+            if(cell_count > max_malloc){
+                expression = static_cast<GeneExpData *>(realloc(expression, cell_count));
+                max_malloc = cell_count + 1000;
+            }
+
+            getGeneExpByOffset(gene_data.offset, cell_count, expression);
+
+            for(unsigned int j = 0; j < cell_count; j++){
+                CellData cell_data = getCellData(expression[j].cell_id);
+                if(to_file){
+                    fout << gene_data.gene_name << "\t" << cell_data.x << "\t" << cell_data.y
+                         << "\t" << expression[j].count << "\t" << expression[j].cell_id <<endl;
+                }else {
+                    cout << gene_data.gene_name << "\t" << cell_data.x << "\t" << cell_data.y
+                         << "\t" << expression[j].count << "\t" << expression[j].cell_id <<endl;
+                }
+            }
+        }
+        free(expression);
     }
 
     if(verbose_) printCpuTime(cprev, "toGem");
 
     if(to_file) fout.close();
-    free(expression);
-    return 0;
+    return cell_num;
 }
 
 bool CgefReader::isVerbose() const {
@@ -331,3 +389,88 @@ bool CgefReader::isVerbose() const {
 void CgefReader::setVerbose(bool verbose) {
     CgefReader::verbose_ = verbose;
 }
+
+void CgefReader::useRegion(unsigned int min_x, unsigned int max_x, unsigned int min_y, unsigned int max_y) {
+    unsigned long cprev=clock();
+    use_region_ = true;
+    unsigned int x_block_num = block_size_[2];
+    unsigned int y_block_num = block_size_[3];
+    unsigned int min_block_x = min_x/block_size_[0];
+    unsigned int max_block_x = max_x/block_size_[0];
+    unsigned int min_block_y = min_y/block_size_[1];
+    unsigned int max_block_y = max_y/block_size_[1];
+
+    max_block_x = max_block_x > x_block_num ? x_block_num : max_block_x;
+    max_block_y = max_block_y > y_block_num ? y_block_num : max_block_y;
+
+    unsigned int block_id_y, offset, cell_num_tmp=0;
+    for(unsigned int y = min_block_y; y <= max_block_y; y++) {
+        block_id_y = y * x_block_num;
+        cell_num_tmp += block_index_[max_block_x+block_id_y+1] - block_index_[min_block_x+block_id_y];
+    }
+
+    cell_num_ = 0;
+    cell_array_ = static_cast<CellData *>(malloc(cell_num_tmp * sizeof(CellData)));
+    cell_id_array_ = static_cast<unsigned int *>(malloc(cell_num_tmp * sizeof(unsigned int)));
+    auto * cell_data = static_cast<CellData *>(malloc(cell_num_tmp * sizeof(CellData)));
+
+    for(unsigned int y = min_block_y; y <= max_block_y; y++) {
+        block_id_y = y * x_block_num;
+        offset = block_index_[min_block_x+block_id_y];
+        cell_num_tmp = block_index_[max_block_x+block_id_y+1] - offset;
+        selectCells(offset, cell_num_tmp, cell_data);
+
+        for(unsigned int j = 0; j < cell_num_tmp; j++){
+            CellData cell = cell_data[j];
+            if(cell.x < min_x || cell.x > max_x || cell.y < min_y || cell.y > max_y)
+                continue;
+            memcpy(&(cell_array_[cell_num_]), &cell, sizeof(CellData));
+            cell_id_array_[cell_num_] = offset + j ;
+            cell_num_++;
+        }
+    }
+
+    free(cell_data);
+    if(verbose_) printCpuTime(cprev, "useRegion");
+}
+
+void CgefReader::selectCells(unsigned int offset,
+                             unsigned int cell_count,
+                             CellData *cell) const {
+    hsize_t start[1] = {offset},
+            count[1] = {cell_count},
+            offset_out[1] = {0};
+
+    hid_t memtype;
+    memtype = getMemtypeOfCellData();
+
+    // Define memory dataspace.
+    hid_t memspace = H5Screate_simple(1, count,nullptr);
+    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out, nullptr, count, nullptr);
+
+    H5Sselect_hyperslab(cell_dataspace_id_, H5S_SELECT_SET, start, nullptr, count, nullptr);
+    H5Dread(cell_dataset_id_, memtype, memspace, cell_dataspace_id_, H5P_DEFAULT, cell);
+}
+
+void CgefReader::selectCellExp(unsigned int offset,
+                               unsigned int gene_count,
+                               CellExpData *cell_exp_data) const {
+    hsize_t start[1] = {offset},
+            count[1] = {gene_count},
+            offset_out[1] = {0};
+
+    hid_t memtype;
+    memtype = getMemtypeOfCellExpData();
+
+    // Define memory dataspace.
+    hid_t memspace = H5Screate_simple(1, count,nullptr);
+    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out, nullptr, count, nullptr);
+
+    H5Sselect_hyperslab(cell_exp_dataspace_id_, H5S_SELECT_SET, start, nullptr, count, nullptr);
+    H5Dread(cell_exp_dataset_id_, memtype, memspace, cell_exp_dataspace_id_, H5P_DEFAULT, cell_exp_data);
+}
+
+bool CgefReader::isUseRegion() const {
+    return use_region_;
+}
+

@@ -24,13 +24,17 @@ class Polygon {
     short border_size_;
     short original_contour_size_;
     int min_x_{INT_MAX}, max_x_{0}, min_y_{INT_MAX}, max_y_{0}, rows_{0}, cols_{0};
-    int block_id_;
+    unsigned int block_id_;
     void setMinMaxXY();
 
   public:
-    int getBlockId() const;
+    unsigned int getBlockId() const;
 
-    void setBlockId(int x_block_size, int y_block_size, int x_block_num);
+    /**
+     * @brief Set block id.
+     * @param block_size  A array of 4 elements: x_block_size, y_block_size, x_block_num, y_block_num
+     */
+    void setBlockId(const unsigned int *block_size);
 
     /**
      * @brief Get border points of this polygon

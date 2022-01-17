@@ -5,10 +5,15 @@
 #include "mask.h"
 Mask::Mask(const string& file, const int block_size[]){
     cv::Mat img = cv::imread(file,-1);
-    if( img.empty() ) { exit(-1);}
+    if( img.empty() ) { cerr << "Mask is empty!" << endl; exit(-1);}
 
     rows_ = img.rows;
     cols_ = img.cols;
+    // x_block_size, y_block_size, x_block_num, y_block_num
+    block_size_[0] = block_size[0];
+    block_size_[1] = block_size[1];
+    block_size_[2] = ceil(cols_ * 1.0 / block_size[0]);
+    block_size_[3] = ceil(rows_ * 1.0 / block_size[1]);
 
     //findContours从二值图像中检索轮廓，并返回检测到的轮廓的个数
     findContours(
@@ -18,13 +23,13 @@ Mask::Mask(const string& file, const int block_size[]){
       RETR_EXTERNAL,
       CHAIN_APPROX_SIMPLE
     );
-    int x_block_num = ceil(cols_ * 1.0 / block_size[0]);
+    block_num_ = block_size_[2] * block_size_[3];
 
     for(auto & contour : contours_){
         Polygon p = Polygon();
         bool cell_polygon_is_good = p.applyContour(contour);
         if(cell_polygon_is_good){
-            p.setBlockId(block_size[0], block_size[1], x_block_num);
+            p.setBlockId(block_size_);
             polygons_.emplace_back(p);
             min_x_ = p.getMinX() < min_x_ ? p.getMinX() : min_x_;
             max_x_ = p.getMaxX() > max_x_ ? p.getMaxX() : max_x_;
@@ -36,6 +41,11 @@ Mask::Mask(const string& file, const int block_size[]){
     preBlockSort();
 
     cell_num_ = polygons_.size();
+}
+
+Mask::~Mask() {
+    if(block_index_ != nullptr)
+        free(block_index_);
 }
 
 const vector<Polygon> &Mask::getPolygons() const {
@@ -92,15 +102,35 @@ void Mask::preBlockSort() {
     sort(polygons_.begin(), polygons_.end(), polygonComp);
 }
 
-bool Mask::polygonComp(Polygon& p1, Polygon& p2) {
+bool Mask::polygonComp(const Polygon& p1, const Polygon& p2) {
     return p1.getBlockId() < p2.getBlockId();
 }
 
-void Mask::preBlocking(int x_block_size, int y_block_size) {
-    int x_block_num = ceil(cols_ * 1.0 / x_block_size);
-    for(auto & p : polygons_){
-        p.setBlockId(x_block_size, y_block_size, x_block_num);
+unsigned int Mask::getBlockNum() const {
+    return block_num_;
+}
+
+unsigned int * Mask::getBlockIndex() {
+    if(block_index_ != nullptr)
+        return block_index_;
+
+    unsigned int block_index_size = block_num_ + 1;
+
+    block_index_ = (unsigned int *) calloc(block_index_size, sizeof(unsigned int));
+
+    for(unsigned int i = 0; i< cell_num_; i++){
+        Polygon p = polygons_[i];
+        block_index_[p.getBlockId()] += 1;
     }
 
-    sort(polygons_.begin(), polygons_.end(), polygonComp);
+    block_index_[block_num_] = cell_num_;
+    for(unsigned int i = block_num_; i > 0; i--){
+        block_index_[i-1] = block_index_[i] - block_index_[i-1];
+    }
+    return block_index_;
 }
+
+const unsigned int *Mask::getBlockSize() const {
+    return block_size_;
+}
+

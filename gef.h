@@ -10,6 +10,14 @@
 #include "hdf5.h"
 
 /**
+ * @brief Coordinate union
+ */
+union Coordinate {
+    unsigned int pos[2]; ///< dnb coordinates x, y
+    unsigned long long int pos_id;
+};
+
+/**
  * @brief Expression struct
  */
 struct Expression {
@@ -73,20 +81,22 @@ struct CellAttr {
     float average_exp_count;
     float average_dnb_count;
     float average_area;
+    unsigned int min_x;
+    unsigned int min_y;
     unsigned short min_gene_count;
     unsigned short min_exp_count;
     unsigned short min_dnb_count;
     unsigned short min_area;
+    unsigned int max_x;
+    unsigned int max_y;
     unsigned short max_gene_count;
     unsigned short max_exp_count;
     unsigned short max_dnb_count;
     unsigned short max_area;
-    unsigned int block_size[2];  ///< x_block_size, y_block_size
-    unsigned int* block_index;  ///< block_id, offset, count
 };
 
 struct GeneData {
-    GeneData(const char* g, unsigned int o, unsigned int c, unsigned m)
+    GeneData(const char* g, unsigned int o, unsigned int c, unsigned int e, unsigned m)
     {
         int i = 0;
         while (g[i] != '\0')
@@ -96,11 +106,13 @@ struct GeneData {
         }
         offset = o;
         cell_count = c;
+        exp_count = e;
         max_mid_count = m;
     }
     char gene_name[32] = {0};
     unsigned int offset;  ///< Offset of current gene in geneExp, 0-based
     unsigned int cell_count;
+    unsigned int exp_count;
     unsigned short max_mid_count;  ///< max MID count of current gene
 };
 

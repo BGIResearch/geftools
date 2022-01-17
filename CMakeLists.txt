@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.17)
 project(geftools)
 
 set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(OpenCV REQUIRED COMPONENTS opencv_core opencv_highgui opencv_imgcodecs opencv_imgproc)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -9,20 +11,21 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(HDF5 REQUIRED COMPONENTS C)
 include_directories(${HDF5_INCLUDE_DIRS})
 
-set(Headers common_bin.h polygon.h mask.h  utils.h cgef_writer.h)
+set(Headers bgef_reader.h polygon.h mask.h utils.h cgef_writer.h cgef_reader.h gef.h main_cgef.h)
 
 aux_source_directory(. SRC_LIST)
-add_library(objlib OBJECT ${SRC_LIST} gef.cpp cgef_reader.cpp cgef_reader.h)
+add_library(objlib OBJECT ${SRC_LIST})
 add_library(gef-static STATIC $<TARGET_OBJECTS:objlib>)
 add_library(gef SHARED $<TARGET_OBJECTS:objlib>)
 add_executable(geftools $<TARGET_OBJECTS:objlib>)
 target_link_libraries(geftools ${HDF5_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(gef ${HDF5_LIBRARIES} ${OpenCV_LIBRARIES})
 
+set_target_properties(geftools PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+set_target_properties(gef PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 set_target_properties(gef-static PROPERTIES OUTPUT_NAME "gef")
 set_target_properties(gef PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(gef-static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-
 
 install(TARGETS gef
         LIBRARY DESTINATION

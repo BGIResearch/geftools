@@ -19,18 +19,21 @@ using namespace std;
 class Mask {
   private:
     unsigned int cell_num_;
+    unsigned int block_num_;
+    unsigned int block_size_[4] = {0};
+    unsigned int * block_index_ = nullptr;
     vector<vector<Point> > contours_;
     vector<Vec4i> hierarchy_;
     vector<Polygon> polygons_;
     int min_x_{INT_MAX}, max_x_{0}, min_y_{INT_MAX}, max_y_{0}, rows_{0}, cols_{0};
 
   public:
+
     /**
      * @brief Constructor of Mask class.
      * @param file   Mask file of cell shape.
      */
     Mask(const string& file, const int block_size[]);
-
     /**
      * @brief Displays cell contours in a window.
      */
@@ -55,11 +58,17 @@ class Mask {
 
     void getEffectiveRectangle(unsigned int* effective_rect) const;
 
-    void preBlocking(int x_block_size, int y_block_size);
+    unsigned int getBlockNum() const;
+
+    unsigned int *getBlockIndex();
+
+    const unsigned int *getBlockSize() const;
 
     void preBlockSort();
 
-    static bool polygonComp(Polygon& p1, Polygon& p2);
+    static bool polygonComp(const Polygon& p1, const Polygon& p2);
+
+    virtual ~Mask();
 };
 
 #endif //GEFTOOLS__MASK_H_

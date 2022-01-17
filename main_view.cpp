@@ -18,7 +18,7 @@ int view(int argc, char *argv[]) {
             ("m,output-mask", "Output border of polygons to mask format file",
                     cxxopts::value<std::string>()->default_value(""), "FILE")
             ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
-                         "of two vertex coordinates (minX,minY,maxX,maxY)",
+                         "of two vertex coordinates (minX,maxX,minY,maxY)",
                          cxxopts::value<std::string>()->default_value(""), "STR")
             ("g,genes", "Comma separated list of genes to include (or exclude with \"^\" prefix)",
                     cxxopts::value<std::string>(), "[^]STR")
@@ -54,7 +54,12 @@ int view(int argc, char *argv[]) {
 
     if (result.count("region") == 1){
         string region_tmp = result["region"].as<string>();
-        viewopts.region = split(region_tmp, ',');
+        vector<string> regions = split(region_tmp, ',');
+        viewopts.use_region = true;
+        viewopts.region[0] = static_cast<unsigned int>(strtol(regions[0].c_str(), nullptr, 10));
+        viewopts.region[1] = static_cast<unsigned int>(strtol(regions[1].c_str(), nullptr, 10));
+        viewopts.region[2] = static_cast<unsigned int>(strtol(regions[2].c_str(), nullptr, 10));
+        viewopts.region[3] = static_cast<unsigned int>(strtol(regions[3].c_str(), nullptr, 10));
     }
 
     unsigned long n_genes = result.count("genes");
@@ -94,7 +99,13 @@ int view(int argc, char *argv[]) {
     unsigned long cprev=clock();
 
     CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
-//    cgef_reader.setVerbose(viewopts.verbose);
+
+    if(viewopts.use_region){
+        cgef_reader.useRegion(viewopts.region[0],
+                              viewopts.region[1],
+                              viewopts.region[2],
+                              viewopts.region[3]);
+    }
 
     cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
 
