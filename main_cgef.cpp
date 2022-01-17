@@ -16,6 +16,7 @@ int cgef(int argc, char *argv[]) {
     ("m,mask-file", "input mask file [request]", cxxopts::value<std::string>(), "FILE")
     ("o,output-file", "output cell bin GEF file (.cgef) [request]", cxxopts::value<std::string>(), "FILE")
     ("b,block", "Pre block size", cxxopts::value<std::string>()->default_value("256,256"), "FILE")
+    ("r,rand-celltype", "number of random cell type", cxxopts::value<int>()->default_value("0"), "INT")
 //    ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
@@ -50,6 +51,7 @@ int cgef(int argc, char *argv[]) {
         result["input-file"].as<string>(),
         result["mask-file"].as<string>(),
         result["output-file"].as<string>(),
+        result["rand-celltype"].as<int>(),
 //        result["threads"].as<int>(),
     };
     opts.verbose = result["verbose"].as<bool>();
@@ -85,8 +87,9 @@ int generateCgef(const string &cgef_file,
     unsigned long cprev=clock();
     Mask mask = Mask(mask_file, block_size);
     if(verbose) cprev = printCpuTime(cprev, "Mask init");
-    CommonBin common_bin_gef = CommonBin(bgef_file, 1);
+    BgefReader common_bin_gef = BgefReader(bgef_file, 1);
     CgefWriter cgef_writer = CgefWriter(cgef_file);
+    cgef_writer.setRandomCellTypeNum(20);
     cgef_writer.write(common_bin_gef, mask);
     if(verbose) printCpuTime(cprev, "generateCgef");
     return 0;

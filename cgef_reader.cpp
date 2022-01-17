@@ -143,40 +143,48 @@ CellData *CgefReader::getCell() {
     return cell_array_;
 }
 
-void CgefReader::getGeneNameList(char *gene_list) {
+void CgefReader::getGeneNameList(vector<string> & gene_list) {
     GeneData * genes = getGene();
     for(unsigned int i = 0; i < gene_num_; i++){
-        memcpy(&gene_list[i], genes[i].gene_name, 32);
+        gene_list.emplace_back(genes[i].gene_name);
+//        memcpy(&gene_list[i*32], genes[i].gene_name, 32);
     }
 }
 
-int CgefReader::getSparseMatrixIndicesOfExp(unsigned int *indices, unsigned int *indptr, unsigned int *count,
-                                         const char *order) {
+void CgefReader::getCellPosList(unsigned long long int *cell_pos_list) {
+    CellData * cells = getCell();
+    for(unsigned int i = 0; i < cell_num_; i++){
+        cell_pos_list[i] = cells[i].x;
+        cell_pos_list[i] = cell_pos_list[i] << 32 | cells[i].y;
+    }
+}
+
+//indptr length = gene_num_ + 1
+int CgefReader::getSparseMatrixIndices(unsigned int *indices, unsigned int *indptr, unsigned int *count,
+                                            const char *order) {
     if(order[0] == 'g'){
         getCellIdAndCount(indices, count);
         GeneData * gene_data = getGene();
-        //indptr length = gene_num_ + 1
         indptr[0] = 0;
-        for(unsigned int i = 1; i < cell_num_; i++){
-            indptr[i] = gene_data->cell_count;
+        for(unsigned int i = 1; i < gene_num_; i++){
+            indptr[i] = gene_data[i].offset;
         }
+        indptr[gene_num_] = gene_data[gene_num_-1].offset + gene_data[gene_num_-1].cell_count;
     }else if(order[0] == 'c'){
         getGeneIdAndCount(indices, count);
-        //indptr length = gene_num_ + 1
         CellData * cell_data = getCell();
         indptr[0] = 0;
         for(unsigned int i = 1; i < cell_num_; i++){
-            indptr[i] = cell_data->gene_count;
+            indptr[i] = cell_data[i].gene_count;
         }
+        indptr[cell_num_] = cell_data[cell_num_-1].offset + cell_data[cell_num_-1].gene_count;
     }else {
         return -1;
     }
     return 0;
 }
 
-int CgefReader::getSparseMatrixIndicesOfExp2(unsigned int *cell_ind,
-                                          unsigned int *gene_ind,
-                                          unsigned int *count) {
+int CgefReader::getSparseMatrixIndices2(unsigned int *cell_ind, unsigned int *gene_ind, unsigned int *count) {
     getCellIdAndCount(cell_ind, count);
     GeneData * gene_data = getGene();
     unsigned int n = 0;
@@ -465,3 +473,4 @@ void CgefReader::selectCellExp(unsigned int offset,
 bool CgefReader::isUseRegion() const {
     return use_region_;
 }
+

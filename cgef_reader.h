@@ -16,6 +16,37 @@
 #include "gef.h"
 
 class CgefReader {
+  private:
+    hid_t file_id_;
+    hid_t group_id_;
+    hid_t str32_type_;
+    hid_t cell_dataset_id_;
+    hid_t cell_dataspace_id_;
+    hid_t cell_exp_dataset_id_;
+    hid_t cell_exp_dataspace_id_;
+    hid_t gene_dataset_id_;
+    hid_t gene_exp_dataset_id_;
+    hid_t gene_exp_dataspace_id_;
+
+    GeneData* gene_array_ = nullptr;
+    CellData* cell_array_ = nullptr;
+    unsigned int* cell_id_array_ = nullptr;
+    unsigned short gene_num_ = 0;
+    unsigned int cell_num_ = 0;
+    unsigned int expression_num_ = 0;
+    unsigned int block_num_;
+    unsigned int block_size_[4];  ///< x_block_size, y_block_size, x_block_num, y_block_num
+    unsigned int* block_index_;  ///< offset, count
+    CellAttr cell_attr_;
+
+    void openCellDataset();
+    void openCellExpDataset();
+    void openGeneDataset();
+    void openGeneExpDataset();
+
+    bool verbose_ = false;
+    bool use_region_ = false;
+
   public:
     explicit CgefReader(const string &filename, bool verbose = false);
     ~CgefReader();
@@ -50,7 +81,13 @@ class CgefReader {
      * @brief Gets gene name array, 32 bit for each string.
      * @param gene_list
      */
-    void getGeneNameList(char *gene_list);
+    void getGeneNameList(vector<string> & gene_list);
+
+    /**
+     * @brief Gets cell pos array.  store x,y in a number (unsigned long long int) : x << 32 | y
+     * @param cell_pos_list
+     */
+    void getCellPosList(unsigned long long int * cell_pos_list);
 
     /**
      * @brief Gets indices for building csr_matrix.
@@ -67,10 +104,7 @@ class CgefReader {
      * @param order    Order of count, "gene" or "cell".
      * @return
      */
-    int getSparseMatrixIndicesOfExp(unsigned int * indices,
-                                    unsigned int * indptr,
-                                    unsigned int * count,
-                                    const char * order);
+    int getSparseMatrixIndices(unsigned int * indices, unsigned int * indptr, unsigned int * count, const char * order);
 
     /**
      * @brief Gets indices for building csr_matrix.
@@ -79,9 +113,7 @@ class CgefReader {
      * @param gene_ind     CSR format index array of the matrix. same size as count.
      * @param count        CSR format data array of the matrix. Expression count.
      */
-    int getSparseMatrixIndicesOfExp2(unsigned int * cell_ind,
-                                     unsigned int * gene_ind,
-                                     unsigned int * count);
+    int getSparseMatrixIndices2(unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count);
 
     /**
      * @brief Gets cellId and count from the geneExp dataset.
@@ -128,46 +160,12 @@ class CgefReader {
                        bool force_genes = false,
                        bool exclude = false);
 
-
-  private:
-    hid_t file_id_;
-    hid_t group_id_;
-    hid_t str32_type_;
-    hid_t cell_dataset_id_;
-    hid_t cell_dataspace_id_;
-    hid_t cell_exp_dataset_id_;
-    hid_t cell_exp_dataspace_id_;
-    hid_t gene_dataset_id_;
-    hid_t gene_exp_dataset_id_;
-    hid_t gene_exp_dataspace_id_;
-
-    GeneData* gene_array_ = nullptr;
-    CellData* cell_array_ = nullptr;
-    unsigned int* cell_id_array_ = nullptr;
-    unsigned short gene_num_ = 0;
-    unsigned int cell_num_ = 0;
-    unsigned int expression_num_ = 0;
-    unsigned int block_num_;
-    unsigned int block_size_[4];  ///< x_block_size, y_block_size, x_block_num, y_block_num
-    unsigned int* block_index_;  ///< offset, count
-    CellAttr cell_attr_;
-
-    void openCellDataset();
-    void openCellExpDataset();
-    void openGeneDataset();
-    void openGeneExpDataset();
-
-    bool verbose_ = false;
-    bool use_region_ = false;
-  public:
-
     /**
      * @brief Determine whether the useRegion function is run to limit to a rectangular region.
      * @return
      */
     bool isUseRegion() const;
 
-  public:
     bool isVerbose() const;
 
     void setVerbose(bool verbose);
@@ -175,6 +173,7 @@ class CgefReader {
     void selectCells(unsigned int offset, unsigned int cell_count, CellData *cell) const;
 
     void selectCellExp(unsigned int offset, unsigned int exp_count, CellExpData *cell_exp_data) const;
+
 };
 
 #endif //GEFTOOLS_CGEF_READER_H

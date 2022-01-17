@@ -10,6 +10,14 @@
 #include "hdf5.h"
 
 /**
+ * @brief Coordinate union
+ */
+union Coordinate {
+    unsigned int pos[2]; ///< dnb coordinates x, y
+    unsigned long long int pos_id;
+};
+
+/**
  * @brief Expression struct
  */
 struct Expression {

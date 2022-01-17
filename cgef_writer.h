@@ -14,7 +14,7 @@
 #include "utils.h"
 #include "gef.h"
 #include "mask.h"
-#include "common_bin.h"
+#include "bgef_reader.h"
 
 class CgefWriter {
   public:
@@ -55,7 +55,7 @@ class CgefWriter {
      * @brief Writing to cgef.
      * @return
      */
-    int write(CommonBin& common_bin_gef, Mask& mask);
+    int write(BgefReader& common_bin_gef, Mask& mask);
 
     bool isVerbose() const;
 

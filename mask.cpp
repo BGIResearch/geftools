@@ -5,7 +5,7 @@
 #include "mask.h"
 Mask::Mask(const string& file, const int block_size[]){
     cv::Mat img = cv::imread(file,-1);
-    if( img.empty() ) { exit(-1);}
+    if( img.empty() ) { cerr << "Mask is empty!" << endl; exit(-1);}
 
     rows_ = img.rows;
     cols_ = img.cols;
