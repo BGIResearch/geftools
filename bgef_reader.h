@@ -75,9 +75,11 @@ class BgefReader {
 
     /**
      *  @brief Get cell name list.
-     * @param cell_list
+     * @param cell_name_list
      */
-    void getCellPosList(unsigned long long int * cell_list);
+    void getCellNameList(unsigned long long int * cell_name_list);
+
+    unsigned long long int * getCellPos();
 
     Expression * getExpression();
 
@@ -156,14 +158,17 @@ class BgefReader {
      * @brief Get geneID and expCount of this gene for each bin
      * @return key is bin id: x << 32 | y, value is a vector of gene_exp compoud value (geneID << 16 | geneExpCount).
      */
-    void getBinGeneExpMap(map<unsigned long long int, vector<CellExpData>>& bin_exp_map);
+    void getBinGeneExpMap(map<unsigned long long int, pair<unsigned int, unsigned short>> &bin_exp_map,
+                          DnbExpression * dnb_exp_info);
+
+    void getGeneAndCount(unsigned short * gene_ind, unsigned short * count);
 
     /**
      * @brief Free memory for cache variables
      */
     void clear();
 
-    static bool expressionComp(const Expression &p1, const Expression &p2);
+    static bool expressionComp(const DnbExpression& p1, const DnbExpression& p2);
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

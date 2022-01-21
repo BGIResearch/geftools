@@ -55,7 +55,7 @@ int view(int argc, char *argv[]) {
     if (result.count("region") == 1){
         string region_tmp = result["region"].as<string>();
         vector<string> regions = split(region_tmp, ',');
-        viewopts.use_region = true;
+        viewopts.restrict_region = true;
         viewopts.region[0] = static_cast<unsigned int>(strtol(regions[0].c_str(), nullptr, 10));
         viewopts.region[1] = static_cast<unsigned int>(strtol(regions[1].c_str(), nullptr, 10));
         viewopts.region[2] = static_cast<unsigned int>(strtol(regions[2].c_str(), nullptr, 10));
@@ -100,11 +100,11 @@ int view(int argc, char *argv[]) {
 
     CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
 
-    if(viewopts.use_region){
-        cgef_reader.useRegion(viewopts.region[0],
-                              viewopts.region[1],
-                              viewopts.region[2],
-                              viewopts.region[3]);
+    if(viewopts.restrict_region){
+        cgef_reader.restrictRegion(viewopts.region[0],
+                                   viewopts.region[1],
+                                   viewopts.region[2],
+                                   viewopts.region[3]);
     }
 
     cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);

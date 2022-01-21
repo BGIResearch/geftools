@@ -3,7 +3,7 @@
 #include "main_view.h"
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.1"
+#define PACKAGE_VERSION "0.2"
 #endif
 
 using namespace cv;
@@ -24,6 +24,9 @@ static int usage()
 }
 
 int main(int argc, const char* argv[]){
+    time_t prev;
+    time(&prev);
+
     int ret;
     if (argc < 2) return usage();
 
@@ -34,5 +37,6 @@ int main(int argc, const char* argv[]){
         return 1;
     }
 
+    printTime(prev, "Total Time");
     return ret;
 }

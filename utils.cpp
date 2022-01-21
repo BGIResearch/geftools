@@ -89,3 +89,5 @@ void offsetCoordinates(vector<Point> & coordinates, vector<Point> & new_coordina
         new_coordinates.emplace_back(p);
     }
 }
+
+

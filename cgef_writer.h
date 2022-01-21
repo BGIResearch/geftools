@@ -36,6 +36,12 @@ class CgefWriter {
                    const Point& center_point,
                    unsigned short area);
 
+    void addDnbExp(vector<Point> & dnb_coordinates,
+                   map<unsigned long long int, pair<unsigned int, unsigned short>> & bin_gene_exp_map,
+                   const DnbExpression *dnb_expression,
+                   const Point& center_point,
+                   unsigned short area);
+
     static unsigned short calcMaxCountOfGeneExp(vector<GeneExpData> & gene_exps);
 
     void storeAttr(CellBinAttr& cell_attr) const;
