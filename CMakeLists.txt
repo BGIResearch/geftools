@@ -11,7 +11,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(HDF5 REQUIRED COMPONENTS C)
 include_directories(${HDF5_INCLUDE_DIRS})
 
-set(Headers bgef_reader.h polygon.h mask.h utils.h cgef_writer.h cgef_reader.h gef.h main_cgef.h)
+set(Headers bgef_reader.h polygon.h mask.h utils.h cgef_writer.h cgef_reader.h gef.h main_cgef.h cxxopts.h)
 
 aux_source_directory(. SRC_LIST)
 add_library(objlib OBJECT ${SRC_LIST})

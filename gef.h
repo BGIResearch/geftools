@@ -26,6 +26,14 @@ struct Expression {
     unsigned int cnt; ///< expression count (MIDcount)
 };
 
+
+struct DnbExpression {
+    unsigned int x; ///< dnb coordinates x
+    unsigned int y; ///< dnb coordinates x
+    unsigned short count; ///< expression count (MIDcount)
+    unsigned short gene_id;
+};
+
 /**
  * @brief ExpressionAttr struct, record the attributes of the dataset named expressione
  */

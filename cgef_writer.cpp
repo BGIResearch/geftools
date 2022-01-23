@@ -176,6 +176,102 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
 
 
 void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
+                           map<unsigned long long int, pair<unsigned int, unsigned short>> & bin_gene_exp_map,
+                           const DnbExpression *dnb_expression,
+                           const Point& center_point,
+                           unsigned short area) {
+    unsigned long long int bin_id;
+    map<unsigned short, unsigned short> gene_count_in_cell;
+    unsigned short gene_count = 0;
+    unsigned short exp_count = 0;
+
+    for (auto & dnb_coordinate : dnb_coordinates) {
+        bin_id = static_cast<unsigned long long int>(dnb_coordinate.x);
+        bin_id = bin_id << 32 | static_cast<unsigned int>(dnb_coordinate.y);
+
+        auto iter = bin_gene_exp_map.find(bin_id);
+        if(iter != bin_gene_exp_map.end()){
+            pair<unsigned int, unsigned short> gene_info = iter->second;
+            unsigned int end = gene_info.first + gene_info.second;
+            for(unsigned int i = gene_info.first; i < end; i++){
+                exp_count += dnb_expression[i].count;
+                auto iter_gene = gene_count_in_cell.find(dnb_expression[i].gene_id);
+                if(iter_gene != gene_count_in_cell.end()){
+                    iter_gene->second += dnb_expression[i].count;
+                } else{
+                    gene_count_in_cell.insert(
+                            map<unsigned short, unsigned short>::value_type(
+                                    dnb_expression[i].gene_id, dnb_expression[i].count));
+                    gene_count++;
+                }
+            }
+        }
+    }
+
+    unsigned short cell_type_id = random_cell_type_num_ == 0 ? 0 : rand()%(random_cell_type_num_ + 1);
+
+    CellData cell = {
+            static_cast<unsigned int>(center_point.x),
+            static_cast<unsigned int>(center_point.y),
+            expression_num_, //offset
+            static_cast<unsigned short>(gene_count),
+            static_cast<unsigned short>(exp_count),
+            static_cast<unsigned short>(dnb_coordinates.size()),
+            area,
+            cell_type_id
+    };
+    expression_num_ += gene_count;
+
+    cell_attr_.min_x = cell.x < cell_attr_.min_x ? cell.x : cell_attr_.min_x;
+    cell_attr_.max_x = cell.x > cell_attr_.max_x ? cell.x : cell_attr_.max_x;
+    cell_attr_.min_y = cell.y < cell_attr_.min_y ? cell.y : cell_attr_.min_y;
+    cell_attr_.max_y = cell.y > cell_attr_.max_y ? cell.y : cell_attr_.max_y;
+
+    cell_attr_.min_area = area < cell_attr_.min_area ? area : cell_attr_.min_area;
+    cell_attr_.max_area = area > cell_attr_.max_area ? area : cell_attr_.max_area;
+    cell_attr_.min_gene_count = gene_count < cell_attr_.min_gene_count ? gene_count : cell_attr_.min_gene_count;
+    cell_attr_.max_gene_count = gene_count > cell_attr_.max_gene_count ? gene_count : cell_attr_.max_gene_count;
+    cell_attr_.min_exp_count = exp_count < cell_attr_.min_exp_count ? exp_count : cell_attr_.min_exp_count;
+    cell_attr_.max_exp_count = exp_count > cell_attr_.max_exp_count ? exp_count : cell_attr_.max_exp_count;
+
+    unsigned int dnb_count = dnb_coordinates.size();
+    cell_attr_.min_dnb_count = dnb_count < cell_attr_.min_dnb_count ? dnb_count : cell_attr_.min_dnb_count;
+    cell_attr_.max_dnb_count = dnb_count > cell_attr_.max_dnb_count ? dnb_count : cell_attr_.max_dnb_count;
+
+    exp_count_sum_ += exp_count;
+    dnb_count_sum_ += dnb_count;
+    area_sum_ += area;
+
+    cell_list_.emplace_back(cell);
+
+    map<unsigned short, unsigned short> ::iterator iter_m;
+    iter_m = gene_count_in_cell.begin();
+    while(iter_m != gene_count_in_cell.end()) {
+        unsigned short gene_id = iter_m->first;
+        unsigned short count = iter_m->second;
+        max_mid_count_ = count > max_mid_count_ ? count : max_mid_count_;
+
+        // 用于生成geneExp dataset的数据
+        GeneExpData gene_exp_tmp = {cell_num_, count};
+        auto iter_gene_exp_map = gene_exp_map_.find(gene_id);
+        if(iter_gene_exp_map != gene_exp_map_.end()){
+            iter_gene_exp_map->second.emplace_back(gene_exp_tmp);
+        } else{
+            vector<GeneExpData> v_gene_exp_data;
+            v_gene_exp_data.emplace_back(gene_exp_tmp);
+            gene_exp_map_.insert(map<unsigned short, vector<GeneExpData>>::value_type(gene_id, v_gene_exp_data));
+        }
+
+        CellExpData cexp_tmp = {gene_id, count};
+        cell_exp_list_.emplace_back(cexp_tmp);
+        ++iter_m;
+    }
+
+    cell_num_ += 1;
+}
+
+
+void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
                            map<unsigned long long int, vector<CellExpData>> & bin_gene_exp_map,
                            const Point& center_point,
                            unsigned short area) {
@@ -418,13 +514,11 @@ unsigned short CgefWriter::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps)
 }
 
 int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
-    map<unsigned long long int, vector<CellExpData>> bin_gene_exp_map;
-    common_bin_gef.getBinGeneExpMap(bin_gene_exp_map);
-    const vector<Polygon>& polygons = mask.getPolygons();
+    map<unsigned long long int, pair<unsigned int, unsigned short>> bin_gene_exp_map;
+    auto * dnb_exp_info = (DnbExpression *) malloc(common_bin_gef.getExpressionNum()  * sizeof(DnbExpression));
+    common_bin_gef.getBinGeneExpMap(bin_gene_exp_map, dnb_exp_info);
 
-    if(verbose_) {
-        cout << "addDnbExp start" << endl;
-    }
+    const vector<Polygon>& polygons = mask.getPolygons();
 
     unsigned long cprev=clock();
     for(unsigned int i = 0; i < mask.getCellNum(); i++){
@@ -442,14 +536,12 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
         addDnbExp(
             non_zero_coordinates_offset,
             bin_gene_exp_map,
+            dnb_exp_info,
             p.getCenter(),
             p.getAreaUshort());
     }
 
-    if(verbose_) {
-        cout << "addDnbExp done" << endl;
-        printCpuTime(cprev, "generateCgef");
-    }
+    if(verbose_) printCpuTime(cprev, "addDnbExp");
 
     char* borders = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
     mask.getBorders(borders);
@@ -476,6 +568,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
     common_bin_gef.getGeneNameList(gene_name_list);
     storeGeneAndGeneExp(gene_name_list);
 
+    free(dnb_exp_info);
     return 0;
 }
 

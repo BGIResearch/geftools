@@ -22,7 +22,7 @@ struct ViewOptions {
     unsigned int region[4];
     vector<string> genes;
     int threads;
-    bool use_region;
+    bool restrict_region;
     bool force_genes;
     bool exclude; ///< Set the list of genes to exclude, not include.
     bool verbose;

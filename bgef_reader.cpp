@@ -163,23 +163,22 @@ void BgefReader::buildCellInfo2() {
          [xy_id](int a,int b){return xy_id[a].pos_id < xy_id[b].pos_id; });
 
     Coordinate uniq_cell_id{}, pre_xy = xy_id[exp_index[0]];
+    cell_pos_.emplace_back(pre_xy);
     unsigned int index = 0;
-    cell_indices_[0] = 0;
+    cell_indices_[exp_index[0]] = 0;
     for (int i = 1; i < expression_num_; ++i) {
         uniq_cell_id = xy_id[exp_index[i]];
         if (uniq_cell_id.pos_id != pre_xy.pos_id){
-            cell_pos_.emplace_back(pre_xy);
+            cell_pos_.emplace_back(uniq_cell_id);
             ++index;
             pre_xy = uniq_cell_id;
         }
-        cell_indices_[i] = index;
+        cell_indices_[exp_index[i]] = index;
     }
 
-    cell_pos_.emplace_back(uniq_cell_id);
-    ++index;
-
-    cell_num_ = index;
+    cell_num_ = cell_pos_.size();
     H5Tclose(memtype);
+    free(exp_index);
     free(xy_id);
     if(verbose_) printCpuTime(cprev, "buildCellInfo2");
 }
@@ -350,42 +349,54 @@ Mat BgefReader::getWholeExpMatrix(Rect roi){
     return whole_exp_matrix_t_(roi);
 }
 
-void BgefReader::getBinGeneExpMap(map<unsigned long long int, vector<CellExpData>>& bin_exp_map) {
-    Gene* gene_data = getGene();
-    Expression* expression_data = getExpression();
-//    auto * exp_index = (unsigned int *) malloc(expression_num_ * sizeof(unsigned int));
-//    iota(exp_index, exp_index+expression_num_, 0);
-//
-//    sort(exp_index, exp_index+expression_num_,
-//         [expression_data](int a,int b){
-//        return expression_data[a].x < expression_data[b].x ||
-//        (expression_data[a].x == expression_data[b].x && expression_data[a].y < expression_data[b].y); });
+void BgefReader::getBinGeneExpMap(
+        map<unsigned long long int, pair<unsigned int, unsigned short>>& bin_exp_map,
+        DnbExpression * dnb_exp_info) {
+    unsigned long cprev=clock();
+    hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(DnbExpression));
+    H5Tinsert(memtype, "x", HOFFSET(DnbExpression, x), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "y", HOFFSET(DnbExpression, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "count", HOFFSET(DnbExpression, count), H5T_NATIVE_USHORT);
+    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, dnb_exp_info);
 
-    unsigned long long int bin_id, exp_len_index = 0;
-
-    for (unsigned short i = 0; i < gene_num_; ++i)
-    {
-        assert(exp_len_index + gene_data[i].count <= expression_num_);
-        for (unsigned int j = 0; j < gene_data[i].count; ++j)
-        {
-            Expression exp = expression_data[exp_len_index];
-            bin_id = static_cast<unsigned long long int>(exp.x);
-            bin_id = bin_id << 32 | exp.y;
-
-            CellExpData gene_exp = {i, static_cast<unsigned short>(exp.cnt)};
-
-            exp_len_index++;
-
-            auto iter = bin_exp_map.find(bin_id);
-            if(iter != bin_exp_map.end()){
-                iter->second.emplace_back(gene_exp);
-            }else{
-                vector<CellExpData> gene_exp_list;
-                gene_exp_list.emplace_back(gene_exp);
-                bin_exp_map.insert(map<unsigned long long, vector<CellExpData>>::value_type (bin_id, gene_exp_list));
-            }
+    Gene * gene_data = getGene();
+    unsigned int n = 0;
+    for(unsigned short i = 0; i < gene_num_; i++){
+        for(unsigned int j = 0; j < gene_data[i].count; j++){
+            dnb_exp_info[n++].gene_id = i;
         }
     }
+    assert(n == expression_num_);
+
+    sort(dnb_exp_info, dnb_exp_info+expression_num_, expressionComp);
+
+    DnbExpression pre_dnb = dnb_exp_info[0];
+    unsigned int offset = 0;
+    n = 1;
+    unsigned long long int bin_id;
+    for (int i = 1; i < expression_num_; ++i){
+        if (dnb_exp_info[i].x == pre_dnb.x && dnb_exp_info[i].y == pre_dnb.y){
+            n++;
+            continue;
+        }
+
+        bin_id = static_cast<unsigned long long int>(pre_dnb.x);
+        bin_id = bin_id << 32 | static_cast<unsigned int>(pre_dnb.y);
+        bin_exp_map.insert(map<unsigned long long int, pair<unsigned int, unsigned short>>::value_type (
+                bin_id, make_pair(offset, n)));
+        n=1;
+        offset = i;
+        pre_dnb = dnb_exp_info[i];
+    }
+
+    bin_id = static_cast<unsigned long long int>(pre_dnb.x);
+    bin_id = bin_id << 32 | static_cast<unsigned int>(pre_dnb.y);
+    bin_exp_map.insert(map<unsigned long long int, pair<unsigned int, unsigned short>>::value_type (
+            bin_id, make_pair(offset, n)));
+
+    cell_num_ = bin_exp_map.size();
+    H5Tclose(memtype);
+    if(verbose_) printCpuTime(cprev, "getBinGeneExpMap");
 }
 
 void BgefReader::clear() {
@@ -460,7 +471,7 @@ void BgefReader::getGeneNameList(vector<string> & gene_list) {
 //}
 
 
-bool BgefReader::expressionComp(const Expression& p1, const Expression& p2) {
+bool BgefReader::expressionComp(const DnbExpression& p1, const DnbExpression& p2) {
     return p1.x < p2.x || (p1.x == p2.x && p1.y < p2.y);
 }
 
@@ -516,9 +527,33 @@ int BgefReader::getSparseMatrixIndices2(unsigned int * cell_ind, unsigned int * 
     return 0;
 }
 
-void BgefReader::getCellPosList(unsigned long long int *cell_list) {
-    memcpy(cell_list, cell_pos_.data(), cell_num_ * sizeof(unsigned long long int));
+void BgefReader::getGeneAndCount(unsigned short * gene_ind, unsigned short * count){
+    unsigned long cprev=clock();
+    Gene * gene_data = getGene();
+
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned short));
+    H5Tinsert(memtype, "count", 0, H5T_NATIVE_USHORT);
+    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
+
+    unsigned int n = 0;
+    for(unsigned short i = 0; i < gene_num_; i++){
+        for(unsigned int j = 0; j < gene_data[i].count; j++){
+            gene_ind[n++] = i;
+        }
+    }
+    assert(n == expression_num_);
+
+    H5Tclose(memtype);
+    if(verbose_) printCpuTime(cprev, "getGeneAndCount");
 }
 
+void BgefReader::getCellNameList(unsigned long long int *cell_name_list) {
+    memcpy(cell_name_list, cell_pos_.data(), cell_num_ * sizeof(unsigned long long int));
+}
+
+unsigned long long int * BgefReader::getCellPos() {
+    return reinterpret_cast<unsigned long long int *>(cell_pos_.data());
+}
 
 
