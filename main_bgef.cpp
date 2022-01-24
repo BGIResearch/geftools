@@ -56,8 +56,11 @@ int bgef(int argc, char *argv[]) {
     opts->output_file_ = result["output-file"].as<string>();
 
     vector<string> bs_tmp = split(result["bin-size"].as<string>(), ',');
-    opts->bin_sizes_.reserve(bs_tmp.size());
-    std::transform(bs_tmp.begin(), bs_tmp.end(), opts->bin_sizes_.begin(), [](string& s) { return stoi(s); });
+
+    for(auto & binsize : bs_tmp){
+        opts->bin_sizes_.emplace_back(stoi(binsize));
+    }
+
     opts->thread_ = result["threads"].as<int>();
     opts->verbose_ = result["verbose"].as<bool>();
 
@@ -119,7 +122,7 @@ void gem2gef(BgefOptions *opts)
             dnb_matrix.pmatrix = (BinStat*)calloc(matrix_len, sizeof(BinStat));
             assert(dnb_matrix.pmatrix);
         }
-        printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lld\n",
+        printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lu\n",
                bin,
                dnbAttr.min_x, dnbAttr.len_x,
                dnbAttr.min_y, dnbAttr.len_y,
@@ -348,7 +351,7 @@ void sortGeneByCnt(std::unordered_map <std::string, std::vector<Expression>>& da
 
 void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
 {
-    // timer tm("writednb");
+    unsigned long cprev =clock();
     if(bin == 100)
     {
         // h5Writer.storeDnbRange(pcmd->m_range);
@@ -362,9 +365,11 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
         // h5Writer.storeE10(vec_e10_result);
 
         vector<GeneStat> geneStat;
-        for (int i = 0; i < geneCnts.size(); ++i)
-            geneStat.push_back({geneCnts[i].first, geneCnts[i].second,
-                                vec_e10_result[i]});
+        size_t sz = geneCnts.size();
+        geneStat.reserve(sz);
+        for (int i = 0; i < sz; ++i){
+            geneStat.emplace_back(geneCnts[i].first, geneCnts[i].second, vec_e10_result[i]);
+        }
         bgef_writer.storeStat(geneStat);
     }
 
@@ -386,27 +391,26 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
     dnbM.dnb_attr.number = number;
     bgef_writer.storeDnb(dnbM, bin);
 
-    if(bin == 200)
-    {
+//    if(bin == 200)
+//    {
 //        special_bin sbin;
-        std::vector<int> vecdnb;
-        unsigned int x, y;
-        unsigned int y_len = dnbM.dnb_attr.len_y;
-        for(unsigned long i=0;i<matrix_len;i++)
-        {
-            if(dnbM.pmatrix[i].gene_count)
-            {
-                x = i/y_len;
-                y = i%y_len;
-
-                vecdnb.push_back(x*bin);
-                vecdnb.push_back(y*bin);
-                vecdnb.push_back(dnbM.pmatrix[i].mid_count);
-            }
-        }
+//        std::vector<int> vecdnb;
+//        unsigned int x, y;
+//        unsigned int y_len = dnbM.dnb_attr.len_y;
+//        for(unsigned long i=0;i<matrix_len;i++)
+//        {
+//            if(dnbM.pmatrix[i].gene_count)
+//            {
+//                x = i/y_len;
+//                y = i%y_len;
+//
+//                vecdnb.push_back(x*bin);
+//                vecdnb.push_back(y*bin);
+//                vecdnb.push_back(dnbM.pmatrix[i].mid_count);
+//            }
+//        }
 //        sbin.createPNG_py(vecdnb);
-    }
-
-    // tm.stop();
+//    }
+    printCpuTime(cprev, "writednb");
 }
 

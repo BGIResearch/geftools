@@ -27,7 +27,7 @@ public:
 
     string input_file_;
     string output_file_;
-    vector<int> bin_sizes_ = {1,10,20,50,100,200,500};
+    vector<int> bin_sizes_;
 
     std::unordered_map <std::string, std::vector<Expression>> map_gene_exp_;
     std::vector<GeneErank> vec_bin100_;
