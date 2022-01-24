@@ -90,4 +90,23 @@ void offsetCoordinates(vector<Point> & coordinates, vector<Point> & new_coordina
     }
 }
 
+bool readline(gzFile f, std::string& line)
+{
+    int GZ_LINE_LEN = 1024;
+    char GZ_LINE_BUFF[GZ_LINE_LEN];
+    if (gzgets(f, GZ_LINE_BUFF, GZ_LINE_LEN) == Z_NULL)
+    {
+        // end-of-file or error
+        int         err;
+        const char* msg = gzerror(f, &err);
+        if (err != Z_OK)
+        {
+            std::cerr << "read gz file error, error_code: " << err << " error_msg: " << msg << std::endl;
+        }
+        // cout<<"eof"<<endl;
+        return false;
+    }
+    line.assign(GZ_LINE_BUFF);
+    return true;
+}
 

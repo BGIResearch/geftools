@@ -163,6 +163,8 @@ class BgefReader {
 
     void getGeneAndCount(unsigned short * gene_ind, unsigned short * count);
 
+    unsigned int toGem(string & filename);
+
     /**
      * @brief Free memory for cache variables
      */

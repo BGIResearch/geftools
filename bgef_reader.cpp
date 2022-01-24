@@ -258,7 +258,7 @@ vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int 
             ++index;
         }
 
-        count[i] = expData[i].cnt;
+        count[i] = expData[i].count;
     }
 
     cell_num_ = index;
@@ -313,7 +313,7 @@ Expression *BgefReader::getExpression() {
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
     H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "count", HOFFSET(Expression, cnt), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
 
     expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
     H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expressions_);
@@ -554,6 +554,12 @@ void BgefReader::getCellNameList(unsigned long long int *cell_name_list) {
 
 unsigned long long int * BgefReader::getCellPos() {
     return reinterpret_cast<unsigned long long int *>(cell_pos_.data());
+}
+
+unsigned int BgefReader::toGem(string &filename) {
+
+    
+    return 0;
 }
 
 

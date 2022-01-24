@@ -13,7 +13,7 @@
 
 using namespace std;
 
-struct cgefOptions {
+struct CgefOptions {
   string input_file;
   string mask_file;
   string output_file;
