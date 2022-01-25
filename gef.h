@@ -8,6 +8,10 @@
 #define GEFTOOLS_GEF_H
 
 #include "hdf5.h"
+#include <string>
+#include <vector>
+
+using namespace std;
 
 /**
  * @brief Coordinate union
@@ -23,7 +27,7 @@ union Coordinate {
 struct Expression {
     unsigned int x; ///< dnb coordinates x
     unsigned int y; ///< dnb coordinates x
-    unsigned int cnt; ///< expression count (MIDcount)
+    unsigned int count; ///< expression count (MIDcount)
 };
 
 
@@ -64,10 +68,72 @@ struct Gene {
     unsigned int count;
 };
 
+struct GeneStat
+{
+    GeneStat(string& g, unsigned int m, float e)
+    {
+        memcpy(gene, g.c_str(), g.size());
+        mid_count = m;
+        E10 = e;
+    }
+    char gene[32] = {0};
+    unsigned int mid_count;
+    float E10;
+};
+
+struct GeneInfo
+{
+    GeneInfo(const char *ptr):geneid(ptr){};
+    const char *geneid;
+    std::vector<Expression> *vecptr;
+};
+
+struct GeneInfo2
+{
+    GeneInfo2(const char *ptr):geneid(ptr),umicnt(0){};
+    const char *geneid;
+    unsigned long umicnt;
+    float e10;
+    float c50;
+    unsigned int maxexp;
+    std::vector<Expression> *vecdataptr;
+};
+
 // wholeExp Matrix
 struct BinStat {
-    unsigned int MIDcount;
-    unsigned short genecount;
+    unsigned int mid_count;
+    unsigned short gene_count;
+};
+
+struct BinStatUS {
+    unsigned short mid_count;
+    unsigned short gene_count;
+};
+
+struct DnbAttr {
+    unsigned int min_x;
+    unsigned int len_x;
+    unsigned int min_y;
+    unsigned int len_y;
+    unsigned int max_mid;
+    unsigned int max_gene;
+    unsigned long number;
+};
+
+struct DnbMatrix {
+    DnbAttr dnb_attr;
+    BinStatUS *pmatrix_us;
+    BinStat *pmatrix;
+};
+
+struct GeneErank
+{
+    GeneErank(const char *ptr):geneid(ptr){};
+    const char *geneid;
+    unsigned long umicnt;
+    float e10;
+    float c50;
+    char attribute[10];
 };
 
 /**

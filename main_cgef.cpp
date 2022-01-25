@@ -47,7 +47,7 @@ int cgef(int argc, char *argv[]) {
         exit(1);
     }
 
-    cgefOptions opts = {
+    CgefOptions opts = {
         result["input-file"].as<string>(),
         result["mask-file"].as<string>(),
         result["output-file"].as<string>(),

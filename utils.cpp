@@ -90,4 +90,53 @@ void offsetCoordinates(vector<Point> & coordinates, vector<Point> & new_coordina
     }
 }
 
+bool readline(gzFile f, std::string& line)
+{
+    int GZ_LINE_LEN = 1024;
+    char GZ_LINE_BUFF[GZ_LINE_LEN];
+    if (gzgets(f, GZ_LINE_BUFF, GZ_LINE_LEN) == Z_NULL)
+    {
+        // end-of-file or error
+        int         err;
+        const char* msg = gzerror(f, &err);
+        if (err != Z_OK)
+        {
+            std::cerr << "read gz file error, error_code: " << err << " error_msg: " << msg << std::endl;
+        }
+        // cout<<"eof"<<endl;
+        return false;
+    }
+    line.assign(GZ_LINE_BUFF);
+    return true;
+}
+
+bool decideSuffix(string& filename, string suffix){
+//    char dot = '.';
+//    char suff[10] = {0};
+//    int j = 0;
+    size_t c1 = filename.size();
+    size_t c2 = suffix.size();
+    do{
+        c1--;
+        c2--;
+        if(filename[c1] != suffix[c2])
+            return false;
+    }while (c2>0);
+    return true;
+//    for(int i = 0; i<c; i++)
+//    {
+//        if(gname[i] == dot)
+//            j = i;
+//    }
+//    int k = j;
+//    j = c - j - 1;
+//    for(int i = 0; i<j; i++)
+//    {
+//        suffix[i] = gname[k+i+1];
+//    }
+//    if (0==strcmp(suff,nsuff))
+//        return true;
+//    else
+//        return false;
+}
 

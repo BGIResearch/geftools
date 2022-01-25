@@ -13,10 +13,13 @@
 #include <fstream>
 #include <array>
 #include <iomanip>
+#include <zlib.h>
 #include "opencv2/opencv.hpp"
 
 using namespace std;
 using namespace cv;
+
+const int READLEN = 256*1024;
 
 static union
 {
@@ -99,6 +102,11 @@ bool copyFile(const string& src_file, const string& dst_file);
  */
 void offsetCoordinates(vector<Point> & coordinates, vector<Point> & new_coordinates, Point & offset_point);
 
+
+bool readline(gzFile f, std::string& line);
+
+
+
 #define SPTOOLS_CSR_DEFINE_TEMPLATE(I, T) \
   template void csr_tocsc(const I n_row, const I n_col, const I Ap[], const I Aj[], const T Ax[], I Bp[], I Bi[], T Bx[]);
 
@@ -180,5 +188,7 @@ void csr_tocsc(const I n_row,
         last    = temp;
     }
 }
+
+bool decideSuffix(string& filename, string suffix);
 
 #endif //GEFTOOLS__UTILS_H_

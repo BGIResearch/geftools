@@ -11,15 +11,17 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(HDF5 REQUIRED COMPONENTS C)
 include_directories(${HDF5_INCLUDE_DIRS})
 
-set(Headers bgef_reader.h polygon.h mask.h utils.h cgef_writer.h cgef_reader.h gef.h main_cgef.h cxxopts.h)
+#set(Headers bgef_reader.h polygon.h mask.h utils.h cgef_writer.h cgef_reader.h gef.h main_cgef.h cxxopts.h)
+file (GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}  *.h)
+
 
 aux_source_directory(. SRC_LIST)
 add_library(objlib OBJECT ${SRC_LIST})
 add_library(gef-static STATIC $<TARGET_OBJECTS:objlib>)
 add_library(gef SHARED $<TARGET_OBJECTS:objlib>)
 add_executable(geftools $<TARGET_OBJECTS:objlib>)
-target_link_libraries(geftools ${HDF5_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(gef ${HDF5_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(geftools ${HDF5_LIBRARIES} ${OpenCV_LIBRARIES} z pthread)
+target_link_libraries(gef ${HDF5_LIBRARIES} ${OpenCV_LIBRARIES} z pthread)
 
 set_target_properties(geftools PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 set_target_properties(gef PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
