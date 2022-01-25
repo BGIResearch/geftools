@@ -11,6 +11,7 @@
 #include <thread>
 #include <zlib.h>
 #include <queue>
+#include "bgef_reader.h"
 #include "bgef_writer.h"
 #include "cxxopts.h"
 #include "bgef_options.h"

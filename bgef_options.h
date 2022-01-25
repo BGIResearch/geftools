@@ -28,8 +28,9 @@ public:
     string input_file_;
     string output_file_;
     vector<int> bin_sizes_;
+    std::vector<unsigned int> region_;
 
-    std::unordered_map <std::string, std::vector<Expression>> map_gene_exp_;
+    std::unordered_map<std::string, std::vector<Expression>> map_gene_exp_;
     std::vector<GeneErank> vec_bin100_;
     unsigned long total_umicnt_ = 0;
 

@@ -60,6 +60,9 @@ class BgefReader {
     unsigned int getExpressionNum() const;
     ExpressionAttr &getExpressionAttr();
 
+    void getGeneExpression(unordered_map<string, vector<Expression>> & gene_exp_map, const vector<unsigned int>& regions);
+    void getGeneExpression(unordered_map<string, vector<Expression>> & gene_exp_map);
+
     /**
      * @brief Get the shape of wholeExp matrix.
      * @return [rows, cols]

@@ -80,7 +80,7 @@ void BgefReader::openWholeExpSpace() {
     whole_exp_dataset_id_ = H5Dopen(file_id_, idxName, H5P_DEFAULT);
     if (whole_exp_dataset_id_ < 0)
     {
-        cerr<<"failed open dataset: "<<idxName<<endl;
+        cerr<<"failed open wholeExp dataset: "<<idxName<<endl;
         return;
     }
     whole_exp_dataspace_id_ = H5Dget_space(whole_exp_dataset_id_);
@@ -560,6 +560,63 @@ unsigned int BgefReader::toGem(string &filename) {
 
     
     return 0;
+}
+
+void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &gene_exp_map,
+                                   const vector<unsigned int>& regions) {
+    if(regions.empty()){
+        getGeneExpression(gene_exp_map);
+        return;
+    }
+
+    unsigned int min_x = regions[0];
+    unsigned int max_x = regions[1];
+    unsigned int min_y = regions[2];
+    unsigned int max_y = regions[3];
+
+    Gene * gene = getGene();
+    Expression * expression = getExpression();
+
+
+    for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++){
+        vector<Expression> exps;
+        exps.reserve(gene[gene_id].count);
+        unsigned int end = gene[gene_id].offset + gene[gene_id].count;
+        for(unsigned int i = gene[gene_id].offset; i < end; i++){
+            Expression exp = expression[i];
+            if(exp.x < min_x || exp.x > max_x || exp.y < min_y || exp.y > max_y){
+                continue;
+            }
+            exp.x -= min_x;
+            exp.y -= min_y;
+
+            exps.emplace_back(exp);
+        }
+
+        if(exps.empty()) continue;
+        gene_exp_map.insert(unordered_map<string, vector<Expression>>::value_type(gene[gene_id].gene, exps));
+    }
+}
+
+void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &gene_exp_map) {
+    unsigned long cprev=clock();
+
+    Gene * gene = getGene();
+    Expression * expression = getExpression();
+
+
+    for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++){
+        vector<Expression> exps;
+        exps.reserve(gene[gene_id].count);
+        unsigned int end = gene[gene_id].offset + gene[gene_id].count;
+        for(unsigned int i = gene[gene_id].offset; i < end; i++){
+            exps.emplace_back(expression[i]);
+        }
+
+        gene_exp_map.insert(unordered_map<string, vector<Expression>>::value_type(gene[gene_id].gene, exps));
+    }
+
+    if(verbose_) printCpuTime(cprev, "getGeneExpression");
 }
 
 

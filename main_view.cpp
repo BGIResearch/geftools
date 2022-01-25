@@ -15,8 +15,8 @@ int view(int argc, char *argv[]) {
             ("i,input-file", "Input cell bin GEF file [request]", cxxopts::value<std::string>(), "FILE")
             ("o,output-gem", "Output cell bin gem file",
                     cxxopts::value<std::string>()->default_value("stdout"), "FILE")
-            ("m,output-mask", "Output border of polygons to mask format file",
-                    cxxopts::value<std::string>()->default_value(""), "FILE")
+//            ("m,output-mask", "Output border of polygons to mask format file",
+//                    cxxopts::value<std::string>()->default_value(""), "FILE")
             ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
                          "of two vertex coordinates (minX,maxX,minY,maxY)",
                          cxxopts::value<std::string>()->default_value(""), "STR")
@@ -48,7 +48,7 @@ int view(int argc, char *argv[]) {
 
     viewopts.input_file = result["input-file"].as<string>();
     viewopts.output_gem = result["output-gem"].as<string>();
-    viewopts.output_mask = result["output-mask"].as<string>();
+//    viewopts.output_mask = result["output-mask"].as<string>();
     viewopts.verbose = result["verbose"].as<bool>();
     viewopts.force_genes = result["force-genes"].as<bool>();
 
@@ -56,10 +56,9 @@ int view(int argc, char *argv[]) {
         string region_tmp = result["region"].as<string>();
         vector<string> regions = split(region_tmp, ',');
         viewopts.restrict_region = true;
-        viewopts.region[0] = static_cast<unsigned int>(strtol(regions[0].c_str(), nullptr, 10));
-        viewopts.region[1] = static_cast<unsigned int>(strtol(regions[1].c_str(), nullptr, 10));
-        viewopts.region[2] = static_cast<unsigned int>(strtol(regions[2].c_str(), nullptr, 10));
-        viewopts.region[3] = static_cast<unsigned int>(strtol(regions[3].c_str(), nullptr, 10));
+        for(int i =0; i < 4; i++){
+            viewopts.region[i] = static_cast<unsigned int>(strtol(regions[i].c_str(), nullptr, 10));
+        }
     }
 
     unsigned long n_genes = result.count("genes");

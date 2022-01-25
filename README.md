@@ -28,12 +28,26 @@ The supported build options are:
 
 ## LIST OF COMMANDS
 ```text
-Command: cgef          Generate cell bin GEF according to common bin GEF and mask file
+Command: bgef          Generate common bin GEF(.bgef) according to gem file or bin1 GEF
+         cgef          Generate cell bin GEF(.cgef) according to common bin GEF and mask file
          view          View GEF
 ```
 
 
 ## COMMANDS AND OPTIONS
+### geftools bgef [OPTION...]
+```text
+  -i, --input-file FILE   input gene expression matrix file(.gem/.gem.gz) or bin1 bGEF file [request]
+  -o, --output-file FILE  output bin GEF file (.bgef) [request]
+  -b, --bin-size STR      Set bin size by the comma-separated list [request] (default: 1,10,20,50,100,200,500)
+  -r, --region STR        Restrict to a rectangular region. The region is represented by the comma-separated list of
+                          two vertex coordinates (minX,maxX,minY,maxY) (default: "")
+  -t, --threads INT       number of threads (default: 8)
+  -v, --verbose           Verbose output
+      --help              Print help
+```
+
+
 ### geftools cgef [OPTION...]
 Generate cell bin GEF (.cgef) according to common bin GEF (.bgef) file and mask file
 ```text

@@ -189,4 +189,6 @@ void csr_tocsc(const I n_row,
     }
 }
 
+bool decideSuffix(string& filename, string suffix);
+
 #endif //GEFTOOLS__UTILS_H_

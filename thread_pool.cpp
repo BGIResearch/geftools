@@ -1,4 +1,3 @@
-#include <iostream>
 #include "thread_pool.h"
 
 ThreadPool::ThreadPool(int num)
@@ -73,8 +72,7 @@ void ThreadPool::waitTaskDone()
         {
             break;
         }
-        sleep(5);
-        std::cout << "m_idlCnt : "  << m_idlCnt << " , m_vecThread.size() : " << m_vecThread.size() << std::endl;
+        sleep(1);
     }
     
 }

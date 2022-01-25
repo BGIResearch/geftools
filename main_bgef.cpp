@@ -8,6 +8,7 @@
 #include "dnb_merge_task.h"
 #include "bin_task.h"
 #include "special_bin.h"
+#include "utils.h"
 
 int bgef(int argc, char *argv[]) {
 
@@ -21,6 +22,9 @@ int bgef(int argc, char *argv[]) {
     ("o,output-file", "output bin GEF file (.bgef) [request]", cxxopts::value<std::string>(), "FILE")
     ("b,bin-size", "Set bin size by the comma-separated list [request]",
             cxxopts::value<std::string>()->default_value("1,10,20,50,100,200,500"), "STR")
+    ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list"
+                 " of two vertex coordinates (minX,maxX,minY,maxY)",
+                 cxxopts::value<std::string>()->default_value(""), "STR")
     ("t,threads", "number of threads", cxxopts::value<int>()->default_value("8"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
@@ -61,6 +65,14 @@ int bgef(int argc, char *argv[]) {
         opts->bin_sizes_.emplace_back(stoi(binsize));
     }
 
+    if (result.count("region") == 1){
+        string region_tmp = result["region"].as<string>();
+        vector<string> regions = split(region_tmp, ',');
+        for(auto & r : regions){
+            opts->region_.emplace_back(static_cast<unsigned int>(strtol(r.c_str(), nullptr, 10)));
+        }
+    }
+
     opts->thread_ = result["threads"].as<int>();
     opts->verbose_ = result["verbose"].as<bool>();
 
@@ -89,14 +101,42 @@ int generateBgef(const string &input_file,
 void gem2gef(BgefOptions *opts)
 {
     unsigned long cprev0 =clock(), cprev;
-    mRead(opts);
-    cprev = printCpuTime(cprev0, "mRead");
+
+    unsigned int resolution;
+    if(decideSuffix(opts->input_file_, "gem") || decideSuffix(opts->input_file_, "gz")){
+        mRead(opts);
+        resolution = parseResolutin(opts->input_file_);
+    }else{
+        BgefReader bgef_reader(opts->input_file_, 1, opts->verbose_);
+        ExpressionAttr expression_attr = bgef_reader.getExpressionAttr();
+
+        if(opts->region_.empty()){
+            bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
+            opts->range_ = {expression_attr.min_x, expression_attr.max_x, expression_attr.min_x, expression_attr.max_y};
+            opts->offset_x_ = expression_attr.min_x;
+            opts->offset_y_ = expression_attr.min_y;
+        }else{
+            bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
+            unsigned int min_x = opts->region_[0];
+            unsigned int max_x = opts->region_[1];
+            unsigned int min_y = opts->region_[2];
+            unsigned int max_y = opts->region_[3];
+
+            opts->range_ = {expression_attr.min_x + min_x, min(expression_attr.max_x, max_x+expression_attr.min_x),
+                            expression_attr.min_y + min_y, min(expression_attr.max_y, max_y+expression_attr.min_y)};
+            opts->offset_x_ = expression_attr.min_x + min_x;
+            opts->offset_y_ = expression_attr.min_y + min_y;
+        }
+
+        resolution = expression_attr.resolution;
+    }
+
+    cprev = printCpuTime(cprev0, "read gem");
 
     opts->gene_info_queue_.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
 
     BgefWriter bgef_writer(opts->output_file_, opts->verbose_);
-    unsigned int resolution = parseResolutin(opts->input_file_);
     bgef_writer.setResolution(resolution);
 
     int genecnt = 0;
@@ -261,11 +301,11 @@ int mRead(BgefOptions *opts) //多线程读
     ThreadPool thpool(opts->thread_);
     for(int i=0;i<opts->thread_;i++)
     {
-        ReadTask *rtask = new ReadTask();
+        auto *rtask = new ReadTask();
         thpool.addTask(rtask);
     }
 
-    while (1)
+    while (true)
     {
         sleep(1);
         if(thpool.idlCount() == opts->thread_)
