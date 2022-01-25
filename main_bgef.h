@@ -40,21 +40,6 @@ using namespace std;
 int bgef(int argc, char *argv[]);
 
 /**
- * @brief Function to generate cgef (cell bin GEF) file.
- * @param cgef_file  The output file path of cgef (cell bin GEF).
- * @param bgef_file  The input file path of common bin GEF, only bin1 will be used.
- * @param mask_file  The input file path of mask file.
- * @param block_size The block size of cell dataset in cgef, including two elements, 0: x_block_size, 1: y_block_size
- * @param verbose    Print the run time of this function. default : false.
- * @return
- */
-int generateBgef(const string& cgef_file,
-                 const string& bgef_file,
-                 const string& mask_file,
-                 const int* block_size,
-                 bool verbose = false);
-
-/**
  * @brief Function to generate common bin GEF file(.bgef).
  * @param input_file  The input file path of gem file or bin1 bgef.
  * @param bgef_file  The output file path of common bin GEF (.bgef).

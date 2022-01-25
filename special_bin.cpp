@@ -211,6 +211,7 @@ int SpecialBin::calcE10(std::vector<float> &vec_e10_result)
     //     fwrite(str_l.c_str(), 1, str_l.length(), fout);
     //     fclose(fout);
     // }
+    return 0;
 }
 
 char * getDirectory( char * buf, int count)
@@ -284,4 +285,5 @@ int SpecialBin::createPNG_py(std::vector<int> &vecdnb)
     system(cmd.c_str());
 
     remove(tmpfile.c_str());
+    return 0;
 }

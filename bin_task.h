@@ -3,6 +3,7 @@
 #define GENETOH5_BINTASK_H
 
 #include <map>
+#include <algorithm>
 #include "thread_pool.h"
 #include "bgef_options.h"
 

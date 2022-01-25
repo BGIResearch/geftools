@@ -9,6 +9,7 @@
 
 #include "hdf5.h"
 #include <string>
+#include <cstring>
 #include <vector>
 
 using namespace std;

@@ -43,6 +43,7 @@ bool BgefWriter::createGMGroup(int bin)
 //    if(!gene_exp_bin_group_id_)
 //        H5Gclose(gene_exp_bin_group_id_);
 //    gene_exp_bin_group_id_ = H5Gcreate(gene_exp_group_id_, buf, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    return true;
 }
 
 bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAttr& dnbAttr, unsigned int maxexp, int binsize)
