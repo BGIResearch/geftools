@@ -42,17 +42,18 @@ int bgef(int argc, char *argv[]);
 /**
  * @brief Function to generate common bin GEF file(.bgef).
  * @param input_file  The input file path of gem file or bin1 bgef.
- * @param bgef_file  The output file path of common bin GEF (.bgef).
- * @param bin_size
- * @param n_thread
+ * @param bgef_file   The output file path of common bin GEF (.bgef).
+ * @param bin_sizes   Set bin size
+ * @param n_thread    Number of thread
  * @param verbose
  * @return
  */
 int generateBgef(const string &input_file,
                  const string &bgef_file,
-                 int bin_size,
-                 int n_thread,
-                 bool verbose);
+                 int n_thread = 8,
+                 vector<unsigned int> bin_sizes = vector<unsigned int>(),
+                 vector<unsigned int> region = vector<unsigned int>(),
+                 bool verbose = false);
 
 void gem2gef(BgefOptions *opts);
 

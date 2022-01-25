@@ -27,7 +27,7 @@ public:
 
     string input_file_;
     string output_file_;
-    vector<int> bin_sizes_;
+    vector<unsigned int> bin_sizes_;
     std::vector<unsigned int> region_;
 
     std::unordered_map<std::string, std::vector<Expression>> map_gene_exp_;

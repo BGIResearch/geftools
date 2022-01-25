@@ -246,15 +246,15 @@ int SpecialBin::createPNG_py(std::vector<int> &vecdnb)
         y = vecdnb[i+1];
         cnt = vecdnb[i+2];
 
-        len = sprintf(buf, "%d\t", x);
+        len = sprintf(buf, "%lu\t", x);
         buf[len] = '\0';
         str_x.append(buf);
 
-        len = sprintf(buf, "%d\t", y);
+        len = sprintf(buf, "%lu\t", y);
         buf[len] = '\0';
         str_y.append(buf);
 
-        len = sprintf(buf, "%d\t", cnt);
+        len = sprintf(buf, "%lu\t", cnt);
         buf[len] = '\0';
         str_cnt.append(buf);
     }  
