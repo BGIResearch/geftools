@@ -34,6 +34,7 @@ class Mask {
      * @param file   Mask file of cell shape.
      */
     Mask(const string& file, const int block_size[]);
+
     /**
      * @brief Displays cell contours in a window.
      */

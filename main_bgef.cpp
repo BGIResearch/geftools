@@ -135,7 +135,7 @@ void gem2gef(BgefOptions *opts)
         resolution = expression_attr.resolution;
     }
 
-    cprev = printCpuTime(cprev0, "read gem");
+    if(opts->verbose_) cprev = printCpuTime(cprev0, "read gene expression file");
 
     opts->gene_info_queue_.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
@@ -171,8 +171,6 @@ void gem2gef(BgefOptions *opts)
                dnbAttr.min_x, dnbAttr.len_x,
                dnbAttr.min_y, dnbAttr.len_y,
                matrix_len);
-
-//        bgef_writer.createGMGroup(bin);
 
         for(int i=0; i < opts->thread_; i++)
         {
@@ -244,7 +242,6 @@ void gem2gef(BgefOptions *opts)
         bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
         opts->expressions_.clear();
         opts->genes_.clear();
-        // time_write_gene.stop();
 
 //        cprev = printCpuTime(cprev, "wait");
         thpool.waitTaskDone();
@@ -254,7 +251,6 @@ void gem2gef(BgefOptions *opts)
         //write dnb
         writednb(opts, bgef_writer, bin);
 
-        // timer timefree("free");
         if (bin == 1)
         {
             if (dnb_matrix.pmatrix_us != nullptr)
@@ -271,13 +267,10 @@ void gem2gef(BgefOptions *opts)
                 dnb_matrix.pmatrix = nullptr;
             }
         }
-        // timefree.stop();
-
-//        timebin.stop();
-        printCpuTime(cprev, "bin process");
+        if(opts->verbose_) printCpuTime(cprev, "bin process");
     }
 
-    printCpuTime(cprev0, "gem2gef");
+    if(opts->verbose_) printCpuTime(cprev0, "gem2gef");
 }
 
 
@@ -455,6 +448,6 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
 //        }
 //        sbin.createPNG_py(vecdnb);
 //    }
-    printCpuTime(cprev, "writednb");
+    if(opts->verbose_) printCpuTime(cprev, "writednb");
 }
 

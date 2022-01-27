@@ -64,7 +64,8 @@ int cgef(int argc, char *argv[]) {
     }
     opts.block_size[0] = static_cast<int>(strtol(block_size_tmp[0].c_str(), nullptr, 10));
     opts.block_size[1] = static_cast<int>(strtol(block_size_tmp[1].c_str(), nullptr, 10));
-    generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size, opts.verbose);
+    generateCgef(opts.output_file,
+                 opts.input_file, opts.mask_file, opts.block_size, opts.rand_celltype_num, opts.verbose);
     return 0;
 }
 
@@ -72,14 +73,15 @@ int generateCgef(const string &cgef_file,
                  const string &bgef_file,
                  const string &mask_file,
                  const int* block_size,
+                 int rand_cell_type_num,
                  bool verbose) {
-
     unsigned long cprev=clock();
     Mask mask = Mask(mask_file, block_size);
     if(verbose) cprev = printCpuTime(cprev, "Mask init");
+    cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
     BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
     CgefWriter cgef_writer = CgefWriter(cgef_file, true);
-    cgef_writer.setRandomCellTypeNum(20);
+    cgef_writer.setRandomCellTypeNum(rand_cell_type_num);
     cgef_writer.write(common_bin_gef, mask);
     if(verbose) printCpuTime(cprev, "generateCgef");
     return 0;

@@ -20,6 +20,7 @@ CgefWriter::~CgefWriter() {
 }
 
 void CgefWriter::storeCellBorder(char* borderPath, unsigned int cell_num) const {
+    unsigned long cprev=clock();
     hsize_t dims[3];
     dims[0] = cell_num;
     dims[1] = 16;
@@ -31,10 +32,12 @@ void CgefWriter::storeCellBorder(char* borderPath, unsigned int cell_num) const 
     H5Dwrite(dataset_id, H5T_STD_I8LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, borderPath);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeCellBorder");
 }
 
 
 void CgefWriter::storeCellBorderWithAttr(char *borderPath, unsigned int cell_num, unsigned int *effective_rect) const {
+    unsigned long cprev=clock();
     storeCellBorder(borderPath, cell_num);
 
     hid_t dataset_id = H5Dopen(group_id_, "cellBorder", H5P_DEFAULT);
@@ -54,10 +57,11 @@ void CgefWriter::storeCellBorderWithAttr(char *borderPath, unsigned int cell_num
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
     H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeCellBorderWithAttr");
 }
 
 void CgefWriter::storeCellExp() {
-
+    unsigned long cprev=clock();
     hsize_t dims[1] = {cell_exp_list_.size()};
 
     hid_t memtype, filetype;
@@ -74,7 +78,6 @@ void CgefWriter::storeCellExp() {
                                  H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_exp_list_[0]);
 
-
     hsize_t dims_attr[1] = {1};
     hid_t attr;
     hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
@@ -87,9 +90,11 @@ void CgefWriter::storeCellExp() {
     H5Tclose(filetype);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeCellExp");
 }
 
 void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, const unsigned int *block_size) {
+    unsigned long cprev=clock();
     hsize_t dims[1] = {(hsize_t)cell_num_};
 
     hid_t memtype, filetype;
@@ -156,6 +161,8 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Awrite(attr, H5T_NATIVE_USHORT, &cell_attr_.max_area);
 
     // write block index
+    if(verbose_)
+        cout << "write block index : block_num(" << block_num << ")\tblockSize0(" << block_size[0] << ")" <<endl;
     dimsAttr[0] = block_num + 1;
     attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
     attr = H5Acreate(dataset_id, "blockIndex", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
@@ -172,6 +179,7 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Sclose(attr_dataspace);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeCell");
 }
 
 
@@ -364,6 +372,7 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
 }
 
 void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
+    unsigned long cprev=clock();
     hsize_t dimsAttr[1] = {1};
     hid_t attr;
     hid_t attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
@@ -383,9 +392,11 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
 
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
+    if(verbose_) printCpuTime(cprev, "storeAttr");
 }
 
 void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
+    unsigned long cprev=clock();
     gene_num_ = gene_name_list.size();
     hsize_t dims[1] = {gene_num_};
 
@@ -481,9 +492,11 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
     H5Tclose(filetype);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeGeneAndGeneExp");
 }
 
 void CgefWriter::storeCellTypeList() {
+    unsigned long cprev=clock();
     S32 cell_type = S32("default");
     cell_type_list_.emplace_back(cell_type);
 
@@ -503,6 +516,7 @@ void CgefWriter::storeCellTypeList() {
     H5Dwrite(dataset_id, str32_type_, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_type_list_[0]);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeCellTypeList");
 }
 
 unsigned short CgefWriter::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps) {
