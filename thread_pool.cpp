@@ -51,6 +51,7 @@ int ThreadPool::addThread(int size)
         });
         m_idlCnt++;
     }
+    return 0;
 }
 
 //空闲线程数量

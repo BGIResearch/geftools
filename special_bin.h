@@ -2,6 +2,7 @@
 #ifndef GENETOH5_SPECIALBIN_H
 #define GENETOH5_SPECIALBIN_H
 
+#include <algorithm>
 #include "gef.h"
 #include "bgef_options.h"
 

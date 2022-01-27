@@ -19,7 +19,6 @@ BgefReader::BgefReader(const string &filename, int bin_size, bool verbose) {
 
     openExpressionSpace();
     openGeneSpace();
-    openWholeExpSpace();
 }
 
 BgefReader::~BgefReader() {
@@ -34,8 +33,10 @@ BgefReader::~BgefReader() {
     H5Sclose(exp_dataspace_id_);
     H5Dclose(gene_dataset_id_);
     H5Sclose(gene_dataspace_id_);
-    H5Dclose(whole_exp_dataset_id_);
-    H5Sclose(whole_exp_dataspace_id_);
+    if(whole_exp_dataset_id_ > 0)
+        H5Dclose(whole_exp_dataset_id_);
+    if(whole_exp_dataspace_id_ > 0)
+        H5Sclose(whole_exp_dataspace_id_);
 }
 
 void BgefReader::openExpressionSpace() {
@@ -99,8 +100,8 @@ void BgefReader::buildCellInfo() {
     hid_t memtype;
 
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Coordinate));
-    H5Tinsert(memtype, "x", HOFFSET(Coordinate, pos[0]), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(Coordinate, pos[1]), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(Coordinate, pos[1]), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "y", HOFFSET(Coordinate, pos[0]), H5T_NATIVE_UINT);
 
     Coordinate * xy_id;
     xy_id = (Coordinate *) malloc(expression_num_ * sizeof(Coordinate));
@@ -147,8 +148,8 @@ void BgefReader::buildCellInfo2() {
 
     unsigned long cprev2=clock();
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Coordinate));
-    H5Tinsert(memtype, "x", HOFFSET(Coordinate, pos[0]), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(Coordinate, pos[1]), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(Coordinate, pos[1]), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "y", HOFFSET(Coordinate, pos[0]), H5T_NATIVE_UINT);
 
     xy_id = (Coordinate *) malloc(expression_num_ * sizeof(Coordinate));
     H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, xy_id);
@@ -267,26 +268,26 @@ vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int 
     return uniq_cells;
 }
 
-//vector<string> BgefReader::getSparseMatrixIndicesOfGene(unsigned int *gene_index) {
-//    Gene* gene_data = getGene();
-//
-//    vector<string> uniq_genes;
-//    unsigned long long exp_len_index = 0;
-//    for (unsigned short i = 0; i < gene_num_; ++i)
-//    {
-//        const char* gene = gene_data[i].gene;
-//        uniq_genes.emplace_back(gene);
-//        unsigned int c = gene_data[i].count;
-//        for (int j = 0; j < c; ++j)
-//        {
-//            gene_index[exp_len_index++] = i;
-//        }
-//    }
-//
-//    assert(exp_len_index == expression_num_);
-//
-//    return uniq_genes;
-//}
+vector<string> BgefReader::getSparseMatrixIndicesOfGene(unsigned int *gene_index) {
+    Gene* gene_data = getGene();
+
+    vector<string> uniq_genes;
+    unsigned long long exp_len_index = 0;
+    for (unsigned short i = 0; i < gene_num_; ++i)
+    {
+        const char* gene = gene_data[i].gene;
+        uniq_genes.emplace_back(gene);
+        unsigned int c = gene_data[i].count;
+        for (int j = 0; j < c; ++j)
+        {
+            gene_index[exp_len_index++] = i;
+        }
+    }
+
+    assert(exp_len_index == expression_num_);
+
+    return uniq_genes;
+}
 
 
 void BgefReader::getSparseMatrixIndicesOfGene(unsigned int *gene_ind, char * gene_names) {
@@ -302,6 +303,7 @@ void BgefReader::getSparseMatrixIndicesOfGene(unsigned int *gene_ind, char * gen
             gene_ind[exp_len_index++] = i;
         }
     }
+    assert(exp_len_index == expression_num_);
 }
 
 Expression *BgefReader::getExpression() {
@@ -408,6 +410,8 @@ void BgefReader::clear() {
 }
 
 void BgefReader::cacheWholeExpMatrix() {
+    if(whole_exp_dataset_id_ == 0) openWholeExpSpace();
+
     hid_t memtype;
     memtype = H5Tcreate(H5T_COMPOUND, 1);
     // genecount的值大于255将读取为255
@@ -419,7 +423,7 @@ void BgefReader::cacheWholeExpMatrix() {
     H5Tclose(memtype);
 }
 
-void BgefReader::readWholeExpMatrix(string &key, unsigned char *matrix) const {
+void BgefReader::readWholeExpMatrix(string &key, unsigned char *matrix) {
     readWholeExpMatrix(0,
                        0,
                        whole_exp_matrix_shape_[0],
@@ -429,8 +433,8 @@ void BgefReader::readWholeExpMatrix(string &key, unsigned char *matrix) const {
 }
 
 void BgefReader::readWholeExpMatrix(unsigned int offset_x, unsigned int offset_y, unsigned int rows, unsigned int cols,
-                                    string &key, unsigned char *matrix) const {
-
+                                    string &key, unsigned char *matrix) {
+    if(whole_exp_dataset_id_ == 0) openWholeExpSpace();
     hsize_t start[2] = {offset_x, offset_y},
             count[2] = {rows, cols},
             offset_out[2] = {0, 0};
@@ -475,7 +479,8 @@ bool BgefReader::expressionComp(const DnbExpression& p1, const DnbExpression& p2
     return p1.x < p2.x || (p1.x == p2.x && p1.y < p2.y);
 }
 
-const unsigned int *BgefReader::getWholeExpMatrixShape() const {
+const unsigned int *BgefReader::getWholeExpMatrixShape() {
+    if(whole_exp_dataset_id_ == 0) openWholeExpSpace();
     return whole_exp_matrix_shape_;
 }
 

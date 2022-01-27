@@ -85,6 +85,7 @@ int ReadTask::cuttail(char *pbuf)
 
     m_buflen = i+1;
     m_leftstr.append(&pbuf[m_buflen], READLEN-m_buflen);
+    return 0;
 }
 
 int ReadTask::getGeneInfo()
@@ -158,4 +159,5 @@ int ReadTask::mergeGeneinfo()
         std::vector<Expression> &vec = map_gene[itor->first];
         vec.insert(vec.end(), itor->second.begin(), itor->second.end());
     }
+    return 0;
 }

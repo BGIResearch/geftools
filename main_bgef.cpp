@@ -3,6 +3,8 @@
 //
 
 #include "main_bgef.h"
+
+#include <utility>
 #include "thread_pool.h"
 #include "read_task.h"
 #include "dnb_merge_task.h"
@@ -62,7 +64,7 @@ int bgef(int argc, char *argv[]) {
     vector<string> bs_tmp = split(result["bin-size"].as<string>(), ',');
 
     for(auto & binsize : bs_tmp){
-        opts->bin_sizes_.emplace_back(stoi(binsize));
+        opts->bin_sizes_.emplace_back(static_cast<unsigned int>(strtol(binsize.c_str(), nullptr, 10)));
     }
 
     if (result.count("region") == 1){
@@ -83,14 +85,16 @@ int bgef(int argc, char *argv[]) {
 
 int generateBgef(const string &input_file,
                  const string &bgef_file,
-                 int bin_size,
                  int n_thread,
+                 vector<unsigned int> bin_sizes,
+                 vector<unsigned int> region,
                  bool verbose) {
     unsigned long cprev=clock();
     BgefOptions *opts = BgefOptions::GetInstance();
     opts->input_file_ = input_file;
     opts->output_file_ = bgef_file;
-    opts->bin_sizes_ = {bin_size};
+    opts->bin_sizes_ = std::move(bin_sizes);
+    opts->region_ = std::move(region);
     opts->thread_ = n_thread;
     opts->verbose_ = verbose;
     gem2gef(opts);
@@ -111,8 +115,8 @@ void gem2gef(BgefOptions *opts)
         ExpressionAttr expression_attr = bgef_reader.getExpressionAttr();
 
         if(opts->region_.empty()){
-            bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
-            opts->range_ = {expression_attr.min_x, expression_attr.max_x, expression_attr.min_x, expression_attr.max_y};
+            bgef_reader.getGeneExpression(opts->map_gene_exp_);
+            opts->range_ = {expression_attr.min_x, expression_attr.max_x, expression_attr.min_y, expression_attr.max_y};
             opts->offset_x_ = expression_attr.min_x;
             opts->offset_y_ = expression_attr.min_y;
         }else{
@@ -131,7 +135,7 @@ void gem2gef(BgefOptions *opts)
         resolution = expression_attr.resolution;
     }
 
-    cprev = printCpuTime(cprev0, "read gem");
+    if(opts->verbose_) cprev = printCpuTime(cprev0, "read gene expression file");
 
     opts->gene_info_queue_.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
@@ -140,7 +144,7 @@ void gem2gef(BgefOptions *opts)
     bgef_writer.setResolution(resolution);
 
     int genecnt = 0;
-    for(int bin : opts->bin_sizes_)
+    for(unsigned int bin : opts->bin_sizes_)
     {
         cprev=clock();
         auto& dnb_matrix = opts->dnbmatrix_;
@@ -167,8 +171,6 @@ void gem2gef(BgefOptions *opts)
                dnbAttr.min_x, dnbAttr.len_x,
                dnbAttr.min_y, dnbAttr.len_y,
                matrix_len);
-
-//        bgef_writer.createGMGroup(bin);
 
         for(int i=0; i < opts->thread_; i++)
         {
@@ -240,7 +242,6 @@ void gem2gef(BgefOptions *opts)
         bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
         opts->expressions_.clear();
         opts->genes_.clear();
-        // time_write_gene.stop();
 
 //        cprev = printCpuTime(cprev, "wait");
         thpool.waitTaskDone();
@@ -250,7 +251,6 @@ void gem2gef(BgefOptions *opts)
         //write dnb
         writednb(opts, bgef_writer, bin);
 
-        // timer timefree("free");
         if (bin == 1)
         {
             if (dnb_matrix.pmatrix_us != nullptr)
@@ -267,13 +267,10 @@ void gem2gef(BgefOptions *opts)
                 dnb_matrix.pmatrix = nullptr;
             }
         }
-        // timefree.stop();
-
-//        timebin.stop();
-        printCpuTime(cprev, "bin process");
+        if(opts->verbose_) printCpuTime(cprev, "bin process");
     }
 
-    printCpuTime(cprev0, "gem2gef");
+    if(opts->verbose_) printCpuTime(cprev0, "gem2gef");
 }
 
 
@@ -451,6 +448,6 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
 //        }
 //        sbin.createPNG_py(vecdnb);
 //    }
-    printCpuTime(cprev, "writednb");
+    if(opts->verbose_) printCpuTime(cprev, "writednb");
 }
 

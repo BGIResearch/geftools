@@ -2,7 +2,6 @@
 
 bool Polygon::applyContour(const vector<Point>& contour){
     original_contour_size_ = static_cast<short>(contour.size());
-    if(original_contour_size_ <= 2 ) return false;
 
     if(contour.size() > 16){
         double epsilon = 0.01 * arcLength(contour, true);
@@ -11,11 +10,11 @@ bool Polygon::applyContour(const vector<Point>& contour){
         border_ = contour;
     }
 
-    Moments mu = moments(border_, true);
-
     border_size_ = static_cast<short>(border_.size());
+    if(border_size_ <= 2 ) return false;
 
-    assert(border_size_ > 2);
+    Moments mu = moments(border_, true);
+    if(mu.m00 == 0) return false;
 
     center_ = Point(static_cast<int>(mu.m10/mu.m00), static_cast<int>(mu.m01/mu.m00));
 

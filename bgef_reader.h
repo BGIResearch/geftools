@@ -36,8 +36,8 @@ class BgefReader {
     hid_t exp_dataset_id_{};
     hid_t gene_dataspace_id_{};
     hid_t gene_dataset_id_{};
-    hid_t whole_exp_dataspace_id_{};
-    hid_t whole_exp_dataset_id_{};
+    hid_t whole_exp_dataspace_id_{0};
+    hid_t whole_exp_dataset_id_{0};
 
     void openExpressionSpace();
     void openGeneSpace();
@@ -67,7 +67,7 @@ class BgefReader {
      * @brief Get the shape of wholeExp matrix.
      * @return [rows, cols]
      */
-    const unsigned int *getWholeExpMatrixShape() const;
+    const unsigned int *getWholeExpMatrixShape();
 
     /**
      * @brief Get gene name list.
@@ -104,7 +104,7 @@ class BgefReader {
                            unsigned int rows,
                            unsigned int cols,
                            string & key,
-                           unsigned char *matrix) const;
+                           unsigned char *matrix);
 
     /**
      * @brief Read WholeExp data to matrix.
@@ -112,24 +112,30 @@ class BgefReader {
      * @param matrix  When the value is greater than 255, it will be set to 255.
      */
     void readWholeExpMatrix(string & key,
-                            unsigned char *matrix) const;
+                            unsigned char *matrix);
 
 
     /**
-     * Gets sparse matrix indexes
+     * Gets indices of cell for building csr_matrix.
      * @param cell_ind
      * @param count
-     * @return
+     * @deprecated For special reasons, this function may be removed in future versions
      */
     vector<unsigned long long int> getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count);
 
     /**
-     *
+     * @brief Gets indices of gene for building csr_matrix.
      * @param gene_ind
      * @param gene_names
+     * @deprecated For special reasons, this function may be removed in future versions
      */
     void getSparseMatrixIndicesOfGene(unsigned int * gene_ind, char * gene_names);
-    //vector<string> getSparseMatrixIndicesOfGene(unsigned int * gene_index);
+
+    /*
+     * @brief deprecated
+     * @deprecated For special reasons, this function may be removed in future versions
+     */
+    vector<string> getSparseMatrixIndicesOfGene(unsigned int * gene_index);
 
     /**
      * @brief Gets indices for building csr_matrix.
