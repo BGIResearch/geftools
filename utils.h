@@ -14,6 +14,7 @@
 #include <array>
 #include <iomanip>
 #include <zlib.h>
+#include "hdf5.h"
 #include "opencv2/opencv.hpp"
 
 using namespace std;
@@ -190,5 +191,13 @@ void csr_tocsc(const I n_row,
 }
 
 bool decideSuffix(string& filename, string suffix);
+
+/**
+ * @brief Verifies that the target object exists
+ * @param loc_id
+ * @param name
+ * @return
+ */
+bool utils_hdf5_check_present(hid_t loc_id, const char *name);
 
 #endif //GEFTOOLS__UTILS_H_

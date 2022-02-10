@@ -39,15 +39,15 @@ class BgefReader {
     hid_t whole_exp_dataspace_id_{0};
     hid_t whole_exp_dataset_id_{0};
 
-    void openExpressionSpace();
-    void openGeneSpace();
+    void openExpressionSpace(int bin_size);
+    void openGeneSpace(int bin_size);
     void openWholeExpSpace();
     Gene *getGene();
     void buildCellInfo();
     void buildCellInfo2();
 
   public:
-    BgefReader(const string &filename, int bin_size, bool verbose = false);
+    BgefReader(const string &filename, int bin_size, int n_thread = 1, bool verbose = false);
     virtual ~BgefReader();
     int getVersion() const;
     int getBinSize() const;
@@ -180,6 +180,8 @@ class BgefReader {
     void clear();
 
     static bool expressionComp(const DnbExpression& p1, const DnbExpression& p2);
+
+    int generateBinInfo(int bin_size, int n_thread);
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

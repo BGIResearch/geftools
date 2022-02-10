@@ -34,6 +34,7 @@ hid_t getMemtypeOfCellData() {
     H5Tinsert(memtype, "dnbCount", HOFFSET(CellData, dnb_count), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "area", HOFFSET(CellData, area), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "clusterID", HOFFSET(CellData, cluster_id), H5T_NATIVE_USHORT);
     return memtype;
 }
 

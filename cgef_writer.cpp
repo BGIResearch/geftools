@@ -100,7 +100,7 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     hid_t memtype, filetype;
     memtype = getMemtypeOfCellData();
 
-    filetype = H5Tcreate(H5T_COMPOUND, 22);
+    filetype = H5Tcreate(H5T_COMPOUND, 24);
     H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
     H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
     H5Tinsert(filetype, "offset", 8, H5T_STD_U32LE);
@@ -109,6 +109,7 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Tinsert(filetype, "dnbCount", 16, H5T_STD_U16LE);
     H5Tinsert(filetype, "area", 18, H5T_STD_U16LE);
     H5Tinsert(filetype, "cellTypeID", 20, H5T_STD_U16LE);
+    H5Tinsert(filetype, "clusterID", 22, H5T_STD_U16LE);
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
 
 

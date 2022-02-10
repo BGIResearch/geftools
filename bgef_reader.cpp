@@ -4,21 +4,31 @@
 
 #include "bgef_reader.h"
 #include "khash.h"
+#include "bgef_options.h"
+#include "bin_task.h"
 
 KHASH_MAP_INIT_INT64(m64, unsigned int)
 
-BgefReader::BgefReader(const string &filename, int bin_size, bool verbose) {
+BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool verbose) {
     file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     bin_size_ = bin_size;
     verbose_ = verbose;
+
+    char binName[128]={0};
+    sprintf(binName, "/geneExp/bin%d", bin_size_);
+    if(H5Lexists(file_id_, binName, H5P_DEFAULT)){
+        openExpressionSpace(bin_size_);
+        openGeneSpace(bin_size_);
+    }else{
+        openExpressionSpace(1);
+        openGeneSpace(1);
+        generateBinInfo(bin_size_, n_thread);
+    }
 
     hid_t attr;
     attr = H5Aopen(file_id_, "version", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &version_);
     H5Aclose(attr);
-
-    openExpressionSpace();
-    openGeneSpace();
 }
 
 BgefReader::~BgefReader() {
@@ -39,11 +49,11 @@ BgefReader::~BgefReader() {
         H5Sclose(whole_exp_dataspace_id_);
 }
 
-void BgefReader::openExpressionSpace() {
+void BgefReader::openExpressionSpace(int bin_size) {
     hsize_t dims[1];
     // Read raw data
     char expName[128]={0};
-    sprintf(expName, "/geneExp/bin%d/expression", bin_size_);
+    sprintf(expName, "/geneExp/bin%d/expression", bin_size);
     exp_dataset_id_ = H5Dopen(file_id_, expName, H5P_DEFAULT);
     if (exp_dataset_id_ < 0)
     {
@@ -55,12 +65,12 @@ void BgefReader::openExpressionSpace() {
     expression_num_ = dims[0];
 }
 
-void BgefReader::openGeneSpace() {
+void BgefReader::openGeneSpace(int bin_size) {
     hsize_t dims[1];
 
     // Read index
     char idxName[128]={0};
-    sprintf(idxName, "/geneExp/bin%d/gene", bin_size_);
+    sprintf(idxName, "/geneExp/bin%d/gene", bin_size);
     gene_dataset_id_ = H5Dopen(file_id_, idxName, H5P_DEFAULT);
     if (gene_dataset_id_ < 0)
     {
@@ -145,16 +155,23 @@ void BgefReader::buildCellInfo2() {
 
     hid_t memtype;
     Coordinate * xy_id;
-
-    unsigned long cprev2=clock();
-    memtype = H5Tcreate(H5T_COMPOUND, sizeof(Coordinate));
-    H5Tinsert(memtype, "x", HOFFSET(Coordinate, pos[1]), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(Coordinate, pos[0]), H5T_NATIVE_UINT);
-
     xy_id = (Coordinate *) malloc(expression_num_ * sizeof(Coordinate));
-    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, xy_id);
-    if(verbose_) printCpuTime(cprev2, "read");
+    unsigned long cprev2=clock();
 
+    if(expressions_ != nullptr){
+        for(unsigned int i = 0; i < expression_num_; i++){
+            xy_id[i].pos[1] = expressions_[i].x;
+            xy_id[i].pos[0] = expressions_[i].y;
+        }
+    }else{
+        memtype = H5Tcreate(H5T_COMPOUND, sizeof(Coordinate));
+        H5Tinsert(memtype, "x", HOFFSET(Coordinate, pos[1]), H5T_NATIVE_UINT);
+        H5Tinsert(memtype, "y", HOFFSET(Coordinate, pos[0]), H5T_NATIVE_UINT);
+
+        H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, xy_id);
+    }
+
+    if(verbose_) printCpuTime(cprev2, "read");
 
     cell_indices_ = (unsigned int *) malloc(expression_num_ * sizeof(unsigned int));
 
@@ -178,7 +195,7 @@ void BgefReader::buildCellInfo2() {
     }
 
     cell_num_ = cell_pos_.size();
-    H5Tclose(memtype);
+    if(memtype>0) H5Tclose(memtype);
     free(exp_index);
     free(xy_id);
     if(verbose_) printCpuTime(cprev, "buildCellInfo2");
@@ -230,8 +247,7 @@ ExpressionAttr &BgefReader::getExpressionAttr() {
     return expression_attr_;
 }
 
-vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count)
-{
+vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count){
     unsigned long cprev=clock();
     unsigned long long uniq_cell_id;
     Expression* expData = getExpression();
@@ -499,10 +515,17 @@ int BgefReader::getSparseMatrixIndices(unsigned int *indices, unsigned int *indp
     }
     indptr[cell_num_] = gene_data[gene_num_-1].offset + gene_data[gene_num_-1].count;
 
-    hid_t memtype;
-    memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned int));
-    H5Tinsert(memtype, "count", 0, H5T_NATIVE_UINT);
-    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
+    if(expressions_ != nullptr){
+        for(unsigned int i = 0; i < expression_num_; i++){
+            count[i] = expressions_[i].count;
+        }
+    }else{
+        hid_t memtype;
+        memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned int));
+        H5Tinsert(memtype, "count", 0, H5T_NATIVE_UINT);
+        H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
+        H5Tclose(memtype);
+    }
 
     if(verbose_) printCpuTime(cprev, "getSparseMatrixIndices");
     return 0;
@@ -515,10 +538,17 @@ int BgefReader::getSparseMatrixIndices2(unsigned int * cell_ind, unsigned int * 
     if(cell_indices_ == nullptr) buildCellInfo2();
     memcpy(cell_ind, cell_indices_, expression_num_ * sizeof(unsigned int));
 
-    hid_t memtype;
-    memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned int));
-    H5Tinsert(memtype, "count", 0, H5T_NATIVE_UINT);
-    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
+    if(expressions_ != nullptr){
+        for(unsigned int i = 0; i < expression_num_; i++){
+            count[i] = expressions_[i].count;
+        }
+    }else{
+        hid_t memtype;
+        memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned int));
+        H5Tinsert(memtype, "count", 0, H5T_NATIVE_UINT);
+        H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, count);
+        H5Tclose(memtype);
+    }
 
     unsigned int n = 0;
     for(unsigned short i = 0; i < gene_num_; i++){
@@ -527,7 +557,6 @@ int BgefReader::getSparseMatrixIndices2(unsigned int * cell_ind, unsigned int * 
         }
     }
 
-    H5Tclose(memtype);
     if(verbose_) printCpuTime(cprev, "getSparseMatrixIndices2");
     return 0;
 }
@@ -561,6 +590,7 @@ unsigned long long int * BgefReader::getCellPos() {
     return reinterpret_cast<unsigned long long int *>(cell_pos_.data());
 }
 
+//TODO
 unsigned int BgefReader::toGem(string &filename) {
 
     
@@ -622,6 +652,103 @@ void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &ge
     }
 
     if(verbose_) printCpuTime(cprev, "getGeneExpression");
+}
+
+int BgefReader::generateBinInfo(int bin_size, int n_thread) {
+    unsigned long cprev=clock();
+    ExpressionAttr expression_attr{};
+
+    hid_t attr;
+    attr = H5Aopen(exp_dataset_id_, "minX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.min_x));
+    attr = H5Aopen(exp_dataset_id_, "minY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.min_y));
+    attr = H5Aopen(exp_dataset_id_, "maxX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.max_x));
+    attr = H5Aopen(exp_dataset_id_, "maxY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.max_y));
+    attr = H5Aopen(exp_dataset_id_, "maxExp", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
+    attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.resolution));
+
+    BgefOptions *opts = BgefOptions::GetInstance();
+    opts->bin_sizes_.emplace_back(bin_size);
+//    opts->region_ = std::move(region);
+    opts->verbose_ = verbose_;
+
+//    if(opts->region_.empty()){
+        getGeneExpression(opts->map_gene_exp_);
+
+    unsigned int len_x = int((float(expression_attr_.max_x) / bin_size) - (float(expression_attr_.min_x) / bin_size)) + 1;
+    unsigned int len_y = int((float(expression_attr_.max_y) / bin_size) - (float(expression_attr_.min_y) / bin_size)) + 1;
+
+    expression_attr_.min_x = (expression_attr.min_x / bin_size) * bin_size;
+    expression_attr_.min_y = (expression_attr.min_y / bin_size) * bin_size;
+    expression_attr_.max_x = expression_attr_.min_x + (len_x-1)*bin_size;
+    expression_attr_.max_y = expression_attr_.min_y + (len_y-1)*bin_size;
+
+//    }else{
+//        bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
+//        unsigned int min_x = opts->region_[0];
+//        unsigned int max_x = opts->region_[1];
+//        unsigned int min_y = opts->region_[2];
+//        unsigned int max_y = opts->region_[3];
+//
+//        opts->range_ = {expression_attr.min_x + min_x, min(expression_attr.max_x, max_x+expression_attr.min_x),
+//                        expression_attr.min_y + min_y, min(expression_attr.max_y, max_y+expression_attr.min_y)};
+//        opts->offset_x_ = expression_attr.min_x + min_x;
+//        opts->offset_y_ = expression_attr.min_y + min_y;
+//    }
+
+    ThreadPool thpool(n_thread);
+
+    auto itor = opts->map_gene_exp_.begin();
+    for(;itor != opts->map_gene_exp_.end();itor++)
+    {
+        auto *task = new BinTask(bin_size, itor->first.c_str());
+        thpool.addTask(task);
+    }
+
+    unsigned int offset = 0;
+    unsigned int maxexp = 0;
+    int genecnt = 0;
+    while (true){
+        GeneInfo2 *pgenedata = opts->gene_queue_.getGeneInfo2();
+        for (auto g : *pgenedata->vecdataptr){
+            g.x *= bin_size;
+            g.y *= bin_size;
+            opts->expressions_.push_back(std::move(g));
+        }
+
+        opts->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
+        offset += pgenedata->vecdataptr->size();
+        maxexp = std::max(maxexp, pgenedata->maxexp);
+
+        genecnt++;
+        if(genecnt == opts->map_gene_exp_.size()){
+            break;
+        }
+    }
+
+    thpool.waitTaskDone();
+
+    expression_num_ = opts->expressions_.size();
+    gene_num_ = opts->genes_.size();
+
+    expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
+    genes_ = (Gene*)malloc(gene_num_ * sizeof(Gene));
+
+    memcpy(expressions_, &opts->expressions_[0], expression_num_*sizeof(Expression));
+    memcpy(genes_, &opts->genes_[0], gene_num_*sizeof(Gene));
+
+//    bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
+
+    opts->expressions_.clear();
+    opts->genes_.clear();
+
+    cprev = printCpuTime(cprev, "generateBinInfo");
+    return 0;
 }
 
 
