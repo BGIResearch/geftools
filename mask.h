@@ -31,9 +31,11 @@ class Mask {
 
     /**
      * @brief Constructor of Mask class.
-     * @param file   Mask file of cell shape.
+     * @param file  Mask file of cell shape.
+     * @param block_size
+     * @param mask_size  rows,cols
      */
-    Mask(const string& file, const int block_size[]);
+    Mask(const string& file, const int block_size[], const unsigned int mask_size[]);
 
     /**
      * @brief Displays cell contours in a window.
