@@ -111,7 +111,7 @@ void BgefReader::openWholeExpSpace() {
     whole_exp_matrix_shape_[1] = dims[1];
 }
 
-
+//hash较慢，应使用buildCellInfo2
 void BgefReader::buildCellInfo() {
     unsigned long cprev=clock();
     if(cell_num_ != 0 && cell_indices_ != nullptr)
