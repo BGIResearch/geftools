@@ -157,6 +157,10 @@ struct CellAttr {
     float average_exp_count;
     float average_dnb_count;
     float average_area;
+    float median_gene_count;
+    float median_exp_count;
+    float median_dnb_count;
+    float median_area;
     unsigned int min_x;
     unsigned int min_y;
     unsigned short min_gene_count;

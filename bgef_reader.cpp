@@ -4,8 +4,8 @@
 
 #include "bgef_reader.h"
 #include "khash.h"
-#include "bgef_options.h"
 #include "bin_task.h"
+#include "dnb_merge_task.h"
 
 KHASH_MAP_INIT_INT64(m64, unsigned int)
 
@@ -13,6 +13,7 @@ BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool 
     file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     bin_size_ = bin_size;
     verbose_ = verbose;
+    n_thread_ = n_thread;
 
     char binName[128]={0};
     sprintf(binName, "/geneExp/bin%d", bin_size_);
@@ -22,7 +23,7 @@ BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool 
     }else{
         openExpressionSpace(1);
         openGeneSpace(1);
-        generateBinInfo(bin_size_, n_thread);
+        generateGeneExp(bin_size_, n_thread);
     }
 
     hid_t attr;
@@ -38,6 +39,8 @@ BgefReader::~BgefReader() {
         free(cell_indices_);
     if(expressions_ != nullptr)
         free(expressions_);
+    if(reduce_expressions_ != nullptr)
+        free(reduce_expressions_);
     H5Fclose(file_id_);
     H5Dclose(exp_dataset_id_);
     H5Sclose(exp_dataspace_id_);
@@ -47,6 +50,10 @@ BgefReader::~BgefReader() {
         H5Dclose(whole_exp_dataset_id_);
     if(whole_exp_dataspace_id_ > 0)
         H5Sclose(whole_exp_dataspace_id_);
+//    if(opts_ != nullptr){
+//        opts_->expressions_.clear();
+//        opts_->genes_.clear();
+//    }
 }
 
 void BgefReader::openExpressionSpace(int bin_size) {
@@ -88,6 +95,9 @@ void BgefReader::openWholeExpSpace() {
     // Read index
     char idxName[128]={0};
     sprintf(idxName, "/wholeExp/bin%d", bin_size_);
+//    if(!H5Lexists(file_id_, idxName, H5P_DEFAULT)){
+//        generateWholeExp(bin_size_, n_thread_);
+//    }
     whole_exp_dataset_id_ = H5Dopen(file_id_, idxName, H5P_DEFAULT);
     if (whole_exp_dataset_id_ < 0)
     {
@@ -513,7 +523,7 @@ int BgefReader::getSparseMatrixIndices(unsigned int *indices, unsigned int *indp
     for(unsigned int i = 1; i < gene_num_; i++){
         indptr[i] = gene_data[i].offset;
     }
-    indptr[cell_num_] = gene_data[gene_num_-1].offset + gene_data[gene_num_-1].count;
+    indptr[gene_num_] = gene_data[gene_num_-1].offset + gene_data[gene_num_-1].count;
 
     if(expressions_ != nullptr){
         for(unsigned int i = 0; i < expression_num_; i++){
@@ -654,7 +664,7 @@ void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &ge
     if(verbose_) printCpuTime(cprev, "getGeneExpression");
 }
 
-int BgefReader::generateBinInfo(int bin_size, int n_thread) {
+int BgefReader::generateGeneExp(int bin_size, int n_thread) {
     unsigned long cprev=clock();
     ExpressionAttr expression_attr{};
 
@@ -672,21 +682,30 @@ int BgefReader::generateBinInfo(int bin_size, int n_thread) {
     attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.resolution));
 
-    BgefOptions *opts = BgefOptions::GetInstance();
-    opts->bin_sizes_.emplace_back(bin_size);
+    opts_ = BgefOptions::GetInstance();
+    opts_->bin_sizes_.emplace_back(bin_size);
+    auto& dnb_attr = opts_->dnbmatrix_.dnb_attr;
+
+    opts_->range_ = {expression_attr.min_x, expression_attr.max_x, expression_attr.min_y, expression_attr.max_y};
+//    opts->offset_x_ = expression_attr.min_x;
+//    opts->offset_y_ = expression_attr.min_y;
+
 //    opts->region_ = std::move(region);
-    opts->verbose_ = verbose_;
+    opts_->verbose_ = verbose_;
 
 //    if(opts->region_.empty()){
-        getGeneExpression(opts->map_gene_exp_);
+        getGeneExpression(opts_->map_gene_exp_);
 
-    unsigned int len_x = int((float(expression_attr_.max_x) / bin_size) - (float(expression_attr_.min_x) / bin_size)) + 1;
-    unsigned int len_y = int((float(expression_attr_.max_y) / bin_size) - (float(expression_attr_.min_y) / bin_size)) + 1;
+    dnb_attr.len_x = int((float(expression_attr_.max_x) / bin_size) - (float(expression_attr_.min_x) / bin_size)) + 1;
+    dnb_attr.len_y = int((float(expression_attr_.max_y) / bin_size) - (float(expression_attr_.min_y) / bin_size)) + 1;
 
     expression_attr_.min_x = (expression_attr.min_x / bin_size) * bin_size;
     expression_attr_.min_y = (expression_attr.min_y / bin_size) * bin_size;
-    expression_attr_.max_x = expression_attr_.min_x + (len_x-1)*bin_size;
-    expression_attr_.max_y = expression_attr_.min_y + (len_y-1)*bin_size;
+    expression_attr_.max_x = expression_attr_.min_x + (dnb_attr.len_x-1)*bin_size;
+    expression_attr_.max_y = expression_attr_.min_y + (dnb_attr.len_y-1)*bin_size;
+
+    dnb_attr.min_x = expression_attr_.min_x;
+    dnb_attr.min_x = expression_attr_.min_x;
 
 //    }else{
 //        bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
@@ -703,8 +722,8 @@ int BgefReader::generateBinInfo(int bin_size, int n_thread) {
 
     ThreadPool thpool(n_thread);
 
-    auto itor = opts->map_gene_exp_.begin();
-    for(;itor != opts->map_gene_exp_.end();itor++)
+    auto itor = opts_->map_gene_exp_.begin();
+    for(;itor != opts_->map_gene_exp_.end();itor++)
     {
         auto *task = new BinTask(bin_size, itor->first.c_str());
         thpool.addTask(task);
@@ -714,41 +733,99 @@ int BgefReader::generateBinInfo(int bin_size, int n_thread) {
     unsigned int maxexp = 0;
     int genecnt = 0;
     while (true){
-        GeneInfo2 *pgenedata = opts->gene_queue_.getGeneInfo2();
+        GeneInfo2 *pgenedata = opts_->gene_queue_.getGeneInfo2();
         for (auto g : *pgenedata->vecdataptr){
             g.x *= bin_size;
             g.y *= bin_size;
-            opts->expressions_.push_back(std::move(g));
+            opts_->expressions_.push_back(std::move(g));
         }
 
-        opts->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
+        opts_->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
         offset += pgenedata->vecdataptr->size();
         maxexp = std::max(maxexp, pgenedata->maxexp);
 
         genecnt++;
-        if(genecnt == opts->map_gene_exp_.size()){
+        if(genecnt == opts_->map_gene_exp_.size()){
             break;
         }
     }
 
     thpool.waitTaskDone();
 
-    expression_num_ = opts->expressions_.size();
-    gene_num_ = opts->genes_.size();
+    expression_num_ = opts_->expressions_.size();
+    gene_num_ = opts_->genes_.size();
 
     expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
     genes_ = (Gene*)malloc(gene_num_ * sizeof(Gene));
 
-    memcpy(expressions_, &opts->expressions_[0], expression_num_*sizeof(Expression));
-    memcpy(genes_, &opts->genes_[0], gene_num_*sizeof(Gene));
+    memcpy(expressions_, &opts_->expressions_[0], expression_num_*sizeof(Expression));
+    memcpy(genes_, &opts_->genes_[0], gene_num_*sizeof(Gene));
 
-//    bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
-
-    opts->expressions_.clear();
-    opts->genes_.clear();
+    //TODO 优化内存，取消opts_
+    opts_->expressions_.clear();
+    opts_->genes_.clear();
 
     cprev = printCpuTime(cprev, "generateBinInfo");
     return 0;
+}
+
+
+//TODO
+void BgefReader::generateWholeExp(int bin_size, int thread) {
+
+    unsigned long cprev=clock();
+    ThreadPool thpool(n_thread_);
+    auto& dnb_attr = opts_->dnbmatrix_.dnb_attr;
+    auto& dnb_matrix = opts_->dnbmatrix_;
+
+    unsigned long matrix_len = (unsigned long)(dnb_attr.len_x) * dnb_attr.len_y;
+    if (bin_size == 1)
+    {
+        dnb_matrix.pmatrix_us = (BinStatUS*)calloc(matrix_len, sizeof(BinStatUS));
+        assert(dnb_matrix.pmatrix_us);
+    }
+    else {
+        dnb_matrix.pmatrix = (BinStat *) calloc(matrix_len, sizeof(BinStat));
+    }
+
+    for(int i=0; i < n_thread_; i++){
+        auto *task = new DnbMergeTask(opts_->map_gene_exp_.size(), i, bin_size);
+        thpool.addTask(task);
+    }
+
+    thpool.waitTaskDone();
+
+//    special_bin sbin;
+//    std::vector<int> vecdnb;
+//    unsigned int x, y;
+//    unsigned int y_len = dnbM.dnb_attr.len_y;
+//    for(unsigned long i=0;i<matrix_len;i++)
+//    {
+//        if(dnbM.pmatrix[i].gene_count)
+//        {
+//            x = i/y_len;
+//            y = i%y_len;
+//
+//            vecdnb.push_back(x*bin);
+//            vecdnb.push_back(y*bin);
+//            vecdnb.push_back(dnbM.pmatrix[i].mid_count);
+//        }
+//    }
+
+
+    printCpuTime(cprev, "generateWholeExp");
+}
+
+Expression *BgefReader::getReduceExpression() {
+    unsigned int cell_num = getCellNum();
+    if(expressions_ == nullptr) getExpression();
+    reduce_expressions_ = (Expression *)calloc(cell_num, sizeof(Expression));
+    for(unsigned int i = 0; i < expression_num_; i++){
+        reduce_expressions_[cell_indices_[i]].x = expressions_[i].x;
+        reduce_expressions_[cell_indices_[i]].y = expressions_[i].y;
+        reduce_expressions_[cell_indices_[i]].count += expressions_[i].count;
+    }
+    return reduce_expressions_;
 }
 
 

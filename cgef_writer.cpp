@@ -112,7 +112,6 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Tinsert(filetype, "clusterID", 22, H5T_STD_U16LE);
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
 
-
     hid_t dpid = H5Pcreate (H5P_DATASET_CREATE);
     H5Pset_attr_phase_change(dpid, 0, 0);
     hid_t dataset_id = H5Dcreate(group_id_, "cell", filetype, dataspace_id, H5P_DEFAULT,
@@ -120,6 +119,46 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_list_[0]);
 
     // Create cell attribute
+    // median
+    auto * index = (unsigned int *) malloc(cell_num_ * sizeof(unsigned int));
+    iota(index, index+cell_num_, 0);
+    sort(index, index+cell_num_,[this](int a,int b){return cell_list_[a].area < cell_list_[b].area; });
+
+    unsigned int mi = cell_num_ / 2;
+    if (cell_num_ % 2 != 0) {
+        cell_attr_.median_area = cell_list_[index[mi]].area;
+    } else {
+        cell_attr_.median_area = float(cell_list_[index[mi]].area + cell_list_[index[mi - 1]].area)/2;
+    }
+
+    iota(index, index+cell_num_, 0);
+    sort(index, index+cell_num_,
+         [this](int a,int b){return cell_list_[a].gene_count < cell_list_[b].gene_count; });
+    if (cell_num_ % 2 != 0) {
+        cell_attr_.median_gene_count = cell_list_[index[mi]].gene_count;
+    } else {
+        cell_attr_.median_gene_count = float(cell_list_[index[mi]].gene_count + cell_list_[index[mi - 1]].gene_count)/2;
+    }
+
+    iota(index, index+cell_num_, 0);
+    sort(index, index+cell_num_,
+         [this](int a,int b){return cell_list_[a].exp_count < cell_list_[b].exp_count; });
+    if (cell_num_ % 2 != 0) {
+        cell_attr_.median_exp_count = cell_list_[index[mi]].exp_count;
+    } else {
+        cell_attr_.median_exp_count = float(cell_list_[index[mi]].exp_count + cell_list_[index[mi - 1]].exp_count)/2;
+    }
+
+    iota(index, index+cell_num_, 0);
+    sort(index, index+cell_num_,
+         [this](int a,int b){return cell_list_[a].dnb_count < cell_list_[b].dnb_count; });
+    if (cell_num_ % 2 != 0) {
+        cell_attr_.median_dnb_count = cell_list_[index[mi]].dnb_count;
+    } else {
+        cell_attr_.median_dnb_count = float(cell_list_[index[mi]].dnb_count + cell_list_[index[mi - 1]].dnb_count)/2;
+    }
+
+    // average
     cell_attr_.average_gene_count = static_cast<float>(expression_num_)/  static_cast<float>(cell_num_);
     cell_attr_.average_exp_count = static_cast<float>(exp_count_sum_) /  static_cast<float>(cell_num_);
     cell_attr_.average_dnb_count = static_cast<float>(dnb_count_sum_) /  static_cast<float>(cell_num_);
@@ -136,6 +175,14 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.average_dnb_count);
     attr = H5Acreate(dataset_id, "averageArea", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.average_area);
+    attr = H5Acreate(dataset_id, "medianGeneCount", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_gene_count);
+    attr = H5Acreate(dataset_id, "medianExpCount", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_exp_count);
+    attr = H5Acreate(dataset_id, "medianDnbCount", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_dnb_count);
+    attr = H5Acreate(dataset_id, "medianArea", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_area);
     attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.min_x);
     attr = H5Acreate(dataset_id, "maxX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
@@ -180,6 +227,7 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Sclose(attr_dataspace);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
+    free(index);
     if(verbose_) printCpuTime(cprev, "storeCell");
 }
 

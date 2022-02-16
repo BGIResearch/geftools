@@ -107,7 +107,8 @@ void gem2gef(BgefOptions *opts)
     unsigned long cprev0 =clock(), cprev;
 
     unsigned int resolution;
-    if(decideSuffix(opts->input_file_, "gem") || decideSuffix(opts->input_file_, "gz")){
+//    if(decideSuffix(opts->input_file_, "gem") || decideSuffix(opts->input_file_, "gz")){
+    if(!H5Fis_hdf5(opts->input_file_.c_str())){
         mRead(opts);
         resolution = parseResolutin(opts->input_file_);
     }else{
@@ -185,7 +186,6 @@ void gem2gef(BgefOptions *opts)
             thpool.addTask(task);
         }
 
-        // timer time_write_gene("write gene");
         if (bin == 1)
         {
             unsigned long totalSize = 0;
@@ -246,7 +246,6 @@ void gem2gef(BgefOptions *opts)
 //        cprev = printCpuTime(cprev, "wait");
         thpool.waitTaskDone();
 //        printCpuTime(cprev, "waitTaskDone");
-        // tm.stop();
         opts->gene_info_queue_.clear(bin);
         //write dnb
         writednb(opts, bgef_writer, bin);

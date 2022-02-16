@@ -13,6 +13,7 @@
 #include "hdf5.h"
 #include "utils.h"
 #include "gef.h"
+#include "bgef_options.h"
 
 class BgefReader {
   private:
@@ -27,9 +28,12 @@ class BgefReader {
     unsigned int whole_exp_matrix_shape_[2] = {0};
     Gene* genes_ = nullptr;
     Expression* expressions_ = nullptr;
+    Expression* reduce_expressions_ = nullptr;
     Mat whole_exp_matrix_t_;
     int version_{};
     int verbose_ = true;
+    int n_thread_ = 1;
+    BgefOptions *opts_ = nullptr;
 
     hid_t file_id_;
     hid_t exp_dataspace_id_{};
@@ -85,6 +89,8 @@ class BgefReader {
     unsigned long long int * getCellPos();
 
     Expression * getExpression();
+
+    Expression * getReduceExpression();
 
     void cacheWholeExpMatrix();
 
@@ -181,7 +187,9 @@ class BgefReader {
 
     static bool expressionComp(const DnbExpression& p1, const DnbExpression& p2);
 
-    int generateBinInfo(int bin_size, int n_thread);
+    int generateGeneExp(int bin_size, int n_thread);
+
+    void generateWholeExp(int size, int thread);
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_
