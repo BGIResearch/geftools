@@ -147,3 +147,21 @@ bool utils_hdf5_check_present(hid_t loc_id, const char *name) {
     return true;
 }
 
+bool is_cgef(string &filename) {
+    hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    bool is_c = false;
+    if(H5Lexists(file_id, "cellBin", H5P_DEFAULT))
+        is_c = true;
+    H5Fclose(file_id);
+    return is_c;
+}
+
+bool is_bgef(string &filename) {
+    hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    bool is_b = false;
+    if(H5Lexists(file_id, "geneExp", H5P_DEFAULT))
+        is_b = true;
+    H5Fclose(file_id);
+    return is_b;
+}
+

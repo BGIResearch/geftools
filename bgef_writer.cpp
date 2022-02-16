@@ -9,8 +9,12 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose) {
     str32_type_ = H5Tcopy(H5T_C_S1);
     H5Tset_size(str32_type_, 32);
 
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fclose_degree(fapl, H5F_CLOSE_STRONG);
+
     cerr << "create h5 file: " <<  output_filename << endl;
-    file_id_ = H5Fcreate(output_filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file_id_ = H5Fcreate(output_filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+
     verbose_ = verbose;
 
     hsize_t dimsAttr[1] = {1};
@@ -25,25 +29,11 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose) {
     whole_exp_group_id_ = H5Gcreate(file_id_, "wholeExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 }
 
-BgefWriter::~BgefWriter()
-{
-    H5Fclose(file_id_);
+BgefWriter::~BgefWriter(){
     H5Gclose(gene_exp_group_id_);
     H5Gclose(whole_exp_group_id_);
-//    if(!gene_exp_bin_group_id_)
-//        H5Gclose(gene_exp_bin_group_id_);
     H5Tclose(str32_type_);
-}
-
-bool BgefWriter::createGMGroup(int bin)
-{
-    binsize_ = bin;
-//    char buf[32]={0};
-//    sprintf(buf, "bin%d", bin);
-//    if(!gene_exp_bin_group_id_)
-//        H5Gclose(gene_exp_bin_group_id_);
-//    gene_exp_bin_group_id_ = H5Gcreate(gene_exp_group_id_, buf, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    return true;
+    H5Fclose(file_id_);
 }
 
 bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAttr& dnbAttr, unsigned int maxexp, int binsize)

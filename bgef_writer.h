@@ -19,7 +19,6 @@ class BgefWriter {
     hid_t str32_type_;
     hid_t file_id_;
     hid_t gene_exp_group_id_;
-    hid_t gene_exp_bin_group_id_;
     hid_t whole_exp_group_id_;
 
     unsigned int resolution_;
@@ -29,8 +28,6 @@ class BgefWriter {
     BgefWriter(const string& output_filename, bool verbose);
     ~BgefWriter();
 
-    bool createGMGroup(int bin);
-
     bool storeGene(vector<Expression> &exps, vector<Gene> &genes, DnbAttr &dnbAttr, unsigned int maxexp, int binsize);
     bool storeDnb(DnbMatrix & dnb_matrix, int binsize);
     bool storeStat(vector<GeneStat>& geneStat) const;
@@ -38,7 +35,6 @@ class BgefWriter {
     unsigned int getResolution() const;
 
     void setResolution(unsigned int resolution);
-
 };
 
 #endif

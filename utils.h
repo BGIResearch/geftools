@@ -200,4 +200,7 @@ bool decideSuffix(string& filename, string suffix);
  */
 bool utils_hdf5_check_present(hid_t loc_id, const char *name);
 
+bool is_bgef(string& filename);
+bool is_cgef(string& filename);
+
 #endif //GEFTOOLS__UTILS_H_

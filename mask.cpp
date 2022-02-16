@@ -15,7 +15,7 @@ Mask::Mask(const string& file, const int block_size[], const unsigned int mask_s
             exit(2);
         }
     }else if(img.rows == img.cols){
-        cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted "
+        cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted (transposed)"
                 "to be consistent with the expression coordinates." << endl;
     }
 

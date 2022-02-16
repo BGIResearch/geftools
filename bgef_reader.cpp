@@ -7,6 +7,14 @@
 #include "bin_task.h"
 #include "dnb_merge_task.h"
 
+#define FILE_HEADER "#FileFormat=GEMv%d.%d\n" \
+"#SortedBy=None\n" \
+"#BinSize=%d\n" \
+"#StereoChip=%s\n" \
+"#OffsetX=%d\n" \
+"#OffsetY=%d\n" \
+"geneID\tx\ty\tMIDCount\n"
+
 KHASH_MAP_INIT_INT64(m64, unsigned int)
 
 BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool verbose) {
@@ -111,7 +119,7 @@ void BgefReader::openWholeExpSpace() {
     whole_exp_matrix_shape_[1] = dims[1];
 }
 
-
+//hash较慢，应使用buildCellInfo2
 void BgefReader::buildCellInfo() {
     unsigned long cprev=clock();
     if(cell_num_ != 0 && cell_indices_ != nullptr)
@@ -600,11 +608,44 @@ unsigned long long int * BgefReader::getCellPos() {
     return reinterpret_cast<unsigned long long int *>(cell_pos_.data());
 }
 
-//TODO
+//TODO support restrict gene_list and region
 unsigned int BgefReader::toGem(string &filename) {
+    unsigned long cprev = clock();
+    Gene * gene_data = getGene();
+    Expression * expression = getExpression();
+    ExpressionAttr & expression_attr = getExpressionAttr();
 
-    
-    return 0;
+    // Create file header
+    string base_filename = filename.substr(filename.find_last_of("/\\") + 1);
+    FILE* outhandle;
+    if (filename == "stdout" || filename == "-"){
+        outhandle = stdout;
+    }
+    else{
+        outhandle = fopen(filename.c_str(), "w");
+        if (outhandle == nullptr)
+        {
+            cerr<<"failed create output file: "<< filename <<endl;
+            exit(4);
+        }
+    }
+    fprintf(outhandle, FILE_HEADER, 0, 1, bin_size_, base_filename.c_str(), expression_attr.min_x, expression_attr.min_y);
+    // Write data line by line
+    size_t pos = 0;
+    for (int i = 0; i < gene_num_; ++i)
+    {
+        const char* gene = gene_data[i].gene;
+        size_t end = gene_data[i].offset + gene_data[i].count;
+        while (pos < end){
+            Expression& exp = expression[pos];
+            fprintf(outhandle, "%s\t%d\t%d\t%d\n", gene, exp.x, exp.y, exp.count);
+            ++pos;
+        }
+    }
+    fclose(outhandle);
+
+    if(verbose_) printCpuTime(cprev, "toGem");
+    return pos;
 }
 
 void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &gene_exp_map,
