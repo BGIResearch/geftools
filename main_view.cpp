@@ -9,23 +9,25 @@ int view(int argc, char *argv[]) {
 
     cxxopts::Options options("geftools view",
                              "About:  Show the contents of cell bin GEF\n");
+    //TODO support restrict gene_list and region for bGEF 
     options
         .set_width(120)
         .add_options()
-            ("i,input-file", "Input cell bin GEF file [request]", cxxopts::value<std::string>(), "FILE")
-            ("o,output-gem", "Output cell bin gem file",
+            ("i,input-file", "Input bGEF/cGEF file [request]", cxxopts::value<std::string>(), "FILE")
+            ("o,output-gem", "Output gem file",
                     cxxopts::value<std::string>()->default_value("stdout"), "FILE")
 //            ("m,output-mask", "Output border of polygons to mask format file",
 //                    cxxopts::value<std::string>()->default_value(""), "FILE")
             ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
-                         "of two vertex coordinates (minX,maxX,minY,maxY)",
+                         "of two vertex coordinates (minX,maxX,minY,maxY). just support cGEF.",
                          cxxopts::value<std::string>()->default_value(""), "STR")
-            ("g,genes", "Comma separated list of genes to include (or exclude with \"^\" prefix)",
+            ("g,genes", "Comma separated list of genes to include (or exclude with \"^\" prefix). just support cGEF.",
                     cxxopts::value<std::string>(), "[^]STR")
-            ("G,genes-file", "File of genes to include (or exclude with \"^\" prefix))",
+            ("G,genes-file", "File of genes to include (or exclude with \"^\" prefix)). just support cGEF.",
                     cxxopts::value<std::string>(), "[^]FILE")
-            ("force-genes", "Only warn about unknown subset genes",
+            ("force-genes", "Only warn about unknown subset genes, just support cGEF.",
                     cxxopts::value<bool>()->default_value("false"))
+            ("b,bin-size", "Set bin size for bgef file, just support bGEF.", cxxopts::value<int>()->default_value("1"), "INT")
 //            ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
             ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
             ("help", "Print help");
@@ -51,6 +53,7 @@ int view(int argc, char *argv[]) {
 //    viewopts.output_mask = result["output-mask"].as<string>();
     viewopts.verbose = result["verbose"].as<bool>();
     viewopts.force_genes = result["force-genes"].as<bool>();
+    viewopts.bin_size = result["bin-size"].as<int>();
 
     if (result.count("region") == 1){
         string region_tmp = result["region"].as<string>();
@@ -97,16 +100,22 @@ int view(int argc, char *argv[]) {
     time(&prev);
     unsigned long cprev=clock();
 
-    CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
+    if(is_bgef(viewopts.input_file)){
+        BgefReader bgef_reader = BgefReader(viewopts.input_file, viewopts.bin_size, 1, viewopts.verbose);
+        bgef_reader.toGem(viewopts.output_gem);
+    }else{
 
-    if(viewopts.restrict_region){
-        cgef_reader.restrictRegion(viewopts.region[0],
-                                   viewopts.region[1],
-                                   viewopts.region[2],
-                                   viewopts.region[3]);
+        CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
+
+        if(viewopts.restrict_region){
+            cgef_reader.restrictRegion(viewopts.region[0],
+                                       viewopts.region[1],
+                                       viewopts.region[2],
+                                       viewopts.region[3]);
+        }
+
+        cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
     }
-
-    cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
 
     if(viewopts.verbose){
         prev = printTime(prev, "CgefReader init");

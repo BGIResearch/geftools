@@ -9,6 +9,7 @@
 
 #include "utils.h"
 #include "cgef_reader.h"
+#include "bgef_reader.h"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ struct ViewOptions {
     unsigned int region[4];
     vector<string> genes;
     int threads;
+    int bin_size;
     bool restrict_region;
     bool force_genes;
     bool exclude; ///< Set the list of genes to exclude, not include.
