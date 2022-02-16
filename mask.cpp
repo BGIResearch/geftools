@@ -14,6 +14,9 @@ Mask::Mask(const string& file, const int block_size[], const unsigned int mask_s
             cerr << "The size of mask picture is inconsistent with the size of expression" << endl;
             exit(2);
         }
+    }else if(img.rows == img.cols){
+        cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted "
+                "to be consistent with the expression coordinates." << endl;
     }
 
     rows_ = img.rows;
