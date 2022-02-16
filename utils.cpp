@@ -140,3 +140,10 @@ bool decideSuffix(string& filename, string suffix){
 //        return false;
 }
 
+bool utils_hdf5_check_present(hid_t loc_id, const char *name) {
+    htri_t bool_id;
+    if ((bool_id = H5Lexists(loc_id, name, H5P_DEFAULT)) < 0 || !bool_id)        return false;
+    if ((bool_id = H5Oexists_by_name(loc_id, name, H5P_DEFAULT)) < 0 || !bool_id)        return false;
+    return true;
+}
+

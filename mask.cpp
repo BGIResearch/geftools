@@ -3,9 +3,18 @@
 //
 
 #include "mask.h"
-Mask::Mask(const string& file, const int block_size[]){
+Mask::Mask(const string& file, const int block_size[], const unsigned int mask_size[]){
     cv::Mat img = cv::imread(file,-1);
     if( img.empty() ) { cerr << "Mask is empty!" << endl; exit(-1);}
+
+    if (img.rows != mask_size[0] || img.cols != mask_size[1]) {
+        if (img.rows == mask_size[1] && img.cols == mask_size[0]) {
+            img = img.t();
+        } else {
+            cerr << "The size of mask picture is inconsistent with the size of expression" << endl;
+            exit(2);
+        }
+    }
 
     rows_ = img.rows;
     cols_ = img.cols;
@@ -17,11 +26,11 @@ Mask::Mask(const string& file, const int block_size[]){
 
     //findContours从二值图像中检索轮廓，并返回检测到的轮廓的个数
     findContours(
-      img,
-      contours_,
-      hierarchy_,
-      RETR_EXTERNAL,
-      CHAIN_APPROX_SIMPLE
+            img,
+            contours_,
+            hierarchy_,
+            RETR_EXTERNAL,
+            CHAIN_APPROX_SIMPLE
     );
     block_num_ = block_size_[2] * block_size_[3];
 

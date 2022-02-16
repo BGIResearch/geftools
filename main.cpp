@@ -4,7 +4,7 @@
 #include "main_view.h"
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.4"
+#define PACKAGE_VERSION "0.6"
 #endif
 
 using namespace cv;

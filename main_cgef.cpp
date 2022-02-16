@@ -25,25 +25,25 @@ int cgef(int argc, char *argv[]) {
 
     if (argc <= 1 || result.count("help"))
     {
-        std::cout << options.help() << std::endl;
+        std::cerr << options.help() << std::endl;
         exit(1);
     }
 
     if (result.count("mask-file") != 1){
-        std::cout << "[ERROR] The -m,--mask-file parameter must be given correctly.\n" << std::endl;
-        std::cout << options.help() << std::endl;
+        std::cerr << "[ERROR] The -m,--mask-file parameter must be given correctly.\n" << std::endl;
+        std::cerr << options.help() << std::endl;
         exit(1);
     }
 
     if (result.count("input-file") != 1){
-        std::cout << "[ERROR] The -i,--input-file parameter must be given correctly.\n" << std::endl;
-        std::cout << options.help() << std::endl;
+        std::cerr << "[ERROR] The -i,--input-file parameter must be given correctly.\n" << std::endl;
+        std::cerr << options.help() << std::endl;
         exit(1);
     }
 
     if (result.count("output-file") != 1){
-        std::cout << "[ERROR] The -o,--output-file parameter must be given correctly.\n" << std::endl;
-        std::cout << options.help() << std::endl;
+        std::cerr << "[ERROR] The -o,--output-file parameter must be given correctly.\n" << std::endl;
+        std::cerr << options.help() << std::endl;
         exit(1);
     }
 
@@ -58,8 +58,8 @@ int cgef(int argc, char *argv[]) {
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
 
     if(block_size_tmp.size() != 2){
-        std::cout << "[ERROR] The -b,--block parameter must be given correctly.\n" << std::endl;
-        std::cout << options.help() << std::endl;
+        std::cerr << "[ERROR] The -b,--block parameter must be given correctly.\n" << std::endl;
+        std::cerr << options.help() << std::endl;
         exit(1);
     }
     opts.block_size[0] = static_cast<int>(strtol(block_size_tmp[0].c_str(), nullptr, 10));
@@ -76,10 +76,16 @@ int generateCgef(const string &cgef_file,
                  int rand_cell_type_num,
                  bool verbose) {
     unsigned long cprev=clock();
-    Mask mask = Mask(mask_file, block_size);
+    BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
+    ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
+
+    unsigned int mask_size[2]; // rows, cols
+    mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
+    mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
+
+    Mask mask = Mask(mask_file, block_size, mask_size);
     if(verbose) cprev = printCpuTime(cprev, "Mask init");
     cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
-    BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
     CgefWriter cgef_writer = CgefWriter(cgef_file, true);
     cgef_writer.setRandomCellTypeNum(rand_cell_type_num);
     cgef_writer.write(common_bin_gef, mask);

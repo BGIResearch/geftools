@@ -53,6 +53,11 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
         exit(3);
     }
 
+    if(!H5Lexists(cell_dataset_id_, "clusterID", H5P_DEFAULT)){
+        cerr << "Please use geftools(>=0.6) to regenerate this cgef file." << endl;
+        exit(2);
+    }
+
     hsize_t dims_attr[1];
     hid_t attr, attr_dataspace;
     attr = H5Aopen(cell_dataset_id_, "blockIndex", H5P_DEFAULT);
