@@ -7,6 +7,7 @@
 #ifndef GEFTOOLS_CGEF_READER_H
 #define GEFTOOLS_CGEF_READER_H
 
+#include <numeric>
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -15,6 +16,13 @@
 #include "opencv2/opencv.hpp"
 #include "utils.h"
 #include "gef.h"
+
+struct Region {
+    unsigned int min_x;
+    unsigned int max_x;
+    unsigned int min_y;
+    unsigned int max_y;
+};
 
 class CgefReader {
   private:
@@ -33,13 +41,18 @@ class CgefReader {
     unsigned short gene_num_current_ = 0;
     GeneData* gene_array_ = nullptr;
     GeneData* gene_array_current_ = nullptr;
-    unordered_set<unsigned short> gene_id_set_current_;
+    //如果 gene_id_to_index_[gene_id] >= 0，则 gene 在restrict_gene_的区域内。
+    int* gene_id_to_index_ = nullptr;
 
     unsigned int cell_num_ = 0;
     unsigned int cell_num_current_ = 0;
     CellData* cell_array_ = nullptr;
     CellData* cell_array_current_ = nullptr;
     unsigned int* cell_id_array_current_ = nullptr;
+    //如果 isInRegion[cell_id - start_cell_id] == true，则 cell 在restrict_region_的区域内。
+    int* cell_id_to_index_ = nullptr;
+    unsigned int start_cell_id = 0;
+    unsigned int end_cell_id = UINT_MAX;
 
     unsigned int expression_num_ = 0;
     unsigned int expression_num_current_ = 0;
@@ -57,6 +70,7 @@ class CgefReader {
 
     CellData *loadCell(bool reload = false);
 
+    Region region_{};  ///< min_x, max_x, min_y, max_y
     bool verbose_ = false;
     bool restrict_region_ = false;
     bool restrict_gene_ = false;
@@ -73,9 +87,9 @@ class CgefReader {
 
     /**
      * @brief Gets gene name array, 32 bit for each string.
-     * @param gene_list
+     * @param gene_names
      */
-    void getGeneName(char * gene_list);
+    void getGeneNames(char * gene_names);
 
     int getGeneId(string& gene_name);
     GeneData *getGene();
@@ -112,6 +126,8 @@ class CgefReader {
      * @param exclude
      */
     void restrictGene(vector<string> & gene_list, bool exclude = false);
+
+    void freeRestriction();
 
     /**
      * @brief Update current gene array and gene number.
@@ -165,7 +181,7 @@ class CgefReader {
      * @param expressions
      * @return
      */
-    int getExpressionCountByGene(string& gene_name, GeneExpData* expressions);
+    unsigned int getExpressionCountByGene(string& gene_name, GeneExpData* expressions);
 
     unsigned int getExpressionCountByGeneId(unsigned short gene_id, GeneExpData* expressions);
 
@@ -203,6 +219,7 @@ class CgefReader {
      */
     bool isRestrictGene() const;
 
+    bool isInRegion(unsigned int cell_id);
 
     bool isVerbose() const;
 

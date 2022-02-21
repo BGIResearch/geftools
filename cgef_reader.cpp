@@ -30,8 +30,6 @@ CgefReader::CgefReader(const string &filename, bool verbose) {
 
 CgefReader::~CgefReader() {
     H5Tclose(str32_type_);
-    H5Fclose(file_id_);
-    H5Gclose(group_id_);
     H5Dclose(cell_dataset_id_);
     H5Dclose(gene_dataset_id_);
     H5Dclose(cell_exp_dataset_id_);
@@ -39,11 +37,14 @@ CgefReader::~CgefReader() {
     H5Sclose(cell_dataspace_id_);
     H5Sclose(cell_exp_dataspace_id_);
     H5Sclose(gene_exp_dataspace_id_);
+    H5Gclose(group_id_);
+    H5Fclose(file_id_);
     free(gene_array_);
     if (cell_array_ != nullptr)
         free(cell_array_);
     if (cell_array_current_ != nullptr) free(cell_array_current_);
     if (cell_id_array_current_ != nullptr) free(cell_id_array_current_);
+    if (cell_id_to_index_ != nullptr) free(cell_id_to_index_);
 }
 
 hid_t CgefReader::openCellDataset(hid_t group_id) {
@@ -53,7 +54,10 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
         exit(3);
     }
 
-    if(!H5Lexists(cell_dataset_id_, "clusterID", H5P_DEFAULT)){
+    hid_t s1_tid = H5Dget_type(cell_dataset_id_);
+    int nmemb = H5Tget_nmembers(s1_tid);
+
+    if(nmemb != 9){
         cerr << "Please use geftools(>=0.6) to regenerate this cgef file." << endl;
         exit(2);
     }
@@ -138,7 +142,9 @@ GeneData *CgefReader::loadGene(bool reload) {
         genename_to_id_[gene_array_[i].gene_name] = i;
     }
 
-    H5Tclose(memtype);
+    gene_id_to_index_ = (int *) malloc(gene_num_ * sizeof(int));
+    iota(gene_id_to_index_, gene_id_to_index_+gene_num_, 0);
+
     if (verbose_) printCpuTime(cprev, "loadGene");
     return gene_array_;
 }
@@ -153,30 +159,23 @@ CellData *CgefReader::loadCell(bool reload) {
     hid_t memtype = getMemtypeOfCellData();
     cell_array_ = (CellData *) malloc(cell_num_ * sizeof(CellData));
     H5Dread(cell_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_array_);
-    H5Tclose(memtype);
     if (verbose_) printCpuTime(cprev, "getCell");
     return cell_array_;
 }
 
 void CgefReader::getGeneNameList(vector<string> &gene_list) {
-    for (unsigned int i = 0; i < gene_num_; i++) {
-        gene_list.emplace_back(gene_array_[i].gene_name);
-//        memcpy(&gene_list[i*32], genes[i].gene_name, 32);
+    for(unsigned int gene_id = 0; gene_id < gene_num_; gene_id++) {
+        if(gene_id_to_index_[gene_id]<0) continue;
+        gene_list.emplace_back(gene_array_[gene_id].gene_name);
     }
 }
 
-
-void CgefReader::getGeneName(char *gene_list) {
-    if (gene_id_set_current_.empty()) {
-        for (unsigned int i = 0; i < gene_num_; i++) {
-            memcpy(&gene_list[i * 32], gene_array_[i].gene_name, 32);
-        }
-    } else {
-        int i = 0;
-        for (auto gene_id: gene_id_set_current_) {
-            memcpy(&gene_list[i * 32], gene_array_[gene_id].gene_name, 32);
-            i++;
-        }
+void CgefReader::getGeneNames(char *gene_list) {
+    int i = 0;
+    for(unsigned int gene_id = 0; gene_id < gene_num_; gene_id++) {
+        if(gene_id_to_index_[gene_id]<0) continue;
+        memcpy(&gene_list[i * 32], gene_array_[gene_id].gene_name, 32);
+        i++;
     }
 }
 
@@ -199,37 +198,43 @@ void CgefReader::getCellNameList(unsigned long long int *cell_pos_list) {
 int CgefReader::getSparseMatrixIndices(unsigned int *indices, unsigned int *indptr, unsigned int *count,
                                        const char *order) {
     if (order[0] == 'g') {
-        if (restrict_region_) {
-            cerr << "This method is inefficient when using restrictRegion and (order == gene),"
-                    " please use order == cell." << endl;
-            exit(2);
+        if (restrict_region_ || gene_num_current_ < gene_num_) {
+            unsigned int n = 0, rows = 0;
+            indptr[0] = 0;
 
-//            unordered_map<unsigned int, bool> cellid_map;
-//            for(unsigned int i = 0; i < cell_num_current_; i++) {
-//                cellid_map[cell_id_array_current_[i]] = true;
-//            }
-//
-//            unsigned int n = 0;
-//            indptr[0] = 0;
-//
-//            auto *gene_exp_data = static_cast<GeneExpData *>(malloc(cell_num_ * sizeof(GeneExpData)));
-//            for(unsigned int i = 0; i < gene_num_current_; i++) {
-//                unsigned int gene_id = restrict_gene_ ? gene_id_array_current_[i] : i;
-//                GeneData gene_data = gene_array_[gene_id];
-//                selectGeneExp(gene_data.offset, gene_data.cell_count, gene_exp_data);
-//
-//                unsigned int c_count = 0;
-//                for (unsigned int j = 0; j < gene_data.cell_count; j++) {
-//                    unsigned int cid = gene_exp_data[j].cell_id;
-//                    if (cellid_map.find(cid) == cellid_map.end()) continue;
-//                    indices[n] = cid;
-//                    count[n] = gene_exp_data[j].count;
-//                    n++;
-//                    c_count++;
-//                }
-//                indptr[i+1] = indptr[i] + c_count;
-//            }
-//            free(gene_exp_data);
+            auto *gene_exp_data = static_cast<GeneExpData *>(malloc(expression_num_current_ * sizeof(GeneExpData)));
+
+            for(unsigned int gene_id = 0; gene_id < gene_num_; gene_id++) {
+                if(gene_id_to_index_[gene_id]<0) continue;
+                GeneData gene_data = gene_array_[gene_id];
+                if(gene_data.cell_count ==0 ) {
+                    indptr[rows+1] = indptr[rows];
+                    rows ++;
+                    continue;
+                }
+
+                selectGeneExp(gene_data.offset, gene_data.cell_count, gene_exp_data);
+
+                unsigned int c_count = 0;
+                for (unsigned int j = 0; j < gene_data.cell_count; j++) {
+                    unsigned int cid = gene_exp_data[j].cell_id;
+                    if(restrict_region_){
+                        if(!isInRegion(cid)) continue;
+                        indices[n] = cell_id_to_index_[cid-start_cell_id];
+                    }else{
+                        indices[n] = cid;
+                    }
+
+                    count[n] = gene_exp_data[j].count;
+                    n++;
+                    c_count++;
+                }
+                indptr[rows+1] = indptr[rows] + c_count;
+                rows ++;
+            }
+            assert(rows == gene_num_current_);
+            assert(n == expression_num_current_);
+            free(gene_exp_data);
         } else {
             hid_t memtype;
             memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned int));
@@ -246,20 +251,29 @@ int CgefReader::getSparseMatrixIndices(unsigned int *indices, unsigned int *indp
         }
 
     } else if (order[0] == 'c') {
-        if (restrict_region_) {
-            auto *cell_exp_data = static_cast<CellExpData *>(malloc(gene_num_ * sizeof(CellExpData)));
+        if (restrict_region_ || gene_num_current_ < gene_num_) {
+            unsigned int n = 0, rows = 0;
+            indptr[0] = 0;
+
+            auto *cell_exp_data = static_cast<CellExpData *>(malloc(expression_num_current_ * sizeof(CellExpData)));
+            CellData * cell_datas = getCell();
             for (unsigned int i = 0; i < cell_num_current_; i++) {
-                CellData cell = cell_array_current_[i];
+                CellData cell = cell_datas[i];
                 selectCellExp(cell.offset, cell.gene_count, cell_exp_data);
 
-                indptr[i] = cell.offset;
+                unsigned short gene_id, g_count = 0;
                 for (unsigned int j = 0; j < cell.gene_count; j++) {
-                    indices[i + j] = cell_exp_data[j].gene_id;
-                    count[i + j] = cell_exp_data[j].count;
+                    gene_id = cell_exp_data[j].gene_id;
+                    if(gene_id_to_index_[gene_id]<0) continue;
+                    indices[n] = gene_id_to_index_[gene_id];
+                    count[n] = cell_exp_data[j].count;
+                    n++;
+                    g_count++;
                 }
+                indptr[rows+1] = indptr[rows] + g_count;
+                rows++;
             }
-            indptr[cell_num_current_] = cell_array_current_[cell_num_current_].offset
-                                        + cell_array_current_[cell_num_current_].gene_count;
+            assert(n == expression_num_current_);
             free(cell_exp_data);
         } else {
             hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(unsigned int));
@@ -315,7 +329,6 @@ void CgefReader::getCellIdAndCount(unsigned int *cell_id, unsigned short *count)
         count[i] = gene_exp_data->count;
     }
     free(gene_exp_data);
-    H5Tclose(memtype);
 }
 
 void CgefReader::getGeneIdAndCount(unsigned short *gene_id, unsigned short *count) const{
@@ -328,22 +341,32 @@ void CgefReader::getGeneIdAndCount(unsigned short *gene_id, unsigned short *coun
         count[i] = cell_exp_data->count;
     }
     free(cell_exp_data);
-    H5Tclose(memtype);
 }
 
-int CgefReader::getExpressionCountByGene(string &gene_name, GeneExpData *expressions) {
+unsigned int CgefReader::getExpressionCountByGene(string &gene_name, GeneExpData *expressions) {
     int gene_id = getGeneId(gene_name);
     if (gene_id < 0) {
         cerr << "Gene ID < 0 : " << gene_id << endl;
         exit(2);
     }
-    getExpressionCountByGeneId(gene_id, expressions);
-    return 0;
+    return getExpressionCountByGeneId(gene_id, expressions);
 }
 
 unsigned int CgefReader::getExpressionCountByGeneId(unsigned short gene_id, GeneExpData *expressions) {
-    selectGeneExp(gene_array_[gene_id].offset, gene_array_[gene_id].cell_count, expressions);
-    return gene_array_[gene_id].cell_count;
+    unsigned int cell_count = gene_array_[gene_id].cell_count;
+    selectGeneExp(gene_array_[gene_id].offset, cell_count, expressions);
+    if(restrict_region_){
+        unsigned int offset_cell_id, new_cell_count = 0;
+        for(unsigned int i = 0; i < cell_count; i++){
+            if(isInRegion(expressions[i].cell_id)){
+                memmove(&expressions[new_cell_count], &expressions[i], sizeof(GeneExpData));
+                new_cell_count ++;
+            }
+        }
+        memset(&expressions[new_cell_count], 0, sizeof(GeneExpData));  // TODO
+        return new_cell_count;
+    }
+    return cell_count;
 }
 
 GeneData CgefReader::getGeneDataByGeneId(unsigned short gene_id) {
@@ -374,12 +397,15 @@ GeneData CgefReader::getGene(unsigned short gene_id) const {
 GeneData *CgefReader::getGene() {
     if (gene_array_current_ != nullptr) {
         return gene_array_current_;
-    } else if (!gene_id_set_current_.empty()) {
+    } else if (gene_num_current_ < gene_num_) {
         gene_array_current_ = static_cast<GeneData *>(malloc(gene_num_current_ * sizeof(GeneData)));
         int i = 0;
-        for (auto gene_id: gene_id_set_current_) {
+        for (unsigned short gene_id = 0; gene_id < gene_num_; gene_id++) {
+            if(gene_id_to_index_[gene_id]<0) continue;
             memcpy(&gene_array_current_[i], &gene_array_[gene_id], sizeof(GeneData));
+            i++;
         }
+        assert(i == gene_num_current_);
         return gene_array_current_;
     }
     return gene_array_;
@@ -568,8 +594,8 @@ bool CgefReader::isRestrictGene() const {
 
 void CgefReader::restrictRegion(unsigned int min_x, unsigned int max_x, unsigned int min_y, unsigned int max_y) {
     unsigned long cprev = clock();
-    if (restrict_gene_) {
-        cerr << "Please call restrictRegion before restrictGene function." << endl;
+    if (restrict_gene_ || restrict_region_) {
+        cerr << "Please call freeRestriction first, or call restrictRegion function before restrictGene." << endl;
         exit(2);
     }
 
@@ -584,100 +610,92 @@ void CgefReader::restrictRegion(unsigned int min_x, unsigned int max_x, unsigned
     max_block_x = max_block_x > x_block_num ? x_block_num : max_block_x;
     max_block_y = max_block_y > y_block_num ? y_block_num : max_block_y;
 
-    unsigned int block_id_y, offset, cell_num_tmp = 0;
+    unsigned int block_id_y, offset, cell_num_tmp = 0, cell_id_tmp;
     for (unsigned int y = min_block_y; y <= max_block_y; y++) {
         block_id_y = y * x_block_num;
         cell_num_tmp += block_index_[max_block_x + block_id_y + 1] - block_index_[min_block_x + block_id_y];
     }
 
+    start_cell_id = block_index_[min_block_x+min_block_y*x_block_num];
+    end_cell_id = block_index_[max_block_x+max_block_y*x_block_num + 1];
+
     // support rerun this method
     cell_num_current_ = 0;
     expression_num_current_ = 0;
-    if (cell_array_current_ != nullptr) free(cell_array_current_);
-    if (cell_id_array_current_ != nullptr) free(cell_id_array_current_);
-    if (!gene_id_set_current_.empty()) gene_id_set_current_.clear();
-
     cell_array_current_ = static_cast<CellData *>(malloc(cell_num_tmp * sizeof(CellData)));
     cell_id_array_current_ = static_cast<unsigned int *>(malloc(cell_num_tmp * sizeof(unsigned int)));
-    auto *cell_exp_data = static_cast<CellExpData *>(malloc(gene_num_ * sizeof(CellExpData)));
+    cell_id_to_index_ = static_cast<int *>(malloc((end_cell_id - start_cell_id) * sizeof(int)));
+    memset(cell_id_to_index_, -1, (end_cell_id - start_cell_id) * sizeof(int));
 
     for (unsigned int y = min_block_y; y <= max_block_y; y++) {
         block_id_y = y * x_block_num;
         offset = block_index_[min_block_x + block_id_y];
+        // new cell_num_tmp
         cell_num_tmp = block_index_[max_block_x + block_id_y + 1] - offset;
         selectCells(offset, cell_num_tmp, &cell_array_current_[cell_num_current_]);
 
+        unsigned int start = cell_num_current_;
         for (unsigned int j = 0; j < cell_num_tmp; j++) {
-            CellData cell = cell_array_current_[cell_num_current_ + j];
+            CellData cell = cell_array_current_[start + j];
             if (cell.x < min_x || cell.x > max_x || cell.y < min_y || cell.y > max_y)
                 continue;
             memmove(&(cell_array_current_[cell_num_current_]), &cell, sizeof(CellData));
-            cell_id_array_current_[cell_num_current_] = offset + j;
+            cell_id_tmp = offset + j;
+            cell_id_array_current_[cell_num_current_] = cell_id_tmp;
+            cell_id_to_index_[cell_id_tmp-start_cell_id] = static_cast<int>(cell_num_current_);
             cell_num_current_++;
             expression_num_current_ += cell.gene_count;
-
-            selectCellExp(cell.offset, cell.gene_count, cell_exp_data);
-            for (unsigned int m = 0; m < cell.gene_count; m++) {
-                gene_id_set_current_.insert(cell_exp_data[m].gene_id);
-            }
         }
     }
 
-    gene_num_current_ = gene_id_set_current_.size();
-    free(cell_exp_data);
     if (verbose_) printCpuTime(cprev, "restrictRegion");
 }
 
 void CgefReader::restrictGene(vector<string> &gene_list, bool exclude) {
     restrict_gene_ = true;
-    if (restrict_region_) {
-        for (const auto &gene_name: gene_list) {
-            if (genename_to_id_.find(gene_name) != genename_to_id_.end()) {
-                if (exclude) {
-                    auto iter = gene_id_set_current_.find(genename_to_id_[gene_name]);
-                    if (iter != gene_id_set_current_.end())
-                        gene_id_set_current_.erase(iter);
-                } else {
-                    gene_id_set_current_.insert(genename_to_id_[gene_name]);
-                }
-            }
-        }
-    } else {
-        unordered_set<string> genename_set;
-        for (const auto &gene_name: gene_list) {
-            genename_set.insert(gene_name);
-        }
-
-//        if(gene_id_array_current_ == nullptr)
-//            gene_id_array_current_ = (unsigned short*)malloc(gene_num_ * sizeof(unsigned short));
-//
-//
-//        gene_num_current_ = 0;
-        for (unsigned short i = 0; i < gene_num_; i++) {
-            if ((exclude && genename_set.find(gene_array_[i].gene_name) == genename_set.end())
-                || (!exclude && genename_set.find(gene_array_[i].gene_name) != genename_set.end())
-                    ) {
-                gene_id_set_current_.insert(i);
-//                gene_id_array_current_[gene_num_current_] = i;
-                //            memmove(&gene_array_[gene_num_current_], &gene_array_[i], sizeof(GeneData));
-//                gene_num_current_++;
-            }
+    auto *gene_id_bool_tmp = static_cast<bool*>(malloc(gene_num_ * sizeof(bool)));
+    memset(gene_id_bool_tmp, exclude, gene_num_ * sizeof(bool));
+    for (const auto &gene_name: gene_list) {
+        if (genename_to_id_.find(gene_name) != genename_to_id_.end()) {
+            gene_id_bool_tmp[genename_to_id_[gene_name]]  = !exclude;
         }
     }
-    gene_num_current_ = gene_id_set_current_.size();
+
+    unsigned short new_gene_num_current = 0;
+    for(unsigned short i = 0; i < gene_num_; i++){
+        if(!gene_id_bool_tmp[i]) gene_id_to_index_[i] = -1;
+        if(gene_id_to_index_[i]>=0) {
+            gene_id_to_index_[i] = new_gene_num_current;
+            new_gene_num_current++;
+        }
+    }
+    gene_num_current_ = new_gene_num_current;
+    free(gene_id_bool_tmp);
 }
 
 void CgefReader::updateGeneInfo() {
     auto *cell_exp_data = static_cast<CellExpData *>(malloc(gene_num_ * sizeof(CellExpData)));
+    auto *gene_id_bool_tmp = static_cast<bool*>(calloc(gene_num_, sizeof(bool)));
     for (unsigned int i = 0; i < cell_num_current_; i++) {
         CellData cell = cell_array_current_[i];
         selectCellExp(cell.offset, cell.gene_count, cell_exp_data);
         for (unsigned int j = 0; j < cell.gene_count; j++) {
-            gene_id_set_current_.insert(cell_exp_data[j].gene_id);
+            gene_id_bool_tmp[cell_exp_data[j].gene_id] = true;
         }
     }
-    gene_num_current_ = gene_id_set_current_.size();
+
+    unsigned short new_gene_num_current = 0;
+    for(unsigned short i = 0; i < gene_num_; i++){
+        if(!gene_id_bool_tmp[i]) gene_id_to_index_[i] = -1;
+        if(gene_id_to_index_[i]>=0) {
+            gene_id_to_index_[i] = new_gene_num_current;
+            new_gene_num_current++;
+        }
+    }
+
+    gene_num_current_ = new_gene_num_current;
     free(cell_exp_data);
+    free(gene_id_bool_tmp);
 }
 
 unsigned int CgefReader::getCellCount(string &gene_name) {
@@ -697,5 +715,32 @@ unsigned short CgefReader::getGeneCount(unsigned int cell_id) const {
     if (cell_id >= cell_num_)
         return 0;
     return getCell(cell_id).gene_count;
+}
+
+void CgefReader::freeRestriction() {
+    restrict_region_ = false;
+    restrict_gene_ = false;
+    if (cell_array_current_ != nullptr) {
+        free(cell_array_current_);
+        cell_array_current_ = nullptr;
+    }
+    if (cell_id_array_current_ != nullptr) {
+        free(cell_id_array_current_);
+        cell_id_array_current_ = nullptr;
+    }
+    if (cell_id_to_index_ != nullptr) {
+        free(cell_id_to_index_);
+        cell_id_to_index_ = nullptr;
+    }
+    iota(&gene_id_to_index_[0], gene_id_to_index_+gene_num_, 0);
+    cell_num_current_ = cell_num_;
+    gene_num_current_ = gene_num_;
+    expression_num_current_ = expression_num_;
+}
+
+bool CgefReader::isInRegion(unsigned int cell_id) {
+    if(cell_id < start_cell_id || cell_id >= end_cell_id || cell_id_to_index_[cell_id-start_cell_id] < 0)
+        return false;
+    return true;
 }
 
