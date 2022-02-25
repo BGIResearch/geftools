@@ -57,6 +57,8 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
     hid_t s1_tid = H5Dget_type(cell_dataset_id_);
     int nmemb = H5Tget_nmembers(s1_tid);
 
+    // TODO validate members
+
     if(nmemb != 9){
         cerr << "Please use geftools(>=0.6) to regenerate this cgef file." << endl;
         exit(2);
