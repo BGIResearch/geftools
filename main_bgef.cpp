@@ -314,10 +314,10 @@ int mRead(BgefOptions *opts) //多线程读
     // Subtract min value of coordinates
     unsigned int minx = opts->range_[0];
     unsigned int miny = opts->range_[2];
-    if (opts->offset_x_ == 0 && opts->offset_y_ == 0)
+    if (minx != 0 || miny != 0)
     {
-        opts->offset_x_ = minx;
-        opts->offset_y_ = miny;
+        opts->offset_x_ += minx;
+        opts->offset_y_ += miny;
         for (auto& p : opts->map_gene_exp_)
         {
             for (auto& g : p.second)
