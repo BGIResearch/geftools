@@ -190,6 +190,8 @@ class BgefReader {
     int generateGeneExp(int bin_size, int n_thread);
 
     void generateWholeExp(int size, int thread);
+
+    void getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsigned int max_x, unsigned int max_y, std::string &strgene, vector<Expression> &outExp);
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

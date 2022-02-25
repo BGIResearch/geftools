@@ -6,6 +6,7 @@
 #include "khash.h"
 #include "bin_task.h"
 #include "dnb_merge_task.h"
+#include "getdataTask.h"
 
 #define FILE_HEADER "#FileFormat=GEMv%d.%d\n" \
 "#SortedBy=None\n" \
@@ -16,6 +17,8 @@
 "geneID\tx\ty\tMIDCount\n"
 
 KHASH_MAP_INIT_INT64(m64, unsigned int)
+
+std::mutex getdataTask::m_mtx;
 
 BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool verbose) {
     file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -870,3 +873,43 @@ Expression *BgefReader::getReduceExpression() {
 }
 
 
+void BgefReader::getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsigned int max_x, unsigned int max_y, 
+                                    std::string &strgene , vector<Expression> &outExp)
+{
+    unsigned long cprev=clock();
+    Gene * gene = getGene();
+    Expression * expression = getExpression();
+
+    if(strgene.empty())
+    {
+        ThreadPool tpool(n_thread_);
+        for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
+        {
+            getdataTask *ptask = new getdataTask(gene_id, gene, expression, outExp);
+            ptask->setRange(min_x, min_y, max_x, max_y);
+            tpool.addTask(ptask);
+        }
+        tpool.waitTaskDone();
+    }
+    else
+    {
+        for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
+        {
+            if(memcmp(strgene.c_str(), gene[gene_id].gene, strgene.length()) == 0)
+            {
+                outExp.reserve(gene[gene_id].count);
+                unsigned int end = gene[gene_id].offset + gene[gene_id].count;
+                for(unsigned int i = gene[gene_id].offset; i < end; i++){
+                    Expression &exp = expression[i];
+                    if(exp.x < min_x || exp.x > max_x || exp.y < min_y || exp.y > max_y){
+                        continue;
+                    }
+
+                    outExp.emplace_back(exp);
+                    break;
+                }
+            }
+        }
+    }
+    printCpuTime(cprev, "getGeneExpInRegion");
+}
