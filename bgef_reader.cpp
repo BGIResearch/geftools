@@ -895,21 +895,24 @@ void BgefReader::getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsig
     {
         for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
         {
-            if(memcmp(strgene.c_str(), gene[gene_id].gene, strgene.length()) == 0)
+            if(strgene.length() == strlen(gene[gene_id].gene) && 
+                memcmp(strgene.c_str(), gene[gene_id].gene, strgene.length()) == 0)
             {
                 outExp.reserve(gene[gene_id].count);
                 unsigned int end = gene[gene_id].offset + gene[gene_id].count;
                 for(unsigned int i = gene[gene_id].offset; i < end; i++){
                     Expression &exp = expression[i];
-                    if(exp.x < min_x || exp.x > max_x || exp.y < min_y || exp.y > max_y){
+                    if(exp.x < min_x || exp.x >= max_x || exp.y < min_y || exp.y >= max_y){
                         continue;
                     }
 
                     outExp.emplace_back(exp);
-                    break;
                 }
+
+                break;
             }
         }
     }
+
     printCpuTime(cprev, "getGeneExpInRegion");
 }
