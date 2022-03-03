@@ -75,6 +75,8 @@ class CgefReader {
     bool restrict_region_ = false;
     bool restrict_gene_ = false;
 
+    char *m_borderdataPtr = nullptr;
+    char *m_borderdata_currentPtr = nullptr;
   public:
     explicit CgefReader(const string &filename, bool verbose = false);
     ~CgefReader();
@@ -230,6 +232,11 @@ class CgefReader {
     void selectCellExp(unsigned int offset, unsigned int exp_count, CellExpData *cell_exp_data) const;
 
     void selectGeneExp(unsigned int offset, unsigned int cell_count, GeneExpData *gene_exp_data) const;
+
+    void closeH5();
+
+    char* getCellBorders(bool ball, unsigned int cell_id);
+
 
 };
 

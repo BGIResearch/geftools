@@ -137,6 +137,11 @@ void gem2gef(BgefOptions *opts)
     }
 
     if(opts->verbose_) cprev = printCpuTime(cprev0, "read gene expression file");
+    if(opts->map_gene_exp_.empty())
+    {
+        printf("the exp is empty\n");
+        return;
+    }
 
     opts->gene_info_queue_.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
@@ -157,6 +162,11 @@ void gem2gef(BgefOptions *opts)
         dnbAttr.min_y = (opts->offset_y_ / bin) * bin;
         dnbAttr.len_y = int((float(range[3]) / bin) - (float(range[2]) / bin)) + 1;
         unsigned long matrix_len = (unsigned long)(dnbAttr.len_x) * dnbAttr.len_y;
+        printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lu\n",
+               bin,
+               dnbAttr.min_x, dnbAttr.len_x,
+               dnbAttr.min_y, dnbAttr.len_y,
+               matrix_len);
         if (bin == 1)
         {
             dnb_matrix.pmatrix_us = (BinStatUS*)calloc(matrix_len, sizeof(BinStatUS));
@@ -167,11 +177,7 @@ void gem2gef(BgefOptions *opts)
             dnb_matrix.pmatrix = (BinStat*)calloc(matrix_len, sizeof(BinStat));
             assert(dnb_matrix.pmatrix);
         }
-        printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lu\n",
-               bin,
-               dnbAttr.min_x, dnbAttr.len_x,
-               dnbAttr.min_y, dnbAttr.len_y,
-               matrix_len);
+
 
         for(int i=0; i < opts->thread_; i++)
         {

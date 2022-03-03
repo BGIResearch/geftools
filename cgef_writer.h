@@ -31,10 +31,6 @@ class CgefWriter {
      * @param center_point Center point of the cell polygon
      * @param area The polygon area of the cell
      */
-    void addDnbExp(vector<Point> & dnb_coordinates,
-                   map<unsigned long long int, vector<CellExpData>> & bin_gene_exp_map,
-                   const Point& center_point,
-                   unsigned short area);
 
     void addDnbExp(vector<Point> & dnb_coordinates,
                    map<unsigned long long int, pair<unsigned int, unsigned short>> & bin_gene_exp_map,

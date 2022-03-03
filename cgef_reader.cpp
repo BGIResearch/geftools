@@ -29,6 +29,12 @@ CgefReader::CgefReader(const string &filename, bool verbose) {
 }
 
 CgefReader::~CgefReader() {
+    closeH5();
+}
+
+void CgefReader::closeH5()
+{
+    if(gene_array_ == nullptr) return;
     H5Tclose(str32_type_);
     H5Dclose(cell_dataset_id_);
     H5Dclose(gene_dataset_id_);
@@ -40,11 +46,15 @@ CgefReader::~CgefReader() {
     H5Gclose(group_id_);
     H5Fclose(file_id_);
     free(gene_array_);
+    gene_array_ = nullptr;
     if (cell_array_ != nullptr)
         free(cell_array_);
     if (cell_array_current_ != nullptr) free(cell_array_current_);
     if (cell_id_array_current_ != nullptr) free(cell_id_array_current_);
     if (cell_id_to_index_ != nullptr) free(cell_id_to_index_);
+
+    if(m_borderdata_currentPtr!=nullptr) free(m_borderdata_currentPtr);
+    if(m_borderdataPtr!=nullptr) free(m_borderdataPtr);
 }
 
 hid_t CgefReader::openCellDataset(hid_t group_id) {
@@ -744,3 +754,55 @@ bool CgefReader::isInRegion(unsigned int cell_id) {
     return true;
 }
 
+char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
+{
+    if(m_borderdataPtr == nullptr)
+    {
+        hsize_t dims[3];
+        hid_t dataset_id = H5Dopen(group_id_, "cellBorder", H5P_DEFAULT);
+        hid_t dataspace_id = H5Dget_space(dataset_id);
+        H5Sget_simple_extent_dims(dataspace_id, dims, nullptr);
+
+        m_borderdataPtr = (char*)calloc(dims[0]*dims[1]*dims[2], 1);
+        H5Dread(dataset_id, H5T_STD_I8LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_borderdataPtr);
+
+        H5Sclose(dataspace_id);
+        H5Dclose(dataset_id);
+    }
+
+    if(!ball)
+    {
+        if(m_borderdata_currentPtr)
+        {
+            free(m_borderdata_currentPtr);
+            m_borderdata_currentPtr = nullptr;
+        }
+        m_borderdata_currentPtr = (char*)calloc(16*2,1);
+        char *psrc = m_borderdataPtr + cell_id*32;
+        memcpy(m_borderdata_currentPtr, psrc, 32);
+        return m_borderdata_currentPtr;
+    }
+
+    if(restrict_region_)
+    {
+        if(m_borderdata_currentPtr)
+        {
+            free(m_borderdata_currentPtr);
+            m_borderdata_currentPtr = nullptr;
+        }
+        m_borderdata_currentPtr = (char*)calloc(cell_num_current_*16*2,1);
+        char *psrc = nullptr;
+        char *pdest = m_borderdata_currentPtr;
+        for(unsigned int i=0;i<cell_num_current_;i++)
+        {
+            psrc = m_borderdataPtr + cell_id_array_current_[i]*32;
+            memcpy(pdest, psrc, 32);
+            pdest += 32;
+        }
+        return m_borderdata_currentPtr;
+    }
+    else
+    {
+        return m_borderdataPtr;
+    }
+}
