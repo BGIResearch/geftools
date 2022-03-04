@@ -158,9 +158,11 @@ void gem2gef(BgefOptions *opts)
         auto& range = opts->range_;
 
         dnbAttr.min_x = (opts->offset_x_ / bin) * bin;
-        dnbAttr.len_x = int((float(range[1]) / bin) - (float(range[0]) / bin)) + 1;
+        //dnbAttr.len_x = int((float(range[1]) / bin) - (float(range[0]) / bin)) + 1;
+        dnbAttr.len_x = (range[1] - range[0])/bin + 1;
         dnbAttr.min_y = (opts->offset_y_ / bin) * bin;
-        dnbAttr.len_y = int((float(range[3]) / bin) - (float(range[2]) / bin)) + 1;
+        //dnbAttr.len_y = int((float(range[3]) / bin) - (float(range[2]) / bin)) + 1;
+        dnbAttr.len_y = (range[3]-range[2])/bin + 1;
         unsigned long matrix_len = (unsigned long)(dnbAttr.len_x) * dnbAttr.len_y;
         printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lu\n",
                bin,
@@ -236,7 +238,7 @@ void gem2gef(BgefOptions *opts)
             }
 
             // delete pgenedata->vecdataptr;
-            // delete pgenedata;
+            delete pgenedata;
 
             genecnt++;
             if(genecnt == opts->map_gene_exp_.size())
