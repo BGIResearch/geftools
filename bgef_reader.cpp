@@ -21,7 +21,10 @@ KHASH_MAP_INIT_INT64(m64, unsigned int)
 std::mutex getdataTask::m_mtx;
 
 BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool verbose) {
-    file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t fapl_id = H5Pcreate (H5P_FILE_ACCESS);
+    H5Pset_fclose_degree(fapl_id, H5F_CLOSE_STRONG);
+    file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl_id);
+    H5Pclose(fapl_id);
     bin_size_ = bin_size;
     verbose_ = verbose;
     n_thread_ = n_thread;
@@ -52,7 +55,7 @@ BgefReader::~BgefReader() {
         free(expressions_);
     if(reduce_expressions_ != nullptr)
         free(reduce_expressions_);
-    H5Fclose(file_id_);
+    
     H5Dclose(exp_dataset_id_);
     H5Sclose(exp_dataspace_id_);
     H5Dclose(gene_dataset_id_);
@@ -61,6 +64,7 @@ BgefReader::~BgefReader() {
         H5Dclose(whole_exp_dataset_id_);
     if(whole_exp_dataspace_id_ > 0)
         H5Sclose(whole_exp_dataspace_id_);
+    H5Fclose(file_id_);
 //    if(opts_ != nullptr){
 //        opts_->expressions_.clear();
 //        opts_->genes_.clear();
@@ -915,4 +919,14 @@ void BgefReader::getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsig
     }
 
     printCpuTime(cprev, "getGeneExpInRegion");
+}
+
+void BgefReader::getOffset(int *data)
+{
+    if(data)
+    {
+        ExpressionAttr & expression_attr = getExpressionAttr();
+        data[0] = expression_attr.min_x;
+        data[1] = expression_attr.min_y;
+    }
 }
