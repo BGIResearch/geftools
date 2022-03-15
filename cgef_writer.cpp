@@ -350,6 +350,14 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
 
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
+
+    hsize_t gef_dimsAttr[1] = {3};
+    hid_t gef_dataspace_id = H5Screate_simple(1, gef_dimsAttr, nullptr);
+    hid_t gef_attr = H5Acreate(file_id_, "geftool_ver", H5T_STD_U32LE, gef_dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(gef_attr, H5T_NATIVE_UINT, GEFVERSION);
+    H5Sclose(gef_dataspace_id);
+    H5Aclose(gef_attr);
+    
     if(verbose_) printCpuTime(cprev, "storeAttr");
 }
 
