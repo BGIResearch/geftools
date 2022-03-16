@@ -163,6 +163,9 @@ void gem2gef(BgefOptions *opts)
         dnbAttr.min_y = (opts->offset_y_ / bin) * bin;
         //dnbAttr.len_y = int((float(range[3]) / bin) - (float(range[2]) / bin)) + 1;
         dnbAttr.len_y = (range[3]-range[2])/bin + 1;
+        dnbAttr.max_gene = 0;
+        dnbAttr.max_mid = 0;
+        dnbAttr.number = 0;
         unsigned long matrix_len = (unsigned long)(dnbAttr.len_x) * dnbAttr.len_y;
         printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lu\n",
                bin,
