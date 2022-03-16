@@ -19,6 +19,8 @@ int cgef(int argc, char *argv[]) {
 //    ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ("l,layer", "layer block", cxxopts::value<bool>()->default_value("false"))
+    ("n,cnum", "top level cell num", cxxopts::value<int>()->default_value("5000"), "INT")
+    ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -56,6 +58,9 @@ int cgef(int argc, char *argv[]) {
     };
     opts.verbose = result["verbose"].as<bool>();
     opts.blayer = result["layer"].as<bool>();
+    opts.cellnum = result["cnum"].as<int>();
+    int tmpr = result["ratio"].as<int>();
+    opts.ratio = tmpr*1.0/100;
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
 
     if(block_size_tmp.size() != 2){
@@ -65,7 +70,14 @@ int cgef(int argc, char *argv[]) {
     }
     opts.block_size[0] = static_cast<int>(strtol(block_size_tmp[0].c_str(), nullptr, 10));
     opts.block_size[1] = static_cast<int>(strtol(block_size_tmp[1].c_str(), nullptr, 10));
-    generateCgef(opts);
+    // if(opts.blayer) //为存在的cgef添加分层分块
+    // {
+
+    // }
+    // else
+    // {
+        generateCgef(opts);
+    //}
     return 0;
 }
 
@@ -84,10 +96,7 @@ int generateCgef(CgefOptions &opts) {
     CgefWriter cgef_writer = CgefWriter(opts.output_file, true);
     cgef_writer.setRandomCellTypeNum(opts.rand_celltype_num);
     cgef_writer.write(common_bin_gef, mask);
-    if(opts.blayer)
-    {
-        cgef_writer.addLevel();
-    }
+    cgef_writer.addLevel(opts.cellnum, opts.ratio);
     if(opts.verbose) printCpuTime(cprev, "generateCgef");
     return 0;
 }

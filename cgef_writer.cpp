@@ -211,6 +211,10 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Awrite(attr, H5T_NATIVE_USHORT, &cell_attr_.max_dnb_count);
     attr = H5Acreate(dataset_id, "maxArea", H5T_STD_U16LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_USHORT, &cell_attr_.max_area);
+    // attr = H5Acreate(dataset_id, "col", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    // H5Awrite(attr, H5T_NATIVE_USHORT, m_x_len);
+    // attr = H5Acreate(dataset_id, "row", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    // H5Awrite(attr, H5T_NATIVE_USHORT, m_y_len);
 
     // write block index
     if(verbose_)
@@ -497,6 +501,8 @@ unsigned short CgefWriter::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps)
 }
 
 int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
+    m_x_len = mask.cols_;
+    m_y_len = mask.rows_;
     map<unsigned long long int, pair<unsigned int, unsigned short>> bin_gene_exp_map;
     auto * dnb_exp_info = (DnbExpression *) malloc(common_bin_gef.getExpressionNum()  * sizeof(DnbExpression));
     common_bin_gef.getBinGeneExpMap(bin_gene_exp_map, dnb_exp_info);
@@ -523,7 +529,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
             p.getCenter(),
             p.getAreaUshort());
     }
-
+    m_cdataPtr = cell_list_.data();
     if(verbose_) printCpuTime(cprev, "addDnbExp");
 
     m_borderptr = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
@@ -571,37 +577,43 @@ void CgefWriter::setVerbose(bool verbose) {
     verbose_ = verbose;
 }
 
-int CgefWriter::addLevel()
+// void CgefWriter::setlevel(hid_t group_id, int x_len, int y_len, int cell_num, CellData *cdataptr)
+// {
+//     group_id_ = group_id;
+//     m_x_len = x_len;
+//     m_y_len = y_len;
+//     cell_num_ = cell_num;
+//     m_cdataPtr = cdataptr;
+// }
+
+int CgefWriter::addLevel(int cnum, float ratio)
 {
+    createBlktype();
     m_level_gid = H5Gcreate(group_id_, "/level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    
     for(int i=0;i<cell_num_;i++)
     {
         m_hash_cellid.emplace(i);
     }
 
-    int left = cell_num_;
-    getblkcelldata_top(0, 5000, left);
-    left -= 5000;
-    getblkcelldata(1, 5000, left);
-    left -= 5000;
-    getblkcelldata(2, 5000, left);
-    left -= 5000;
+    getblkcelldata_top(0, cnum);
+    getblkcelldata(1, cnum);
+    getblkcelldata(2, cnum);
 
+    int left = cell_num_- cnum*3;
     int cnt = 0, tmp = 0, lev = 3;
     while (1)
     {
-        cnt = left % 20;
+        cnt = left*ratio;
         tmp = left - cnt;
 
-        if(tmp < 1000 || tmp < (1uul<<(lev*2))) //最后一层数据太少，不再分层
+        if(tmp < 1000 || tmp < (1<<(lev*2))) //最后一层数据太少，不再分层
         {
-            getblkcelldata_bottom(lev, left);
+            getblkcelldata_bottom(lev);
             break;
         }
         else
         {
-            getblkcelldata(lev, cnt, left);
+            getblkcelldata(lev, cnt);
         }
         lev++;
     }
@@ -611,13 +623,13 @@ int CgefWriter::addLevel()
     H5Gclose(m_level_gid);
 }
 
-void CgefWriter::getblkcelldata_top(int lev, int cnt, int left)
+void CgefWriter::getblkcelldata_top(int lev, int cnt)
 {
     vector<int> vec_cellid;
     vector<block> vec_blk;
-    vec_blk.emplace_back(0,cnt);
+    vec_blk.emplace_back(0, cnt);
     default_random_engine rand(time(NULL));
-    uniform_int_distribution<int> rand1(0, left);
+    uniform_int_distribution<int> rand1(0, m_hash_cellid.size());
     int idx = 0;
     for(int i=0;i<cnt;i++)
     {
@@ -626,12 +638,13 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt, int left)
         m_hash_cellid.erase(idx); //记录被筛掉的cellid
     }
 
-    writeCelldata(l, vec_blk, vec_cellid);
+    writeCelldata(lev, vec_blk, vec_cellid);
 }
 
-void CgefWriter::getblkcelldata_bottom(int lev, int cnt)
+void CgefWriter::getblkcelldata_bottom(int lev)
 {
-    int x_num = y_num = 1<<lev;
+    int x_num = 1<<lev;
+    int y_num = x_num;
     int x_size = ceil(m_x_len*1.0/x_num);
     int y_size = ceil(m_y_len*1.0/x_num);
 
@@ -644,7 +657,7 @@ void CgefWriter::getblkcelldata_bottom(int lev, int cnt)
     unsigned int id = 0;
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
-        CellData &cdata = cell_list_[*itor];
+        CellData &cdata = m_cdataPtr[*itor];
         id = (cdata.x / x_size) + (cdata.y / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
@@ -657,15 +670,17 @@ void CgefWriter::getblkcelldata_bottom(int lev, int cnt)
         vector<int> &blkcellid = vec_vec_cellid[i];
         cnt = blkcellid.size();
         vec_blk.emplace_back(offset, cnt);
+        offset += cnt;
         vec_cellid.insert(vec_cellid.end(), blkcellid.begin(), blkcellid.end());
     }
 
     writeCelldata(lev, vec_blk, vec_cellid);
 }
 
-void CgefWriter::getblkcelldata(int lev, int cnt, int left)
+void CgefWriter::getblkcelldata(int lev, int cnt)
 {
-    int x_num = y_num = 1<<lev;
+    int x_num = 1<<lev;
+    int y_num = x_num;
     int x_size = ceil(m_x_len*1.0/x_num);
     int y_size = ceil(m_y_len*1.0/x_num);
 
@@ -678,7 +693,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt, int left)
     unsigned int id = 0;
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
-        CellData &cdata = cell_list_[*itor];
+        CellData &cdata = m_cdataPtr[*itor];
         id = (cdata.x / x_size) + (cdata.y / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
@@ -688,6 +703,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt, int left)
     int offset = 0;
     int idx = 0;
     int scnt = 0;
+    int left = m_hash_cellid.size();
     for(int i=0;i<x_num*y_num;i++)
     {
         vector<int> &blkcellid = vec_vec_cellid[i];
@@ -734,7 +750,7 @@ void CgefWriter::writeCelldata(int lev, vector<block> &blk, vector<int> &vecid)
     H5Dclose(blk_dset_id);
 
     hsize_t id_dims[1] = {vecid.size()};
-    hid_t id_dspace_id = H5Screate_simple(1, dims, nullptr);
+    hid_t id_dspace_id = H5Screate_simple(1, id_dims, nullptr);
     hid_t id_dset_id = H5Dcreate(level_gid, "cellid", H5T_NATIVE_UINT32, id_dspace_id, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(id_dset_id, H5T_STD_U32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &vecid[0]);

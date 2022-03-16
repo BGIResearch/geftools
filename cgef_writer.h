@@ -75,15 +75,15 @@ class CgefWriter {
 
     void setRandomCellTypeNum(unsigned short random_cell_type_num);
 
-    int addLevel();
-    void getblkcelldata_top(int lev, int cnt, int left);
-    void getblkcelldata_bottom(int lev, int cnt);
-    void getblkcelldata(int lev, int cnt, int left);
+    int addLevel(int cnum, float ratio);
+    void getblkcelldata_top(int lev, int cnt);
+    void getblkcelldata_bottom(int lev);
+    void getblkcelldata(int lev, int cnt);
     void createBlktype();
     void writeCelldata(int lev, vector<block> &blk, vector<int> &vecid);
     
 
-  private:
+  public:
     hid_t file_id_;
     hid_t group_id_;
     hid_t str32_type_;
@@ -100,6 +100,7 @@ class CgefWriter {
     hid_t m_level_gid;
     hid_t m_blk_memtype;
     hid_t m_blk_filetype;
+    CellData *m_cdataPtr = nullptr;
 
     CellAttr cell_attr_ = {
         .average_gene_count=0.0,

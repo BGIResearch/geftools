@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-03-16 10:01:40
+ * @LastEditTime: 2022-03-16 16:14:49
  * @Description: file content
  */
 /** @file main_cgef.h
@@ -27,6 +27,8 @@ struct CgefOptions {
   int rand_celltype_num;
   int block_size[2];
   int threads;
+  int cellnum;
+  float ratio;
   bool verbose;
   bool blayer;
 };
@@ -51,11 +53,6 @@ int cgef(int argc, char *argv[]);
  * @param verbose    Print the run time of this function. default : false.
  * @return
  */
-int generateCgef(const string& cgef_file,
-                 const string& bgef_file,
-                 const string& mask_file,
-                 const int* block_size,
-                 int rand_cell_type_num = 0,
-                 bool verbose = false);
+int generateCgef(CgefOptions &opts);
 
 #endif //GEFTOOLS__MAIN_CGEF_H_
