@@ -1,4 +1,7 @@
 #include "cgef_writer.h"
+#include <stdlib.h>
+#include <time.h> 
+#include <random>
 
 CgefWriter::CgefWriter(const string& output_cell_gef, bool verbose) {
     str32_type_ = H5Tcopy(H5T_C_S1);
@@ -350,6 +353,14 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
 
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
+
+    hsize_t gef_dimsAttr[1] = {3};
+    hid_t gef_dataspace_id = H5Screate_simple(1, gef_dimsAttr, nullptr);
+    hid_t gef_attr = H5Acreate(file_id_, "geftool_ver", H5T_STD_U32LE, gef_dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(gef_attr, H5T_NATIVE_UINT, GEFVERSION);
+    H5Sclose(gef_dataspace_id);
+    H5Aclose(gef_attr);
+    
     if(verbose_) printCpuTime(cprev, "storeAttr");
 }
 
@@ -515,8 +526,8 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
 
     if(verbose_) printCpuTime(cprev, "addDnbExp");
 
-    char* borders = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
-    mask.getBorders(borders);
+    m_borderptr = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
+    mask.getBorders(m_borderptr);
 
     ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
     CellBinAttr cell_bin_attr = {
@@ -530,7 +541,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
 
     unsigned int effective_rect[4];
     mask.getEffectiveRectangle(effective_rect);
-    storeCellBorderWithAttr(borders, mask.getCellNum(), effective_rect);
+    storeCellBorderWithAttr(m_borderptr, mask.getCellNum(), effective_rect);
     storeCell(mask.getBlockNum(), mask.getBlockIndex(), mask.getBlockSize());
     storeCellExp();
     storeCellTypeList();
@@ -558,4 +569,176 @@ bool CgefWriter::isVerbose() const {
 
 void CgefWriter::setVerbose(bool verbose) {
     verbose_ = verbose;
+}
+
+int CgefWriter::addLevel()
+{
+    m_level_gid = H5Gcreate(group_id_, "/level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    
+    for(int i=0;i<cell_num_;i++)
+    {
+        m_hash_cellid.emplace(i);
+    }
+
+    int left = cell_num_;
+    getblkcelldata_top(0, 5000, left);
+    left -= 5000;
+    getblkcelldata(1, 5000, left);
+    left -= 5000;
+    getblkcelldata(2, 5000, left);
+    left -= 5000;
+
+    int cnt = 0, tmp = 0, lev = 3;
+    while (1)
+    {
+        cnt = left % 20;
+        tmp = left - cnt;
+
+        if(tmp < 1000 || tmp < (1uul<<(lev*2))) //最后一层数据太少，不再分层
+        {
+            getblkcelldata_bottom(lev, left);
+            break;
+        }
+        else
+        {
+            getblkcelldata(lev, cnt, left);
+        }
+        lev++;
+    }
+    
+    H5Tclose(m_blk_memtype);
+    H5Tclose(m_blk_filetype);
+    H5Gclose(m_level_gid);
+}
+
+void CgefWriter::getblkcelldata_top(int lev, int cnt, int left)
+{
+    vector<int> vec_cellid;
+    vector<block> vec_blk;
+    vec_blk.emplace_back(0,cnt);
+    default_random_engine rand(time(NULL));
+    uniform_int_distribution<int> rand1(0, left);
+    int idx = 0;
+    for(int i=0;i<cnt;i++)
+    {
+        idx = rand1(rand);
+        vec_cellid.push_back(idx);
+        m_hash_cellid.erase(idx); //记录被筛掉的cellid
+    }
+
+    writeCelldata(l, vec_blk, vec_cellid);
+}
+
+void CgefWriter::getblkcelldata_bottom(int lev, int cnt)
+{
+    int x_num = y_num = 1<<lev;
+    int x_size = ceil(m_x_len*1.0/x_num);
+    int y_size = ceil(m_y_len*1.0/x_num);
+
+    vector<vector<int>> vec_vec_cellid;
+    for(int i=0;i<x_num*y_num;i++)
+    {
+        vector<int> vectmp;
+        vec_vec_cellid.emplace_back(std::move(vectmp));
+    }
+    unsigned int id = 0;
+    for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
+    {
+        CellData &cdata = cell_list_[*itor];
+        id = (cdata.x / x_size) + (cdata.y / y_size) *y_num;
+        vec_vec_cellid[id].emplace_back(*itor);
+    }
+
+    vector<int> vec_cellid;
+    vector<block> vec_blk;
+    int offset = 0, cnt = 0;
+    for(int i=0;i<x_num*y_num;i++)
+    {
+        vector<int> &blkcellid = vec_vec_cellid[i];
+        cnt = blkcellid.size();
+        vec_blk.emplace_back(offset, cnt);
+        vec_cellid.insert(vec_cellid.end(), blkcellid.begin(), blkcellid.end());
+    }
+
+    writeCelldata(lev, vec_blk, vec_cellid);
+}
+
+void CgefWriter::getblkcelldata(int lev, int cnt, int left)
+{
+    int x_num = y_num = 1<<lev;
+    int x_size = ceil(m_x_len*1.0/x_num);
+    int y_size = ceil(m_y_len*1.0/x_num);
+
+    vector<vector<int>> vec_vec_cellid;
+    for(int i=0;i<x_num*y_num;i++)
+    {
+        vector<int> vectmp;
+        vec_vec_cellid.emplace_back(std::move(vectmp));
+    }
+    unsigned int id = 0;
+    for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
+    {
+        CellData &cdata = cell_list_[*itor];
+        id = (cdata.x / x_size) + (cdata.y / y_size) *y_num;
+        vec_vec_cellid[id].emplace_back(*itor);
+    }
+
+    vector<int> vec_cellid;
+    vector<block> vec_blk;
+    int offset = 0;
+    int idx = 0;
+    int scnt = 0;
+    for(int i=0;i<x_num*y_num;i++)
+    {
+        vector<int> &blkcellid = vec_vec_cellid[i];
+        scnt = blkcellid.size()*cnt/left;
+        default_random_engine rand(time(NULL));
+        uniform_int_distribution<int> rand1(0, blkcellid.size());
+        vec_blk.emplace_back(offset, scnt);
+        offset += scnt;
+        for(int j=0;j<scnt;j++)
+        {
+            idx = rand1(rand);
+            vec_cellid.push_back(blkcellid[idx]);
+            m_hash_cellid.erase(blkcellid[idx]); 
+        }
+    }
+
+    writeCelldata(lev, vec_blk, vec_cellid);
+}
+
+void CgefWriter::createBlktype()
+{
+    m_blk_memtype = H5Tcreate(H5T_COMPOUND, sizeof(block));
+    H5Tinsert(m_blk_memtype, "offset", HOFFSET(block, offset), H5T_NATIVE_UINT32);
+    H5Tinsert(m_blk_memtype, "count", HOFFSET(block, count), H5T_NATIVE_UINT32);
+
+    m_blk_filetype = H5Tcreate(H5T_COMPOUND, 4);
+    H5Tinsert(m_blk_filetype, "offset", 0, H5T_STD_U32LE);
+    H5Tinsert(m_blk_filetype, "count", 4, H5T_STD_U32LE);
+}
+
+void CgefWriter::writeCelldata(int lev, vector<block> &blk, vector<int> &vecid)
+{
+    char buf[32]={0};
+    sprintf(buf, "L%d", lev);
+    hid_t level_gid = H5Gcreate(m_level_gid, buf, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    hsize_t blk_dims[1] = {blk.size()};
+    hid_t blk_dspace_id = H5Screate_simple(1, blk_dims, nullptr);
+    hid_t blk_dset_id = H5Dcreate(level_gid, "blk", m_blk_memtype, blk_dspace_id, H5P_DEFAULT,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(blk_dset_id, m_blk_filetype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &blk[0]);
+
+    H5Sclose(blk_dspace_id);
+    H5Dclose(blk_dset_id);
+
+    hsize_t id_dims[1] = {vecid.size()};
+    hid_t id_dspace_id = H5Screate_simple(1, dims, nullptr);
+    hid_t id_dset_id = H5Dcreate(level_gid, "cellid", H5T_NATIVE_UINT32, id_dspace_id, H5P_DEFAULT,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(id_dset_id, H5T_STD_U32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &vecid[0]);
+
+    H5Sclose(id_dspace_id);
+    H5Dclose(id_dset_id);
 }

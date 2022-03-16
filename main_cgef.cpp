@@ -1,4 +1,3 @@
-//
 // Created by huangzhibo on 2021/12/14.
 //
 
@@ -19,6 +18,7 @@ int cgef(int argc, char *argv[]) {
     ("r,rand-celltype", "number of random cell type", cxxopts::value<int>()->default_value("0"), "INT")
 //    ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+    ("l,layer", "layer block", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -55,6 +55,7 @@ int cgef(int argc, char *argv[]) {
 //        result["threads"].as<int>(),
     };
     opts.verbose = result["verbose"].as<bool>();
+    opts.blayer = result["layer"].as<bool>();
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
 
     if(block_size_tmp.size() != 2){
@@ -64,31 +65,29 @@ int cgef(int argc, char *argv[]) {
     }
     opts.block_size[0] = static_cast<int>(strtol(block_size_tmp[0].c_str(), nullptr, 10));
     opts.block_size[1] = static_cast<int>(strtol(block_size_tmp[1].c_str(), nullptr, 10));
-    generateCgef(opts.output_file,
-                 opts.input_file, opts.mask_file, opts.block_size, opts.rand_celltype_num, opts.verbose);
+    generateCgef(opts);
     return 0;
 }
 
-int generateCgef(const string &cgef_file,
-                 const string &bgef_file,
-                 const string &mask_file,
-                 const int* block_size,
-                 int rand_cell_type_num,
-                 bool verbose) {
+int generateCgef(CgefOptions &opts) {
     unsigned long cprev=clock();
-    BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
+    BgefReader common_bin_gef = BgefReader(opts.input_file, 1, true);
     ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
 
     unsigned int mask_size[2]; // rows, cols
     mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
     mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
 
-    Mask mask = Mask(mask_file, block_size, mask_size);
-    if(verbose) cprev = printCpuTime(cprev, "Mask init");
+    Mask mask = Mask(opts.mask_file, opts.block_size, mask_size);
+    if(opts.verbose) cprev = printCpuTime(cprev, "Mask init");
     cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
-    CgefWriter cgef_writer = CgefWriter(cgef_file, true);
-    cgef_writer.setRandomCellTypeNum(rand_cell_type_num);
+    CgefWriter cgef_writer = CgefWriter(opts.output_file, true);
+    cgef_writer.setRandomCellTypeNum(opts.rand_celltype_num);
     cgef_writer.write(common_bin_gef, mask);
-    if(verbose) printCpuTime(cprev, "generateCgef");
+    if(opts.blayer)
+    {
+        cgef_writer.addLevel();
+    }
+    if(opts.verbose) printCpuTime(cprev, "generateCgef");
     return 0;
 }

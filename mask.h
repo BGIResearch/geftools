@@ -17,7 +17,7 @@ using namespace std;
  * @brief A mask class to describe mask file info.
  */
 class Mask {
-  private:
+  public:
     unsigned int cell_num_;
     unsigned int block_num_;
     unsigned int block_size_[4] = {0};

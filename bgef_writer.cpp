@@ -25,6 +25,13 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose) {
     H5Sclose(dataspace_id);
     H5Aclose(attr);
 
+    hsize_t gef_dimsAttr[1] = {3};
+    hid_t gef_dataspace_id = H5Screate_simple(1, gef_dimsAttr, nullptr);
+    hid_t gef_attr = H5Acreate(file_id_, "geftool_ver", H5T_STD_U32LE, gef_dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(gef_attr, H5T_NATIVE_UINT, GEFVERSION);
+    H5Sclose(gef_dataspace_id);
+    H5Aclose(gef_attr);
+
     gene_exp_group_id_ = H5Gcreate(file_id_, "geneExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     whole_exp_group_id_ = H5Gcreate(file_id_, "wholeExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 }

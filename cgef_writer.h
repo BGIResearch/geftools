@@ -9,12 +9,20 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include "hdf5.h"
 #include "opencv2/opencv.hpp"
 #include "utils.h"
 #include "gef.h"
 #include "mask.h"
 #include "bgef_reader.h"
+
+struct block
+{
+    block(int off, int cnt):offset(off), count(cnt){};
+    int offset;
+    int count;
+};
 
 class CgefWriter {
   public:
@@ -67,16 +75,31 @@ class CgefWriter {
 
     void setRandomCellTypeNum(unsigned short random_cell_type_num);
 
+    int addLevel();
+    void getblkcelldata_top(int lev, int cnt, int left);
+    void getblkcelldata_bottom(int lev, int cnt);
+    void getblkcelldata(int lev, int cnt, int left);
+    void createBlktype();
+    void writeCelldata(int lev, vector<block> &blk, vector<int> &vecid);
+    
+
   private:
     hid_t file_id_;
     hid_t group_id_;
     hid_t str32_type_;
-    string bin_gef_;
-    string mask_file_;
+    // string bin_gef_;
+    // string mask_file_;
     map<unsigned short, vector<GeneExpData>> gene_exp_map_;
     vector<CellData> cell_list_;
     vector<CellExpData> cell_exp_list_;
     vector<S32> cell_type_list_;
+    char *m_borderptr = nullptr;
+    int m_x_len = 0;
+    int m_y_len = 0;
+    unordered_set<int> m_hash_cellid;
+    hid_t m_level_gid;
+    hid_t m_blk_memtype;
+    hid_t m_blk_filetype;
 
     CellAttr cell_attr_ = {
         .average_gene_count=0.0,

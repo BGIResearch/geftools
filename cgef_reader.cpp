@@ -756,6 +756,7 @@ bool CgefReader::isInRegion(unsigned int cell_id) {
 
 char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
 {
+    unsigned long cprev = clock();
     if(m_borderdataPtr == nullptr)
     {
         hsize_t dims[3];
@@ -799,6 +800,8 @@ char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
             memcpy(pdest, psrc, 32);
             pdest += 32;
         }
+        printf("%d \n", cell_num_current_);
+        printCpuTime(cprev, "getCellBorders");
         return m_borderdata_currentPtr;
     }
     else

@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-03-16 10:01:40
+ * @Description: file content
+ */
 /** @file main_cgef.h
     @brief Main entrance of the geftools cgef command.
 
@@ -21,6 +28,7 @@ struct CgefOptions {
   int block_size[2];
   int threads;
   bool verbose;
+  bool blayer;
 };
 
 /**

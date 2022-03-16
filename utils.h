@@ -21,6 +21,7 @@ using namespace std;
 using namespace cv;
 
 const int READLEN = 256*1024;
+const int GEFVERSION[3] = {0,6,1};
 
 static union
 {

@@ -3,9 +3,6 @@
 #include "main_cgef.h"
 #include "main_view.h"
 
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.6"
-#endif
 
 using namespace cv;
 
@@ -13,7 +10,7 @@ static int usage()
 {
     cerr << endl;
     cerr << "Program: geftools (Tools for manipulating GEFs)" << endl;
-    cerr << "Version: " << PACKAGE_VERSION << endl;
+    cerr << "Version: " << GEFVERSION[0]<<"."<<GEFVERSION[1]<<"."<<GEFVERSION[2] << endl;
 //    cerr << "Contact: Huang Zhibo <huangzhibo@genomics.cn>\n" << endl;
     cerr << "Usage:   geftools <command> [options]\n" << endl;
     cerr << "Command: bgef          Generate common bin GEF(.bgef) according to gem file or bin1 GEF" << endl;
