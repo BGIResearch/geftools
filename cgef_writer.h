@@ -26,9 +26,11 @@ struct block
 
 class CgefWriter {
   public:
-    explicit CgefWriter(const string& output_cell_gef, bool verbose = false);
+    explicit CgefWriter(bool verbose = false);
     ~CgefWriter();
 
+    void setOutput(const string& output_cell_gef);
+    void setInput(const string& input_cell_gef);
 
     /**
      * @brief Add dnb expression info of one cell
@@ -81,7 +83,7 @@ class CgefWriter {
     void getblkcelldata(int lev, int cnt);
     void createBlktype();
     void writeCelldata(int lev, vector<block> &blk, vector<int> &vecid);
-    
+    void openCellDataset();
 
   public:
     hid_t file_id_;

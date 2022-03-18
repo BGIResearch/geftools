@@ -192,6 +192,8 @@ class BgefReader {
     void generateWholeExp(int size, int thread);
 
     void getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsigned int max_x, unsigned int max_y, std::string &strgene, vector<Expression> &outExp);
+
+    void getOffset(int *data);
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

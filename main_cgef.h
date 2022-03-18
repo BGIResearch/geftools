@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-03-16 16:14:49
+ * @LastEditTime: 2022-03-17 17:33:33
  * @Description: file content
  */
 /** @file main_cgef.h
@@ -53,6 +53,13 @@ int cgef(int argc, char *argv[]);
  * @param verbose    Print the run time of this function. default : false.
  * @return
  */
-int generateCgef(CgefOptions &opts);
+int generateCgef(const string& cgef_file,
+                 const string& bgef_file,
+                 const string& mask_file,
+                 const int* block_size,
+                 int rand_cell_type_num,
+                 int cellnum,
+                 float ratio,
+                 bool verbose = false);
 
 #endif //GEFTOOLS__MAIN_CGEF_H_

@@ -42,8 +42,9 @@ int ThreadPool::addThread(int size)
                         return;
                     ptask = m_tasks.front();  // 按先进先出从队列取一个 task
                     m_tasks.pop();
+                    m_idlCnt--;
                 }
-                m_idlCnt--;
+                
                 ptask->doTask();  //执行任务
                 delete ptask;
                 m_idlCnt++;
@@ -69,7 +70,7 @@ void ThreadPool::waitTaskDone()
 {
     while (true)
     {
-        if(m_idlCnt == m_vecThread.size())
+        if(m_idlCnt == m_vecThread.size() && m_tasks.empty())
         {
             break;
         }

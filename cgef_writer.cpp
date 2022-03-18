@@ -3,11 +3,22 @@
 #include <time.h> 
 #include <random>
 
-CgefWriter::CgefWriter(const string& output_cell_gef, bool verbose) {
+CgefWriter::CgefWriter( bool verbose) {
     str32_type_ = H5Tcopy(H5T_C_S1);
     H5Tset_size(str32_type_, 32);
     verbose_ = verbose;
 
+    // cerr << "create h5 file: " <<  output_cell_gef << endl;
+    // hid_t fapl_id = H5Pcreate (H5P_FILE_ACCESS);
+    // H5Pset_libver_bounds(fapl_id, H5F_LIBVER_V18, H5F_LIBVER_LATEST);
+    // H5Pset_fclose_degree(fapl_id, H5F_CLOSE_STRONG);
+    // file_id_ = H5Fcreate(output_cell_gef.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl_id);
+    // group_id_ = H5Gcreate(file_id_, "/cellBin", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    // H5Pclose(fapl_id);
+}
+
+void CgefWriter::setOutput(const string& output_cell_gef)
+{
     cerr << "create h5 file: " <<  output_cell_gef << endl;
     hid_t fapl_id = H5Pcreate (H5P_FILE_ACCESS);
     H5Pset_libver_bounds(fapl_id, H5F_LIBVER_V18, H5F_LIBVER_LATEST);
@@ -17,10 +28,62 @@ CgefWriter::CgefWriter(const string& output_cell_gef, bool verbose) {
     H5Pclose(fapl_id);
 }
 
+void CgefWriter::setInput(const string& input_cell_gef)
+{
+    cerr << "open h5 file: " <<  input_cell_gef << endl;
+    hid_t fapl_id = H5Pcreate (H5P_FILE_ACCESS);
+    H5Pset_libver_bounds(fapl_id, H5F_LIBVER_V18, H5F_LIBVER_LATEST);
+    H5Pset_fclose_degree(fapl_id, H5F_CLOSE_STRONG);
+    file_id_ = H5Fopen(input_cell_gef.c_str(), H5F_ACC_RDWR, fapl_id);
+    group_id_ = H5Gopen(file_id_, "/cellBin", H5P_DEFAULT);
+
+    H5Pclose(fapl_id);
+    openCellDataset();
+}
+
 CgefWriter::~CgefWriter() {
     H5Tclose(str32_type_);
     H5Gclose(group_id_);
     H5Fclose(file_id_);
+}
+
+void CgefWriter::openCellDataset() 
+{
+    unsigned long cprev = clock();
+    hid_t cell_dataset_id = H5Dopen(group_id_, "cell", H5P_DEFAULT);
+    if (cell_dataset_id < 0) {
+        cerr << "failed open dataset: cell" << endl;
+        exit(3);
+    }
+
+    hid_t s1_tid = H5Dget_type(cell_dataset_id);
+    int nmemb = H5Tget_nmembers(s1_tid);
+    if(nmemb != 9){
+        cerr << "Please use geftools(>=0.6) to regenerate this cgef file." << endl;
+        exit(2);
+    }
+
+    hsize_t dims[1];
+    hid_t cell_dataspace_id = H5Dget_space(cell_dataset_id);
+    H5Sget_simple_extent_dims(cell_dataspace_id, dims, nullptr);
+    cell_num_ = dims[0];
+
+    hid_t memtype = getMemtypeOfCellData();
+    m_cdataPtr = (CellData *) malloc(cell_num_ * sizeof(CellData));
+    H5Dread(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_cdataPtr);
+
+    unsigned int block_size[4];
+    hid_t attr = H5Aopen(cell_dataset_id, "blockSize", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_UINT32, block_size);
+
+    m_x_len = block_size[0]*block_size[2];
+    m_y_len = block_size[1]*block_size[3];
+    
+    H5Aclose(attr);
+    H5Sclose(cell_dataspace_id);
+    H5Dclose(cell_dataset_id);
+
+    if (verbose_) printCpuTime(cprev, "openCellDataset");
 }
 
 void CgefWriter::storeCellBorder(char* borderPath, unsigned int cell_num) const {
@@ -577,15 +640,6 @@ void CgefWriter::setVerbose(bool verbose) {
     verbose_ = verbose;
 }
 
-// void CgefWriter::setlevel(hid_t group_id, int x_len, int y_len, int cell_num, CellData *cdataptr)
-// {
-//     group_id_ = group_id;
-//     m_x_len = x_len;
-//     m_y_len = y_len;
-//     cell_num_ = cell_num;
-//     m_cdataPtr = cdataptr;
-// }
-
 int CgefWriter::addLevel(int cnum, float ratio)
 {
     createBlktype();
@@ -599,12 +653,11 @@ int CgefWriter::addLevel(int cnum, float ratio)
     getblkcelldata(1, cnum);
     getblkcelldata(2, cnum);
 
-    int left = cell_num_- cnum*3;
     int cnt = 0, tmp = 0, lev = 3;
     while (1)
     {
-        cnt = left*ratio;
-        tmp = left - cnt;
+        cnt = m_hash_cellid.size()*ratio;
+        tmp = m_hash_cellid.size() - cnt;
 
         if(tmp < 1000 || tmp < (1<<(lev*2))) //最后一层数据太少，不再分层
         {
@@ -729,7 +782,7 @@ void CgefWriter::createBlktype()
     H5Tinsert(m_blk_memtype, "offset", HOFFSET(block, offset), H5T_NATIVE_UINT32);
     H5Tinsert(m_blk_memtype, "count", HOFFSET(block, count), H5T_NATIVE_UINT32);
 
-    m_blk_filetype = H5Tcreate(H5T_COMPOUND, 4);
+    m_blk_filetype = H5Tcreate(H5T_COMPOUND, 8);
     H5Tinsert(m_blk_filetype, "offset", 0, H5T_STD_U32LE);
     H5Tinsert(m_blk_filetype, "count", 4, H5T_STD_U32LE);
 }
