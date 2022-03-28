@@ -230,5 +230,12 @@ hid_t getMemtypeOfGeneExpData();
 hid_t getMemtypeOfCellData();
 hid_t getMemtypeOfCellExpData();
 
+struct GeneExp {
+    bool braw;
+    unsigned int x; 
+    unsigned int y; 
+    unsigned int umi; 
+    char gname[32];
+};
 
 #endif //GEFTOOLS_GEF_H

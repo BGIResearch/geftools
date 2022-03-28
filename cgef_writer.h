@@ -82,7 +82,7 @@ class CgefWriter {
     void getblkcelldata_bottom(int lev);
     void getblkcelldata(int lev, int cnt);
     void createBlktype();
-    void writeCelldata(int lev, vector<block> &blk, vector<int> &vecid);
+    void writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid);
     void openCellDataset();
 
   public:

@@ -643,7 +643,7 @@ void CgefWriter::setVerbose(bool verbose) {
 int CgefWriter::addLevel(int cnum, float ratio)
 {
     createBlktype();
-    m_level_gid = H5Gcreate(group_id_, "/level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    m_level_gid = H5Gcreate(group_id_, "level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     for(int i=0;i<cell_num_;i++)
     {
         m_hash_cellid.emplace(i);
@@ -662,6 +662,7 @@ int CgefWriter::addLevel(int cnum, float ratio)
         if(tmp < 1000 || tmp < (1<<(lev*2))) //最后一层数据太少，不再分层
         {
             getblkcelldata_bottom(lev);
+            lev++;
             break;
         }
         else
@@ -670,6 +671,13 @@ int CgefWriter::addLevel(int cnum, float ratio)
         }
         lev++;
     }
+
+    hsize_t dims_attr[1] = {1};
+    hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
+    hid_t attr = H5Acreate(m_level_gid, "levelnum", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &lev);
+    H5Aclose(attr);
+    H5Sclose(attr_dataspace);
     
     H5Tclose(m_blk_memtype);
     H5Tclose(m_blk_filetype);
@@ -690,8 +698,8 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
         vec_cellid.push_back(idx);
         m_hash_cellid.erase(idx); //记录被筛掉的cellid
     }
-
-    writeCelldata(lev, vec_blk, vec_cellid);
+    int blknum[2]={1,1};
+    writeCelldata(lev, blknum, vec_blk, vec_cellid);
 }
 
 void CgefWriter::getblkcelldata_bottom(int lev)
@@ -726,8 +734,8 @@ void CgefWriter::getblkcelldata_bottom(int lev)
         offset += cnt;
         vec_cellid.insert(vec_cellid.end(), blkcellid.begin(), blkcellid.end());
     }
-
-    writeCelldata(lev, vec_blk, vec_cellid);
+    int blknum[2]={x_num, y_num};
+    writeCelldata(lev, blknum, vec_blk, vec_cellid);
 }
 
 void CgefWriter::getblkcelldata(int lev, int cnt)
@@ -773,7 +781,8 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
         }
     }
 
-    writeCelldata(lev, vec_blk, vec_cellid);
+    int blknum[2]={x_num, y_num};
+    writeCelldata(lev, blknum, vec_blk, vec_cellid);
 }
 
 void CgefWriter::createBlktype()
@@ -787,11 +796,18 @@ void CgefWriter::createBlktype()
     H5Tinsert(m_blk_filetype, "count", 4, H5T_STD_U32LE);
 }
 
-void CgefWriter::writeCelldata(int lev, vector<block> &blk, vector<int> &vecid)
+void CgefWriter::writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid)
 {
     char buf[32]={0};
     sprintf(buf, "L%d", lev);
     hid_t level_gid = H5Gcreate(m_level_gid, buf, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    hsize_t dimsAttr[1] = {2};
+    hid_t attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
+    hid_t attr = H5Acreate(level_gid, "blknum", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT32, blknum);
+    H5Sclose(attr_dataspace);
+    H5Aclose(attr);
 
     hsize_t blk_dims[1] = {blk.size()};
     hid_t blk_dspace_id = H5Screate_simple(1, blk_dims, nullptr);

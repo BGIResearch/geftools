@@ -118,7 +118,7 @@ int generateCgef(const string &cgef_file,
     else //为cgef 添加level层次
     {
         CgefWriter cgef_writer = CgefWriter(true);
-        cgef_writer.setInput(cgef_file);
+        cgef_writer.setInput(bgef_file);
         cgef_writer.addLevel(cellnum, ratio);
     }
 

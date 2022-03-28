@@ -7,16 +7,19 @@ Mask::Mask(const string& file, const int block_size[], const unsigned int mask_s
     cv::Mat img = cv::imread(file,-1);
     if( img.empty() ) { cerr << "Mask is empty!" << endl; exit(-1);}
 
-    if (img.rows != mask_size[0] || img.cols != mask_size[1]) {
-        if (img.rows == mask_size[1] && img.cols == mask_size[0]) {
-            img = img.t();
-        } else {
-            cerr << "The size of mask picture is inconsistent with the size of expression" << endl;
-            exit(2);
+    if(mask_size[0]> 0 && mask_size[1] > 0)
+    {
+        if (img.rows != mask_size[0] || img.cols != mask_size[1]) {
+            if (img.rows == mask_size[1] && img.cols == mask_size[0]) {
+                img = img.t();
+            } else {
+                cerr << "The size of mask picture is inconsistent with the size of expression" << endl;
+                exit(2);
+            }
+        }else if(img.rows == img.cols){
+            cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted (transposed)"
+                    "to be consistent with the expression coordinates." << endl;
         }
-    }else if(img.rows == img.cols){
-        cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted (transposed)"
-                "to be consistent with the expression coordinates." << endl;
     }
 
     rows_ = img.rows;
@@ -38,11 +41,11 @@ Mask::Mask(const string& file, const int block_size[], const unsigned int mask_s
     block_num_ = block_size_[2] * block_size_[3];
 
     for(auto & contour : contours_){
-        Polygon p = Polygon();
+        Polygon p;
         bool cell_polygon_is_good = p.applyContour(contour);
         if(cell_polygon_is_good){
             p.setBlockId(block_size_);
-            polygons_.emplace_back(p);
+            polygons_.emplace_back(std::move(p));
             min_x_ = p.getMinX() < min_x_ ? p.getMinX() : min_x_;
             max_x_ = p.getMaxX() > max_x_ ? p.getMaxX() : max_x_;
             min_y_ = p.getMinY() < min_y_ ? p.getMinY() : min_y_;
