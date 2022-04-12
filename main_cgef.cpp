@@ -2,9 +2,11 @@
 //
 
 #include "main_cgef.h"
+#include "opencv2/opencv.hpp"
+#include "cgefParam.h"
+#include "cgefCellgem.h"
 
 int cgef(int argc, char *argv[]) {
-
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");
@@ -16,11 +18,12 @@ int cgef(int argc, char *argv[]) {
     ("o,output-file", "output cell bin GEF file (.cgef) [request]", cxxopts::value<std::string>(), "FILE")
     ("b,block", "Pre block size", cxxopts::value<std::string>()->default_value("256,256"), "FILE")
     ("r,rand-celltype", "number of random cell type", cxxopts::value<int>()->default_value("0"), "INT")
-//    ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
+    ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("l,layer", "layer block", cxxopts::value<bool>()->default_value("false"))
+    ("M,map", "map the mask file and cellbingem", cxxopts::value<bool>()->default_value("false"))
     ("n,cnum", "top level cell num", cxxopts::value<int>()->default_value("5000"), "INT")
     ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
+    ("g,gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -67,10 +70,10 @@ int cgef(int argc, char *argv[]) {
 //         result["rand-celltype"].as<int>(),
 // //        result["threads"].as<int>(),
 //     };
+    bool bmap = result["map"].as<bool>();
     opts.input_file = result["input-file"].as<string>();
     opts.rand_celltype_num = result["rand-celltype"].as<int>();
     opts.verbose = result["verbose"].as<bool>();
-    opts.blayer = result["layer"].as<bool>();
     opts.cellnum = result["cnum"].as<int>();
     int tmpr = result["ratio"].as<int>();
     opts.ratio = tmpr*1.0/100;
@@ -83,8 +86,33 @@ int cgef(int argc, char *argv[]) {
     }
     opts.block_size[0] = static_cast<int>(strtol(block_size_tmp[0].c_str(), nullptr, 10));
     opts.block_size[1] = static_cast<int>(strtol(block_size_tmp[1].c_str(), nullptr, 10));
-    generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,
-                 opts.rand_celltype_num, opts.cellnum, opts.ratio, opts.verbose);
+
+    
+    cgefParam::GetInstance()->m_cellgemstr = opts.input_file;
+    cgefParam::GetInstance()->m_maskstr = opts.mask_file;
+    cgefParam::GetInstance()->m_block_size[0] = opts.block_size[0];
+    cgefParam::GetInstance()->m_block_size[1] = opts.block_size[1];
+
+    if(bmap)
+    {
+        cgefParam::GetInstance()->m_rawgemstr = result["gem"].as<string>();
+        cgefParam::GetInstance()->m_threadcnt = result["threads"].as<int>();
+        CgefWriter *pcgef_writer = new CgefWriter(true);
+        pcgef_writer->setOutput(opts.output_file);
+        pcgef_writer->setRandomCellTypeNum(opts.rand_celltype_num);
+
+        cgefCellgem cgem;
+        cgem.writeFile(pcgef_writer);
+
+        pcgef_writer->addLevel(opts.cellnum, opts.ratio);
+        delete pcgef_writer;
+    }
+    else
+    {
+        generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,
+                    opts.rand_celltype_num, opts.cellnum, opts.ratio, opts.verbose);
+    }
+
     return 0;
 }
 

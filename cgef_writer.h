@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include <unordered_set>
+#include <set>
 #include "hdf5.h"
 #include "opencv2/opencv.hpp"
 #include "utils.h"
@@ -61,7 +62,10 @@ class CgefWriter {
      * @brief Writing the contents of geneData and geneExpData to GEF.
      * @param gene_name_list
      */
-    void storeGeneAndGeneExp(const vector<string> &gene_name_list);
+    void createGenedata(const vector<string> &gene_name_list);
+    void storeGeneAndGeneExp(unsigned int min_exp_count, unsigned int max_exp_count,
+                                    unsigned int min_cell_count, unsigned int max_cell_count,
+                                    GeneData* gene_data_list, vector<GeneExpData> &gene_exp_list);
 
     /**
      * @brief Writing to cgef.
@@ -84,6 +88,9 @@ class CgefWriter {
     void createBlktype();
     void writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid);
     void openCellDataset();
+
+    void storeBlkidx(unsigned int block_num, unsigned int * block_index);
+    void storeCellLabel(vector<unsigned int> &vecdata);
 
   public:
     hid_t file_id_;
@@ -113,8 +120,8 @@ class CgefWriter {
         .median_exp_count=0.0,
         .median_dnb_count=0.0,
         .median_area=0.0,
-        .min_x=USHRT_MAX,
-        .min_y=USHRT_MAX,
+        .min_x=INT_MAX,
+        .min_y=INT_MAX,
         .min_gene_count=USHRT_MAX,
         .min_exp_count=USHRT_MAX,
         .min_dnb_count=USHRT_MAX,

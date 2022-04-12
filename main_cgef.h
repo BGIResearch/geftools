@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-03-17 17:33:33
+ * @LastEditTime: 2022-04-01 15:52:41
  * @Description: file content
  */
 /** @file main_cgef.h
@@ -30,7 +30,6 @@ struct CgefOptions {
   int cellnum;
   float ratio;
   bool verbose;
-  bool blayer;
 };
 
 /**

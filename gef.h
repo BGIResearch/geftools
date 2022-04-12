@@ -141,8 +141,9 @@ struct GeneErank
  * @brief Describe the Cell dataset in the cell bin GEF file
  */
 struct CellData {
-    unsigned int x; ///< Coordinate X of center point in this cell
-    unsigned int y; ///< Coordinate Y of center point in this cell
+    unsigned int id;
+    int x; ///< Coordinate X of center point in this cell
+    int y; ///< Coordinate Y of center point in this cell
     unsigned int offset;  ///< Offset of current cell in cellExp, 0-based
     unsigned short gene_count; ///< The number of gene in this cell
     unsigned short exp_count; ///< The total expression count of all genes in this cell
@@ -161,14 +162,14 @@ struct CellAttr {
     float median_exp_count;
     float median_dnb_count;
     float median_area;
-    unsigned int min_x;
-    unsigned int min_y;
+    int min_x;
+    int min_y;
     unsigned short min_gene_count;
     unsigned short min_exp_count;
     unsigned short min_dnb_count;
     unsigned short min_area;
-    unsigned int max_x;
-    unsigned int max_y;
+    int max_x;
+    int max_y;
     unsigned short max_gene_count;
     unsigned short max_exp_count;
     unsigned short max_dnb_count;
@@ -205,11 +206,13 @@ struct CellExpData {
 //        geneID = g;
 //        count = c;
 //    }
+    CellExpData(unsigned short id, unsigned short cnt):gene_id(id),count(cnt){}
     unsigned short gene_id;
     unsigned short count;
 };
 
 struct GeneExpData {
+    GeneExpData(unsigned int id, unsigned short cnt):cell_id(id),count(cnt){}
     unsigned int cell_id;
     unsigned short count;
 };
@@ -221,21 +224,13 @@ struct CellBinAttr
 {
     unsigned int version; ///< Cell Bin GEF version
     unsigned int resolution; ///< Pitch (nm) between neighbor spots
-    unsigned int offsetX; ///< Minimum value of x-axis coordinate with offset
-    unsigned int offsetY; ///< Minimum value of y-axis coordinate with offset
+    int offsetX; ///< Minimum value of x-axis coordinate with offset
+    int offsetY; ///< Minimum value of y-axis coordinate with offset
 };
 
 hid_t getMemtypeOfGeneData();
 hid_t getMemtypeOfGeneExpData();
 hid_t getMemtypeOfCellData();
 hid_t getMemtypeOfCellExpData();
-
-struct GeneExp {
-    bool braw;
-    unsigned int x; 
-    unsigned int y; 
-    unsigned int umi; 
-    char gname[32];
-};
 
 #endif //GEFTOOLS_GEF_H

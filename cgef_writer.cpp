@@ -162,21 +162,23 @@ void CgefWriter::storeCellExp() {
 
 void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, const unsigned int *block_size) {
     unsigned long cprev=clock();
+    m_cdataPtr = cell_list_.data();
     hsize_t dims[1] = {(hsize_t)cell_num_};
 
     hid_t memtype, filetype;
     memtype = getMemtypeOfCellData();
 
-    filetype = H5Tcreate(H5T_COMPOUND, 24);
-    H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
-    H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
-    H5Tinsert(filetype, "offset", 8, H5T_STD_U32LE);
-    H5Tinsert(filetype, "geneCount", 12, H5T_STD_U16LE);
-    H5Tinsert(filetype, "expCount", 14, H5T_STD_U16LE);
-    H5Tinsert(filetype, "dnbCount", 16, H5T_STD_U16LE);
-    H5Tinsert(filetype, "area", 18, H5T_STD_U16LE);
-    H5Tinsert(filetype, "cellTypeID", 20, H5T_STD_U16LE);
-    H5Tinsert(filetype, "clusterID", 22, H5T_STD_U16LE);
+    filetype = H5Tcreate(H5T_COMPOUND, sizeof(CellData));
+    H5Tinsert(filetype, "id", HOFFSET(CellData, id), H5T_STD_U32LE);
+    H5Tinsert(filetype, "x", HOFFSET(CellData, x), H5T_STD_I32LE);
+    H5Tinsert(filetype, "y", HOFFSET(CellData, y), H5T_STD_I32LE);
+    H5Tinsert(filetype, "offset", HOFFSET(CellData, offset), H5T_STD_U32LE);
+    H5Tinsert(filetype, "geneCount", HOFFSET(CellData, gene_count), H5T_STD_U16LE);
+    H5Tinsert(filetype, "expCount", HOFFSET(CellData, exp_count), H5T_STD_U16LE);
+    H5Tinsert(filetype, "dnbCount", HOFFSET(CellData, dnb_count), H5T_STD_U16LE);
+    H5Tinsert(filetype, "area", HOFFSET(CellData, area), H5T_STD_U16LE);
+    H5Tinsert(filetype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_STD_U16LE);
+    H5Tinsert(filetype, "clusterID", HOFFSET(CellData, cluster_id), H5T_STD_U16LE);
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
 
     hid_t dpid = H5Pcreate (H5P_DATASET_CREATE);
@@ -250,13 +252,13 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_dnb_count);
     attr = H5Acreate(dataset_id, "medianArea", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_area);
-    attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.min_x);
-    attr = H5Acreate(dataset_id, "maxX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.max_x);
-    attr = H5Acreate(dataset_id, "minY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.min_y);
-    attr = H5Acreate(dataset_id, "maxY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.max_y);
     attr = H5Acreate(dataset_id, "minGeneCount", H5T_STD_U16LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_USHORT, &cell_attr_.min_gene_count);
@@ -280,12 +282,10 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     // H5Awrite(attr, H5T_NATIVE_USHORT, m_y_len);
 
     // write block index
-    if(verbose_)
-        cout << "write block index : block_num(" << block_num << ")\tblockSize0(" << block_size[0] << ")" <<endl;
-    dimsAttr[0] = block_num + 1;
-    attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
-    attr = H5Acreate(dataset_id, "blockIndex", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, block_index);
+   // dimsAttr[0] = block_num + 1;
+    // attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
+    // attr = H5Acreate(dataset_id, "blockIndex", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    // H5Awrite(attr, H5T_NATIVE_UINT32, block_index);
 
     dimsAttr[0] = 4;
     attr_dataspace = H5Screate_simple(1, dimsAttr, nullptr);
@@ -299,7 +299,33 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
     free(index);
+
+    storeBlkidx(block_num, block_index);
     if(verbose_) printCpuTime(cprev, "storeCell");
+}
+
+void CgefWriter::storeBlkidx(unsigned int block_num, unsigned int * block_index)
+{
+    hsize_t dims[1] = {block_num + 1};
+    hid_t ds = H5Screate_simple(1, dims, nullptr);
+    hid_t dataset_id = H5Dcreate(group_id_, "blkidx", H5T_STD_U32LE, ds, H5P_DEFAULT,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(dataset_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_index);
+
+    H5Sclose(ds);
+    H5Dclose(dataset_id);
+}
+
+void CgefWriter::storeCellLabel(vector<unsigned int> &vecdata)
+{
+    hsize_t dims[1] = {vecdata.size()};
+    hid_t ds = H5Screate_simple(1, dims, nullptr);
+    hid_t dataset_id = H5Dcreate(group_id_, "clabel", H5T_STD_U32LE, ds, H5P_DEFAULT,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(dataset_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, vecdata.data());
+
+    H5Sclose(ds);
+    H5Dclose(dataset_id);
 }
 
 
@@ -339,12 +365,13 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
     unsigned short cell_type_id = random_cell_type_num_ == 0 ? 0 : rand()%(random_cell_type_num_ + 1);
 
     CellData cell = {
-            static_cast<unsigned int>(center_point.x),
-            static_cast<unsigned int>(center_point.y),
+            cell_num_,
+            center_point.x,
+            center_point.y,
             expression_num_, //offset
-            static_cast<unsigned short>(gene_count),
-            static_cast<unsigned short>(exp_count),
-            static_cast<unsigned short>(dnb_coordinates.size()),
+            gene_count,
+            exp_count,
+            dnb_coordinates.size(),
             area,
             cell_type_id
     };
@@ -408,9 +435,9 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.version);
     attr = H5Acreate(file_id_, "resolution", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.resolution);
-    attr = H5Acreate(file_id_, "offsetX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(file_id_, "offsetX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.offsetX);
-    attr = H5Acreate(file_id_, "offsetY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(file_id_, "offsetY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.offsetY);
 
     //Write createTime into cell bin gef
@@ -431,11 +458,10 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
     if(verbose_) printCpuTime(cprev, "storeAttr");
 }
 
-void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
+void CgefWriter::createGenedata(const vector<string> &gene_name_list)
+{
     unsigned long cprev=clock();
     gene_num_ = gene_name_list.size();
-    hsize_t dims[1] = {gene_num_};
-
     GeneData* gene_data_list;
     gene_data_list = static_cast<GeneData *>(malloc(gene_num_ * sizeof(GeneData)));
 
@@ -481,6 +507,61 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
                     0);
         }
     }
+    storeGeneAndGeneExp(min_exp_count, max_exp_count, min_cell_count, max_cell_count, gene_data_list, gene_exp_list);
+    free(gene_data_list);
+    if(verbose_) printCpuTime(cprev, "createGenedata");
+}
+
+void CgefWriter::storeGeneAndGeneExp(unsigned int min_exp_count, unsigned int max_exp_count,
+                                    unsigned int min_cell_count, unsigned int max_cell_count,
+                                    GeneData* gene_data_list, vector<GeneExpData> &gene_exp_list) {
+    hsize_t dims[1] = {gene_num_};
+
+    // GeneData* gene_data_list;
+    // gene_data_list = static_cast<GeneData *>(malloc(gene_num_ * sizeof(GeneData)));
+
+    // unsigned int exp_count, min_exp_count = UINT32_MAX, max_exp_count = 0, offset = 0;
+    // unsigned int cell_count, min_cell_count = UINT32_MAX, max_cell_count = 0;
+    // unsigned short max_MID_count;
+
+    // vector<GeneExpData> gene_exp_list;
+    // gene_exp_list.reserve(expression_num_);
+    // for(unsigned int i = 0; i < gene_num_; i++){
+    //     auto iter_gene_exp_map = gene_exp_map_.find(i);
+    //     if(iter_gene_exp_map != gene_exp_map_.end()){
+    //         vector<GeneExpData> tmp = iter_gene_exp_map->second;
+    //         gene_exp_list.insert(gene_exp_list.end(), tmp.begin(), tmp.end());
+
+    //         cell_count = static_cast<unsigned int>(tmp.size());
+    //         max_MID_count = 0;
+    //         exp_count = 0;
+    //         for (auto gene_exp :tmp) {
+    //             exp_count += gene_exp.count;
+    //             max_MID_count = gene_exp.count > max_MID_count ? gene_exp.count : max_MID_count;
+    //         }
+
+    //         min_exp_count = min_exp_count < exp_count ? min_exp_count : exp_count;
+    //         max_exp_count = max_exp_count > exp_count ? max_exp_count : exp_count;
+    //         min_cell_count = min_cell_count < cell_count ? min_cell_count : cell_count;
+    //         max_cell_count = max_cell_count > cell_count ? max_cell_count : cell_count;
+
+    //         gene_data_list[i] = GeneData(
+    //                 gene_name_list[i].c_str(),
+    //                 offset,
+    //                 static_cast<unsigned int>(tmp.size()),
+    //                 exp_count,
+    //                 max_MID_count);
+
+    //         offset += tmp.size();
+    //     }else{
+    //         gene_data_list[i] = GeneData(
+    //                 gene_name_list[i].c_str(),
+    //                 offset,
+    //                 0,
+    //                 0,
+    //                 0);
+    //     }
+    // }
 
     hid_t memtype, filetype;
     memtype = getMemtypeOfGeneData();
@@ -528,7 +609,6 @@ void CgefWriter::storeGeneAndGeneExp(const vector<string> &gene_name_list) {
     H5Tclose(filetype);
     H5Sclose(dataspace_id);
     H5Dclose(dataset_id);
-    if(verbose_) printCpuTime(cprev, "storeGeneAndGeneExp");
 }
 
 void CgefWriter::storeCellTypeList() {
@@ -592,7 +672,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
             p.getCenter(),
             p.getAreaUshort());
     }
-    m_cdataPtr = cell_list_.data();
+    
     if(verbose_) printCpuTime(cprev, "addDnbExp");
 
     m_borderptr = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
@@ -618,7 +698,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
     vector<string> gene_name_list;
     gene_name_list.reserve(common_bin_gef.getGeneNum());
     common_bin_gef.getGeneNameList(gene_name_list);
-    storeGeneAndGeneExp(gene_name_list);
+    createGenedata(gene_name_list);
 
     free(dnb_exp_info);
     return 0;
@@ -656,7 +736,7 @@ int CgefWriter::addLevel(int cnum, float ratio)
     int cnt = 0, tmp = 0, lev = 3;
     while (1)
     {
-        cnt = m_hash_cellid.size()*ratio;
+        cnt = cell_num_*ratio;
         tmp = m_hash_cellid.size() - cnt;
 
         if(tmp < 1000 || tmp < (1<<(lev*2))) //最后一层数据太少，不再分层
@@ -691,13 +771,22 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
     vec_blk.emplace_back(0, cnt);
     default_random_engine rand(time(NULL));
     uniform_int_distribution<int> rand1(0, m_hash_cellid.size());
+    set<int> set_tmp;
     int idx = 0;
-    for(int i=0;i<cnt;i++)
+    while (1)
     {
         idx = rand1(rand);
-        vec_cellid.push_back(idx);
-        m_hash_cellid.erase(idx); //记录被筛掉的cellid
+        if(set_tmp.emplace(idx).second)
+        {
+            vec_cellid.push_back(idx);
+            m_hash_cellid.erase(idx); //记录被筛掉的cellid
+        }
+        if(set_tmp.size() >= cnt)
+        {
+            break;
+        }
     }
+
     int blknum[2]={1,1};
     writeCelldata(lev, blknum, vec_blk, vec_cellid);
 }
@@ -773,11 +862,20 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
         uniform_int_distribution<int> rand1(0, blkcellid.size());
         vec_blk.emplace_back(offset, scnt);
         offset += scnt;
-        for(int j=0;j<scnt;j++)
+        set<int> set_tmp;
+
+        while(scnt)
         {
             idx = rand1(rand);
-            vec_cellid.push_back(blkcellid[idx]);
-            m_hash_cellid.erase(blkcellid[idx]); 
+            if(set_tmp.emplace(idx).second)
+            {
+                vec_cellid.push_back(blkcellid[idx]);
+                m_hash_cellid.erase(blkcellid[idx]); 
+            }
+            if(set_tmp.size() >= scnt)
+            {
+                break;
+            }
         }
     }
 

@@ -13,18 +13,17 @@
 #include "utils.h"
 int test()
 {
-    BgefReader bgef_reader("/jdfssz1/ST_BIGDATA/Stereomics_TestData/debug_tmp/SS200000003BR_B3/0306_debug/SS200000003BR_B3.tissue.gef", 1);
-    int exp_num = bgef_reader.getExpressionNum();
-    unsigned int * cellid = new unsigned int[exp_num];
-    unsigned int * gene_ind = new unsigned int[exp_num];
-    unsigned int * count = new unsigned int[exp_num];
-    bgef_reader.getSparseMatrixIndices2(cellid, gene_ind, count);
-
+    // BgefReader bgef_reader("/jdfssz1/ST_BIGDATA/Stereomics_TestData/debug_tmp/SS200000003BR_B3/0306_debug/SS200000003BR_B3.tissue.gef", 1);
+    // int exp_num = bgef_reader.getExpressionNum();
+    // unsigned int * cellid = new unsigned int[exp_num];
+    // unsigned int * gene_ind = new unsigned int[exp_num];
+    // unsigned int * count = new unsigned int[exp_num];
+    // bgef_reader.getSparseMatrixIndices2(cellid, gene_ind, count);
     return 0;
 }
 
 int bgef(int argc, char *argv[]) {
-    
+    //return test();
     cxxopts::Options options("geftools bgef",
                        "About:  Generate common bin GEF(.bgef) according to gem file or bin1 GEF\n");
     options
@@ -120,7 +119,7 @@ void gem2gef(BgefOptions *opts)
     unsigned int resolution;
 //    if(decideSuffix(opts->input_file_, "gem") || decideSuffix(opts->input_file_, "gz")){
     if(!H5Fis_hdf5(opts->input_file_.c_str())){
-        mRead(opts);
+        //mRead(opts);
         resolution = parseResolutin(opts->input_file_);
     }else{
         BgefReader bgef_reader(opts->input_file_, 1, opts->verbose_);
@@ -357,7 +356,7 @@ unsigned int parseResolutin(string& filename) {
     std::unordered_map<string, unsigned int> pitch({
         {"CL1", 900},{"N1", 900},{"V3", 715},{"K2", 715},{"S2", 715},
         {"S1", 900},{"F3", 715},{"F1", 800},{"V1", 800},{"DP84", 715},
-        {"DP8", 850},{"FP2", 500},{"FP1", 600},{"E1", 700},{"DP40", 700},
+        {"DP8", 850},{"FP2", 500},{"SS2", 500},{"FP1", 600},{"E1", 700},{"DP40", 700},
         {"G1", 700},{"A", 500},{"B", 500},{"C", 500},{"D", 500},
         {"U", 715},{"V", 715},{"W", 715},{"X", 715},{"Z", 500},
         {"Y", 900}});
@@ -407,6 +406,28 @@ void sortGeneByCnt(std::unordered_map <std::string, std::vector<Expression>>& da
     });
 }
 
+unsigned int Boxplot(vector<unsigned int> &vecmid)
+{
+    sort(vecmid.begin(), vecmid.end(), 
+        [](const unsigned int a, const unsigned int b){return a<b;});
+    int sz = vecmid.size();
+    int pos_q1 = ceil( (sz + 1)*1.0 /4 );
+    float q1 = vecmid[pos_q1-2]*0.25+vecmid[pos_q1-1]*0.75; //下四分位数Q1
+
+    int pos_q2 = ceil( (sz + 1)*2.0 /4 );
+    float q2 = vecmid[pos_q2-2]*0.5+vecmid[pos_q2-1]*0.5; //中位数
+
+    int pos_q3 = ceil( (sz + 1)*3.0 /4 );
+    float q3 = vecmid[pos_q3-2]*0.75+vecmid[pos_q3-1]*0.25; //上四分位数Q3
+
+    float IQR = q3 - q1; //四分位距
+    unsigned int uplimit = ceil(q3+1.5*IQR);
+    //float lowlimit = q1-1.5*IQR;
+
+    sz--;
+    return vecmid[sz] < uplimit ? vecmid[sz] : uplimit;
+}
+
 void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
 {
     unsigned long cprev =clock();
@@ -431,21 +452,33 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
         bgef_writer.storeStat(geneStat);
     }
 
+    vector<unsigned int> vec_mid;
     DnbMatrix &dnbM = opts->dnbmatrix_;
     unsigned long number = 0;
     unsigned long matrix_len = (unsigned long)(dnbM.dnb_attr.len_x) * dnbM.dnb_attr.len_y;
     if (bin == 1)
     {
         for(unsigned long i=0;i<matrix_len;i++)
+        {
             if(dnbM.pmatrix_us[i].gene_count)
+            {
                 ++number;
+                vec_mid.push_back(dnbM.pmatrix_us[i].mid_count);
+            }
+        }
     }
     else
     {
         for(unsigned long i=0;i<matrix_len;i++)
+        {
             if(dnbM.pmatrix[i].gene_count)
+            {
                 ++number;
+                vec_mid.push_back(dnbM.pmatrix[i].mid_count);
+            }
+        }
     }
+    dnbM.dnb_attr.max_mid = Boxplot(vec_mid);
     dnbM.dnb_attr.number = number;
     bgef_writer.storeDnb(dnbM, bin);
 
