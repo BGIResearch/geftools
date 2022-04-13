@@ -158,10 +158,8 @@ void gem2gef(BgefOptions *opts)
         auto& range = opts->range_;
 
         dnbAttr.min_x = (opts->offset_x_ / bin) * bin;
-        //dnbAttr.len_x = int((float(range[1]) / bin) - (float(range[0]) / bin)) + 1;
         dnbAttr.len_x = (range[1] - range[0])/bin + 1;
         dnbAttr.min_y = (opts->offset_y_ / bin) * bin;
-        //dnbAttr.len_y = int((float(range[3]) / bin) - (float(range[2]) / bin)) + 1;
         dnbAttr.len_y = (range[3]-range[2])/bin + 1;
         dnbAttr.max_gene = 0;
         dnbAttr.max_mid = 0;
@@ -346,7 +344,7 @@ unsigned int parseResolutin(string& filename) {
     std::unordered_map<string, unsigned int> pitch({
         {"CL1", 900},{"N1", 900},{"V3", 715},{"K2", 715},{"S2", 715},
         {"S1", 900},{"F3", 715},{"F1", 800},{"V1", 800},{"DP84", 715},
-        {"DP8", 850},{"FP2", 500},{"FP1", 600},{"E1", 700},{"DP40", 700},
+        {"DP8", 850},{"FP2", 500},{"SS2",500},{"FP1", 600},{"E1", 700},{"DP40", 700},
         {"G1", 700},{"A", 500},{"B", 500},{"C", 500},{"D", 500},
         {"U", 715},{"V", 715},{"W", 715},{"X", 715},{"Z", 500},
         {"Y", 900}});

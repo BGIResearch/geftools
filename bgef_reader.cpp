@@ -616,14 +616,13 @@ unsigned long long int * BgefReader::getCellPos() {
 }
 
 //TODO support restrict gene_list and region
-unsigned int BgefReader::toGem(string &filename) {
+unsigned int BgefReader::toGem(string &filename, string &sn) {
     unsigned long cprev = clock();
     Gene * gene_data = getGene();
     Expression * expression = getExpression();
     ExpressionAttr & expression_attr = getExpressionAttr();
 
     // Create file header
-    string base_filename = filename.substr(filename.find_last_of("/\\") + 1);
     FILE* outhandle;
     if (filename == "stdout" || filename == "-"){
         outhandle = stdout;
@@ -636,7 +635,7 @@ unsigned int BgefReader::toGem(string &filename) {
             exit(4);
         }
     }
-    fprintf(outhandle, FILE_HEADER, 0, 1, bin_size_, base_filename.c_str(), expression_attr.min_x, expression_attr.min_y);
+    fprintf(outhandle, FILE_HEADER, 0, 1, bin_size_, sn.c_str(), expression_attr.min_x, expression_attr.min_y);
     // Write data line by line
     size_t pos = 0;
     for (int i = 0; i < gene_num_; ++i)
