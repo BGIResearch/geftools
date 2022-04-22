@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-04-15 13:34:40
+ * @Description: file content
+ */
 /** @file main_cgef.h
     @brief Main entrance of the geftools cgef command.
 
@@ -62,5 +69,7 @@ int mRead(BgefOptions *opts);
 unsigned int parseResolutin(string& filename);
 
 void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin);
+
+void StereoDataToGef(const string &output_file, int binsize, int sz, unsigned long *cellptr);
 
 #endif //GEFTOOLS__MAIN_BGEF_H_

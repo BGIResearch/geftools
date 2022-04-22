@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:25
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-07 17:34:55
+ * @LastEditTime: 2022-04-22 11:13:22
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFCELLGEM_H_
@@ -29,13 +29,12 @@ public:
     void readmask();
     void readxy();
     void readcellgem();
-    //void mapCell();
     void writeFile(CgefWriter *cwptr);
     void writeAttr();
-    //void writeBorder();
     void writeCell();
     void writeGene();
-    
+    void celltype();
+    void writeCell_celltype();
 private:
     unsigned int m_maskcellnum; //从mask文件获取的细胞个数
     unsigned int m_blocknum;
@@ -50,6 +49,8 @@ private:
     ThreadPool *m_thpoolPtr = nullptr;
     unordered_map<int, int> m_hash_clabel2cid; //建立从label到cellid的映射
     unordered_map<string, int> m_hash_gname2gid;//gname到geneid的映射
+    unordered_map<string, int> m_hash_celltype;//celltype到typeid的映射
+    vector<string> m_vec_celltype;
 };
 
 #endif

@@ -635,6 +635,20 @@ void CgefWriter::storeCellTypeList() {
     if(verbose_) printCpuTime(cprev, "storeCellTypeList");
 }
 
+void CgefWriter::storeCellTypeList_N() {
+    unsigned long cprev=clock();
+
+    hsize_t dims[1];
+    dims[0] = cell_type_list_.size();
+    hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
+    hid_t dataset_id = H5Dcreate(group_id_, "cellTypeList", str32_type_, dataspace_id, H5P_DEFAULT,
+                                 H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(dataset_id, str32_type_, H5S_ALL, H5S_ALL, H5P_DEFAULT, &cell_type_list_[0]);
+    H5Sclose(dataspace_id);
+    H5Dclose(dataset_id);
+    if(verbose_) printCpuTime(cprev, "storeCellTypeList");
+}
+
 unsigned short CgefWriter::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps) {
     unsigned max = 0;
     for (auto gene_exp :gene_exps) {
@@ -734,12 +748,15 @@ int CgefWriter::addLevel(int cnum, float ratio)
     getblkcelldata(2, cnum);
 
     int cnt = 0, tmp = 0, lev = 3;
+    long blkcnt = 0;
     while (1)
     {
         cnt = cell_num_*ratio;
         tmp = m_hash_cellid.size() - cnt;
-
-        if(tmp < 1000 || tmp < (1<<(lev*2))) //最后一层数据太少，不再分层
+        blkcnt = pow(3,lev);
+        blkcnt*=blkcnt;
+//printf("---%d %d %d\n", lev, cnt, tmp);
+        if(tmp < 1000 || tmp < blkcnt) //最后一层数据太少，不再分层
         {
             getblkcelldata_bottom(lev);
             lev++;
@@ -793,7 +810,7 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
 
 void CgefWriter::getblkcelldata_bottom(int lev)
 {
-    int x_num = 1<<lev;
+    int x_num = pow(3,lev);//1<<lev;
     int y_num = x_num;
     int x_size = ceil(m_x_len*1.0/x_num);
     int y_size = ceil(m_y_len*1.0/x_num);
@@ -829,7 +846,7 @@ void CgefWriter::getblkcelldata_bottom(int lev)
 
 void CgefWriter::getblkcelldata(int lev, int cnt)
 {
-    int x_num = 1<<lev;
+    int x_num = pow(3,lev);//1<<lev;
     int y_num = x_num;
     int x_size = ceil(m_x_len*1.0/x_num);
     int y_size = ceil(m_y_len*1.0/x_num);
@@ -896,6 +913,8 @@ void CgefWriter::createBlktype()
 
 void CgefWriter::writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid)
 {
+    printf("%d %d %d\n", lev, vecid.size(), blk.size());
+
     char buf[32]={0};
     sprintf(buf, "L%d", lev);
     hid_t level_gid = H5Gcreate(m_level_gid, buf, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);

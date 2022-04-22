@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-03-25 14:58:10
+ * @LastEditTime: 2022-04-15 14:35:09
  * @Description: file content
  */
 
@@ -31,6 +31,7 @@ public:
 //    int m_thread_dnb = 8; //设置dnbmerge线程数
     bool reverse_ = false; // true: gef to gem, false: gem to gef
     bool verbose_ = false;
+    int m_stattype = 0; //0:不生成stat 1:只生成stat 2:生成stat和对应bin数据 
 
     string input_file_;
     string output_file_;

@@ -178,7 +178,7 @@ class BgefReader {
 
     void getGeneAndCount(unsigned short * gene_ind, unsigned short * count);
 
-    unsigned int toGem(string & filename);
+    unsigned int toGem(string & filename, string &sn);
 
     /**
      * @brief Free memory for cache variables
@@ -193,7 +193,7 @@ class BgefReader {
 
     void getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsigned int max_x, unsigned int max_y, std::string &strgene, vector<Expression> &outExp);
 
-    void getOffset(int *data);
+    void getExpAttr(int *data);
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

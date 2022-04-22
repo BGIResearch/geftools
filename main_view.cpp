@@ -35,6 +35,7 @@ int view(int argc, char *argv[]) {
             ("force-genes", "Only warn about unknown subset genes, just support cGEF.",
                     cxxopts::value<bool>()->default_value("false"))
             ("b,bin-size", "Set bin size for bgef file, just support bGEF.", cxxopts::value<int>()->default_value("1"), "INT")
+            ("s,serial-number", "Serial number", cxxopts::value<std::string>(), "STR")
 //            ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
             ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
             ("help", "Print help");
@@ -52,7 +53,12 @@ int view(int argc, char *argv[]) {
         std::cerr << options.help() << std::endl;
         exit(1);
     }
-
+    if (result.count("serial-number") != 1){
+        std::cerr << "[ERROR] The -s,--serial-number parameter must be given correctly.\n" << std::endl;
+        std::cerr << options.help() << std::endl;
+        exit(1);
+    }
+    string snstr = result["serial-number"].as<string>();
     ViewOptions viewopts;
 
     viewopts.input_file = result["input-file"].as<string>();
@@ -109,7 +115,7 @@ int view(int argc, char *argv[]) {
 
     if(is_bgef(viewopts.input_file)){
         BgefReader bgef_reader = BgefReader(viewopts.input_file, viewopts.bin_size, 1, viewopts.verbose);
-        bgef_reader.toGem(viewopts.output_gem);
+        bgef_reader.toGem(viewopts.output_gem, snstr);
     }else{
 
         CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);

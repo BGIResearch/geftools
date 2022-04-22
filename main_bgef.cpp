@@ -38,6 +38,7 @@ int bgef(int argc, char *argv[]) {
                  " of two vertex coordinates (minX,maxX,minY,maxY)",
                  cxxopts::value<std::string>()->default_value(""), "STR")
     ("t,threads", "number of threads", cxxopts::value<int>()->default_value("8"), "INT")
+    ("s,stat", "create stat group", cxxopts::value<bool>()->default_value("true"))
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
 
@@ -70,11 +71,28 @@ int bgef(int argc, char *argv[]) {
 
     opts->input_file_ = result["input-file"].as<string>();
     opts->output_file_ = result["output-file"].as<string>();
+    bool bstat= result["stat"].as<bool>();
 
     vector<string> bs_tmp = split(result["bin-size"].as<string>(), ',');
 
     for(auto & binsize : bs_tmp){
         opts->bin_sizes_.emplace_back(static_cast<unsigned int>(strtol(binsize.c_str(), nullptr, 10)));
+    }
+
+    bool b100 = false;
+    for(int bin : opts->bin_sizes_)
+    {
+        if(bin == 100)
+        {
+            b100 = true; //用户指定了bin100
+            opts->m_stattype = 2;
+            break;
+        }
+    }
+    if(!b100 && bstat) //用户没有指定bin100，但是需要生成stat
+    {
+        opts->bin_sizes_.emplace_back(100);
+        opts->m_stattype = 1;
     }
 
     if (result.count("region") == 1){
@@ -87,6 +105,7 @@ int bgef(int argc, char *argv[]) {
 
     opts->thread_ = result["threads"].as<int>();
     opts->verbose_ = result["verbose"].as<bool>();
+    
 
     gem2gef(opts);
 //    generateBgef(opts.output_file, opts.input_file, opts.verbose);
@@ -119,7 +138,7 @@ void gem2gef(BgefOptions *opts)
     unsigned int resolution;
 //    if(decideSuffix(opts->input_file_, "gem") || decideSuffix(opts->input_file_, "gz")){
     if(!H5Fis_hdf5(opts->input_file_.c_str())){
-        //mRead(opts);
+        mRead(opts);
         resolution = parseResolutin(opts->input_file_);
     }else{
         BgefReader bgef_reader(opts->input_file_, 1, opts->verbose_);
@@ -168,20 +187,15 @@ void gem2gef(BgefOptions *opts)
         auto& range = opts->range_;
 
         dnbAttr.min_x = (opts->offset_x_ / bin) * bin;
-        //dnbAttr.len_x = int((float(range[1]) / bin) - (float(range[0]) / bin)) + 1;
         dnbAttr.len_x = (range[1] - range[0])/bin + 1;
         dnbAttr.min_y = (opts->offset_y_ / bin) * bin;
-        //dnbAttr.len_y = int((float(range[3]) / bin) - (float(range[2]) / bin)) + 1;
         dnbAttr.len_y = (range[3]-range[2])/bin + 1;
         dnbAttr.max_gene = 0;
         dnbAttr.max_mid = 0;
         dnbAttr.number = 0;
         unsigned long matrix_len = (unsigned long)(dnbAttr.len_x) * dnbAttr.len_y;
         printf("bin %d matrix: min_x=%d len_x=%d min_y=%d len_y=%d matrix_len=%lu\n",
-               bin,
-               dnbAttr.min_x, dnbAttr.len_x,
-               dnbAttr.min_y, dnbAttr.len_y,
-               matrix_len);
+               bin, dnbAttr.min_x, dnbAttr.len_x, dnbAttr.min_y, dnbAttr.len_y, matrix_len);
         if (bin == 1)
         {
             dnb_matrix.pmatrix_us = (BinStatUS*)calloc(matrix_len, sizeof(BinStatUS));
@@ -227,18 +241,23 @@ void gem2gef(BgefOptions *opts)
             }
             else
             {
-                for (auto g : *pgenedata->vecdataptr)
+                if(bin != 100 || opts->m_stattype == 2)
                 {
-                    g.x *= bin;
-                    g.y *= bin;
-                    opts->expressions_.push_back(std::move(g));
+                    for (auto g : *pgenedata->vecdataptr)
+                    {
+                        g.x *= bin;
+                        g.y *= bin;
+                        opts->expressions_.push_back(std::move(g));
+                    }
                 }
             }
 
-            opts->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
-            offset += pgenedata->vecdataptr->size();
-            maxexp = std::max(maxexp, pgenedata->maxexp);
-            // h5Writer.storeGene(pgenedata->geneid, *(pgenedata->vecdataptr));
+            if(bin != 100 || opts->m_stattype == 2)
+            {
+                opts->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
+                offset += pgenedata->vecdataptr->size();
+                maxexp = std::max(maxexp, pgenedata->maxexp);
+            }
 
             if(bin == 100)
             {
@@ -260,13 +279,14 @@ void gem2gef(BgefOptions *opts)
             }
         }
 
-        bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
-        opts->expressions_.clear();
-        opts->genes_.clear();
+        if(bin != 100 || opts->m_stattype == 2)
+        {
+            bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
+            opts->expressions_.clear();
+            opts->genes_.clear();
+        }
 
-//        cprev = printCpuTime(cprev, "wait");
         thpool.waitTaskDone();
-//        printCpuTime(cprev, "waitTaskDone");
         opts->gene_info_queue_.clear(bin);
         //write dnb
         writednb(opts, bgef_writer, bin);
@@ -433,15 +453,12 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
     unsigned long cprev =clock();
     if(bin == 100)
     {
-        // h5Writer.storeDnbRange(pcmd->m_range);
         vector<pair<string, unsigned int>> geneCnts;
         sortGeneByCnt(opts->map_gene_exp_, geneCnts);
-        // h5Writer.storeGeneName(geneCnts);
-
+        
         std::vector<float> vec_e10_result;
         SpecialBin sbin;
         sbin.calcE10(geneCnts, vec_e10_result);
-        // h5Writer.storeE10(vec_e10_result);
 
         vector<GeneStat> geneStat;
         size_t sz = geneCnts.size();
@@ -450,6 +467,10 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
             geneStat.emplace_back(geneCnts[i].first, geneCnts[i].second, vec_e10_result[i]);
         }
         bgef_writer.storeStat(geneStat);
+        if(opts->m_stattype != 2)
+        {
+            return;
+        }
     }
 
     vector<unsigned int> vec_mid;
@@ -505,3 +526,12 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
     if(opts->verbose_) printCpuTime(cprev, "writednb");
 }
 
+
+
+void StereoDataToGef(const string &output_file, int binsize, int sz, unsigned long *cellptr)
+{
+    for(int i=0;i<sz;i++)
+    {
+        printf("%ld\n", cellptr[i]);
+    }
+}

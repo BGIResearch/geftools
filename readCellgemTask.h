@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-02 17:24:14
+ * @LastEditTime: 2022-04-22 15:35:07
  * @Description: file content
  */
 #ifndef GEFTOOLS_READCELLGEMTASK_H_
@@ -13,6 +13,8 @@
 #include "thread_pool.h"
 #include "gef.h"
 #include "cgefUtil.h"
+#include <sstream>
+#include <sys/time.h>
 
 class readCellgemTask:public ITask
 {
@@ -27,6 +29,7 @@ private:
     int mergeCellinfo();
     int getInfo();
     int mergeinfo();
+    int getInfo_celltype();
 private:
     int m_type;
     int m_buflen = 0;
@@ -38,7 +41,9 @@ private:
     static mutex m_readmtx; //读文件锁
     static mutex m_mergemtx; //合并锁
 
-    int m_min_x = INT_MAX, m_min_y = INT_MAX;
+    int m_min_x = INT_MAX, m_min_y = INT_MAX, m_max_x = 0, m_max_y = 0;
+    std::stringstream m_sstr;
+    double t1 = 0.0, t2 = 0.0;
 };
 
 #endif

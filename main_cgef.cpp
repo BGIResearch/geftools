@@ -7,6 +7,7 @@
 #include "cgefCellgem.h"
 
 int cgef(int argc, char *argv[]) {
+
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");
@@ -20,7 +21,7 @@ int cgef(int argc, char *argv[]) {
     ("r,rand-celltype", "number of random cell type", cxxopts::value<int>()->default_value("0"), "INT")
     ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("M,map", "map the mask file and cellbingem", cxxopts::value<bool>()->default_value("false"))
+    ("p,patch", "add the path to cgef", cxxopts::value<int>()->default_value("0"))
     ("n,cnum", "top level cell num", cxxopts::value<int>()->default_value("5000"), "INT")
     ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
     ("g,gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
@@ -70,7 +71,7 @@ int cgef(int argc, char *argv[]) {
 //         result["rand-celltype"].as<int>(),
 // //        result["threads"].as<int>(),
 //     };
-    bool bmap = result["map"].as<bool>();
+    int patch = result["patch"].as<int>();
     opts.input_file = result["input-file"].as<string>();
     opts.rand_celltype_num = result["rand-celltype"].as<int>();
     opts.verbose = result["verbose"].as<bool>();
@@ -92,10 +93,19 @@ int cgef(int argc, char *argv[]) {
     cgefParam::GetInstance()->m_maskstr = opts.mask_file;
     cgefParam::GetInstance()->m_block_size[0] = opts.block_size[0];
     cgefParam::GetInstance()->m_block_size[1] = opts.block_size[1];
-
-    if(bmap)
+    cgefParam::GetInstance()->m_intype = (InputType)patch;
+    switch (patch)
     {
+    case 0:
+        generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,
+                    opts.rand_celltype_num, opts.cellnum, opts.ratio, opts.verbose);
+        break;
+    case 1:
+        break;
+    case 2:
         cgefParam::GetInstance()->m_rawgemstr = result["gem"].as<string>();
+    case 3:
+    {
         cgefParam::GetInstance()->m_threadcnt = result["threads"].as<int>();
         CgefWriter *pcgef_writer = new CgefWriter(true);
         pcgef_writer->setOutput(opts.output_file);
@@ -107,10 +117,9 @@ int cgef(int argc, char *argv[]) {
         pcgef_writer->addLevel(opts.cellnum, opts.ratio);
         delete pcgef_writer;
     }
-    else
-    {
-        generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,
-                    opts.rand_celltype_num, opts.cellnum, opts.ratio, opts.verbose);
+        break;
+    default:
+        break;
     }
 
     return 0;
