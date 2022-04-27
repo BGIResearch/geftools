@@ -55,7 +55,7 @@ class Mask {
 
     /**
      *
-     * @param border_array A pointer to a memory block, size = cell_num * 16 * 2 *sizeof(char)
+     * @param border_array A pointer to a memory block, size = cell_num * BORDERCNT * 2 *sizeof(char)
      */
     void getBorders(char * border_array);
 

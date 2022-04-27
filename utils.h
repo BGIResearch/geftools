@@ -22,6 +22,7 @@ using namespace cv;
 
 const int READLEN = 256*1024;
 const int GEFVERSION[3] = {0,6,3};
+const int BORDERCNT = 32;
 
 
 static union

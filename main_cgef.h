@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-01 15:52:41
+ * @LastEditTime: 2022-04-25 14:22:04
  * @Description: file content
  */
 /** @file main_cgef.h
@@ -57,6 +57,7 @@ int generateCgef(const string& cgef_file,
                  const string& mask_file,
                  const int* block_size,
                  int rand_cell_type_num,
+                 int allocat,
                  int cellnum,
                  float ratio,
                  bool verbose = false);

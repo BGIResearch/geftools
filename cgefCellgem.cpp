@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-22 17:20:06
+ * @LastEditTime: 2022-04-26 09:52:29
  * @Description: file content
  */
 
@@ -187,12 +187,38 @@ void cgefCellgem::writeFile(CgefWriter *cwptr)
 void cgefCellgem::writeAttr()
 {
     CellBinAttr cell_bin_attr = {
-            .version = 1,
+            .version = 2,
             .resolution = 0,
             .offsetX = cgefParam::GetInstance()->m_min_x,
             .offsetY = cgefParam::GetInstance()->m_min_y
     };
     m_cgefwPtr->storeAttr(cell_bin_attr);
+}
+
+void cgefCellgem::addCellborder(int cx, int cy, vector<char> &vec_border, celldata & cdata)
+{
+    vector<Point> &vborder = m_contours[cdata.c_idx];
+    vector<Point> tmpborder;
+    int sz = vborder.size();
+    if(vborder.size() > BORDERCNT)
+    {
+        double epsilon = 0.01 * arcLength(vborder, true);
+        approxPolyDP(vborder, tmpborder, epsilon, true);
+    }
+    
+    sz = tmpborder.size();
+    int i=0;
+    for(;i<sz;i++)
+    {
+        vec_border.emplace_back(vborder[i].x - cx);
+        vec_border.emplace_back(vborder[i].y - cy);
+    }
+
+    for(;i<BORDERCNT;i++) //不足补0
+    {
+        vec_border.emplace_back(0);
+        vec_border.emplace_back(0);
+    }
 }
 
 void cgefCellgem::writeCell()
@@ -219,17 +245,19 @@ void cgefCellgem::writeCell()
  
             m_hash_clabel2cid.emplace(cdata.l_idx, cid);
             vec_cellLabel.emplace_back(cdata.l_idx);
-            vector<Point> &vborder = m_contours[cdata.c_idx];
+            
+            // vector<Point> &vborder = m_contours[cdata.c_idx];
             cx = m_centroids.at<double>(cdata.l_idx,0);
             cy = m_centroids.at<double>(cdata.l_idx,1);
-            if(vborder.size() > 16)
-            {
-                for(int i=0;i<16;i++)
-                {
-                    vec_border.emplace_back(vborder[i].x - cx);
-                    vec_border.emplace_back(vborder[i].y - cy);
-                }
-            }
+            addCellborder(cx, cy, vec_border, cdata);
+            // if(vborder.size() > 16)
+            // {
+            //     for(int i=0;i<16;i++)
+            //     {
+            //         vec_border.emplace_back(vborder[i].x - cx);
+            //         vec_border.emplace_back(vborder[i].y - cy);
+            //     }
+            // }
 
             gene_count = cellptr->m_map_cellexp.size();
             exp_count = cellptr->expcnt;
@@ -369,11 +397,12 @@ void cgefCellgem::celltype()
     {
         itor->second->getCenter(m_block_size, cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_min_y);
         m_vec_veccell[itor->second->m_blkid].emplace_back(0, itor->first); //没有连通域
+        assert(itor->first == itor->second->m_celllabel);
         if(m_hash_celltype.find(itor->second->m_type) == m_hash_celltype.end())
         {
             m_hash_celltype.emplace(itor->second->m_type, celltypeid++);
             S32 cell_type(itor->second->m_type);
-            m_cgefwPtr->cell_type_list_.emplace_back(cell_type);
+            m_cgefwPtr->cell_type_list_.emplace_back(std::move(cell_type));
         }
     }
 }

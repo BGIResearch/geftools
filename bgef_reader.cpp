@@ -11,7 +11,7 @@
 #define FILE_HEADER "#FileFormat=GEMv%d.%d\n" \
 "#SortedBy=None\n" \
 "#BinSize=%d\n" \
-"#StereoChip=%s\n" \
+"#STOmicsChip=%s\n" \
 "#OffsetX=%d\n" \
 "#OffsetY=%d\n" \
 "geneID\tx\ty\tMIDCount\n"

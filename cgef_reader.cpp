@@ -8,6 +8,7 @@ CgefReader::CgefReader(const string &filename, bool verbose) {
 
     file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     group_id_ = H5Gopen(file_id_, "/cellBin", H5P_DEFAULT);
+    getAttr();
     cell_dataset_id_ = openCellDataset(group_id_);
     cell_exp_dataset_id_ = openCellExpDataset(group_id_);
     gene_dataset_id_ = openGeneDataset(group_id_);
@@ -57,6 +58,29 @@ void CgefReader::closeH5()
     if(m_borderdataPtr!=nullptr) free(m_borderdataPtr);
 }
 
+void CgefReader::getAttr()
+{
+    if(m_ver == 0)
+    {
+        hid_t attr = H5Aopen(file_id_, "version", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_UINT32, &m_ver);
+
+        attr = H5Aopen(file_id_, "resolution", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_UINT32, &m_resolution);
+
+        attr = H5Aopen(file_id_, "offsetX", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_INT32, &offsetX);
+
+        attr = H5Aopen(file_id_, "offsetY", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_INT32, &offsetY);
+
+        attr = H5Aopen(file_id_, "geftool_ver", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_UINT32, m_ver_tool);
+
+        H5Aclose(attr);
+    }
+}
+
 hid_t CgefReader::openCellDataset(hid_t group_id) {
     cell_dataset_id_ = H5Dopen(group_id, "cell", H5P_DEFAULT);
     if (cell_dataset_id_ < 0) {
@@ -67,27 +91,36 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
     hid_t s1_tid = H5Dget_type(cell_dataset_id_);
     int nmemb = H5Tget_nmembers(s1_tid);
 
-    if(nmemb != 9){
+    if(nmemb < 9){
         cerr << "Please use geftools(>=0.6) to regenerate this cgef file." << endl;
         exit(2);
     }
 
-    hsize_t dims_attr[1];
-    hid_t attr, attr_dataspace;
-    attr = H5Aopen(cell_dataset_id_, "blockIndex", H5P_DEFAULT);
-    attr_dataspace = H5Aget_space(attr);
-    H5Sget_simple_extent_dims(attr_dataspace, dims_attr, nullptr);
+    // hsize_t dims_attr[1];
+    // hid_t attr, attr_dataspace;
+    // attr = H5Aopen(cell_dataset_id_, "blockIndex", H5P_DEFAULT);
+    // attr_dataspace = H5Aget_space(attr);
+    // H5Sget_simple_extent_dims(attr_dataspace, dims_attr, nullptr);
 
-    block_index_ = static_cast<unsigned int *>(
-            malloc(dims_attr[0] * sizeof(unsigned int)));
+    // block_index_ = static_cast<unsigned int *>(
+    //         malloc(dims_attr[0] * sizeof(unsigned int)));
 
-    H5Aread(attr, H5T_NATIVE_UINT32, block_index_);
+    // H5Aread(attr, H5T_NATIVE_UINT32, block_index_);
 
-    attr = H5Aopen(cell_dataset_id_, "blockSize", H5P_DEFAULT);
+    hid_t attr = H5Aopen(cell_dataset_id_, "blockSize", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT32, block_size_);
 
-    H5Aclose(attr);
-    H5Sclose(attr_dataspace);
+    // H5Aclose(attr);
+    // H5Sclose(attr_dataspace);
+    hid_t d_id = H5Dopen(group_id, "blkidx", H5P_DEFAULT);
+    hsize_t dims[1];
+    hid_t s_id = H5Dget_space(d_id);
+    H5Sget_simple_extent_dims(s_id, dims, nullptr);
+    block_index_ = static_cast<unsigned int *>(calloc(dims[0], sizeof(unsigned int)));
+    H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_index_);
+
+    H5Sclose(s_id);
+    H5Dclose(d_id);
 
     return cell_dataset_id_;
 }
@@ -771,6 +804,15 @@ char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
         H5Dclose(dataset_id);
     }
 
+    int cnt = 0;
+    if(m_ver_tool[1] == 6 && m_ver_tool[2]<3)
+    {
+        cnt = 32;
+    }
+    else
+    {
+        cnt = 64;
+    }
     if(!ball)
     {
         if(m_borderdata_currentPtr)
@@ -778,9 +820,9 @@ char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
             free(m_borderdata_currentPtr);
             m_borderdata_currentPtr = nullptr;
         }
-        m_borderdata_currentPtr = (char*)calloc(16*2,1);
-        char *psrc = m_borderdataPtr + cell_id*32;
-        memcpy(m_borderdata_currentPtr, psrc, 32);
+        m_borderdata_currentPtr = (char*)calloc(cnt,1);
+        char *psrc = m_borderdataPtr + cell_id*cnt;
+        memcpy(m_borderdata_currentPtr, psrc, cnt);
         return m_borderdata_currentPtr;
     }
 
@@ -791,14 +833,14 @@ char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
             free(m_borderdata_currentPtr);
             m_borderdata_currentPtr = nullptr;
         }
-        m_borderdata_currentPtr = (char*)calloc(cell_num_current_*16*2,1);
+        m_borderdata_currentPtr = (char*)calloc(cell_num_current_*cnt,1);
         char *psrc = nullptr;
         char *pdest = m_borderdata_currentPtr;
         for(unsigned int i=0;i<cell_num_current_;i++)
         {
-            psrc = m_borderdataPtr + cell_id_array_current_[i]*32;
-            memcpy(pdest, psrc, 32);
-            pdest += 32;
+            psrc = m_borderdataPtr + cell_id_array_current_[i]*cnt;
+            memcpy(pdest, psrc, cnt);
+            pdest += cnt;
         }
         printf("%d \n", cell_num_current_);
         printCpuTime(cprev, "getCellBorders");

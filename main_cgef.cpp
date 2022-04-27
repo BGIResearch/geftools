@@ -24,6 +24,7 @@ int cgef(int argc, char *argv[]) {
     ("p,patch", "add the path to cgef", cxxopts::value<int>()->default_value("0"))
     ("n,cnum", "top level cell num", cxxopts::value<int>()->default_value("5000"), "INT")
     ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
+    ("a,allocat", "allocation strategy ", cxxopts::value<int>()->default_value("2"), "INT")
     ("g,gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
     ("help", "Print help");
 
@@ -78,6 +79,7 @@ int cgef(int argc, char *argv[]) {
     opts.cellnum = result["cnum"].as<int>();
     int tmpr = result["ratio"].as<int>();
     opts.ratio = tmpr*1.0/100;
+    int allocat = result["allocat"].as<int>();
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
 
     if(block_size_tmp.size() != 2){
@@ -98,7 +100,7 @@ int cgef(int argc, char *argv[]) {
     {
     case 0:
         generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,
-                    opts.rand_celltype_num, opts.cellnum, opts.ratio, opts.verbose);
+                    opts.rand_celltype_num, allocat, opts.cellnum, opts.ratio, opts.verbose);
         break;
     case 1:
         break;
@@ -114,7 +116,7 @@ int cgef(int argc, char *argv[]) {
         cgefCellgem cgem;
         cgem.writeFile(pcgef_writer);
 
-        pcgef_writer->addLevel(opts.cellnum, opts.ratio);
+        //pcgef_writer->addLevel(allocat, opts.cellnum, opts.ratio);
         delete pcgef_writer;
     }
         break;
@@ -130,6 +132,7 @@ int generateCgef(const string &cgef_file,
                  const string &mask_file,
                  const int* block_size,
                  int rand_cell_type_num,
+                 int allocat,
                  int cellnum,
                  float ratio,
                  bool verbose) {
@@ -150,13 +153,13 @@ int generateCgef(const string &cgef_file,
         cgef_writer.setOutput(cgef_file);
         cgef_writer.setRandomCellTypeNum(rand_cell_type_num);
         cgef_writer.write(common_bin_gef, mask);
-        cgef_writer.addLevel(cellnum, ratio);
+        cgef_writer.addLevel(allocat, cellnum, ratio);
     }
     else //为cgef 添加level层次
     {
         CgefWriter cgef_writer = CgefWriter(true);
         cgef_writer.setInput(bgef_file);
-        cgef_writer.addLevel(cellnum, ratio);
+        cgef_writer.addLevel(allocat, cellnum, ratio);
     }
 
     if(verbose) printCpuTime(cprev, "generateCgef");

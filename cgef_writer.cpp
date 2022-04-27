@@ -90,7 +90,7 @@ void CgefWriter::storeCellBorder(char* borderPath, unsigned int cell_num) const 
     unsigned long cprev=clock();
     hsize_t dims[3];
     dims[0] = cell_num;
-    dims[1] = 16;
+    dims[1] = BORDERCNT;
     dims[2] = 2;
 
     hid_t dataspace_id = H5Screate_simple(3, dims, nullptr);
@@ -436,9 +436,9 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
     attr = H5Acreate(file_id_, "resolution", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.resolution);
     attr = H5Acreate(file_id_, "offsetX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.offsetX);
+    H5Awrite(attr, H5T_NATIVE_INT32, &cell_bin_attr.offsetX);
     attr = H5Acreate(file_id_, "offsetY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, &cell_bin_attr.offsetY);
+    H5Awrite(attr, H5T_NATIVE_INT32, &cell_bin_attr.offsetY);
 
     //Write createTime into cell bin gef
 //    S32 time_str = getStrfTime();
@@ -451,7 +451,7 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
     hsize_t gef_dimsAttr[1] = {3};
     hid_t gef_dataspace_id = H5Screate_simple(1, gef_dimsAttr, nullptr);
     hid_t gef_attr = H5Acreate(file_id_, "geftool_ver", H5T_STD_U32LE, gef_dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(gef_attr, H5T_NATIVE_UINT, GEFVERSION);
+    H5Awrite(gef_attr, H5T_NATIVE_UINT32, GEFVERSION);
     H5Sclose(gef_dataspace_id);
     H5Aclose(gef_attr);
     
@@ -689,7 +689,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
     
     if(verbose_) printCpuTime(cprev, "addDnbExp");
 
-    m_borderptr = static_cast<char *>(malloc(mask.getCellNum() * 16 * 2 * sizeof(char)));
+    m_borderptr = static_cast<char *>(malloc(mask.getCellNum() * BORDERCNT * 2 * sizeof(char)));
     mask.getBorders(m_borderptr);
 
     ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
@@ -734,8 +734,11 @@ void CgefWriter::setVerbose(bool verbose) {
     verbose_ = verbose;
 }
 
-int CgefWriter::addLevel(int cnum, float ratio)
+int CgefWriter::addLevel(int allocat, int cnum, float ratio)
 {
+// m_x_len = 20000;
+// m_y_len = 20000;
+    m_allocat = allocat;
     createBlktype();
     m_level_gid = H5Gcreate(group_id_, "level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     for(int i=0;i<cell_num_;i++)
@@ -753,7 +756,7 @@ int CgefWriter::addLevel(int cnum, float ratio)
     {
         cnt = cell_num_*ratio;
         tmp = m_hash_cellid.size() - cnt;
-        blkcnt = pow(3,lev);
+        blkcnt = pow(m_allocat,lev);
         blkcnt*=blkcnt;
 //printf("---%d %d %d\n", lev, cnt, tmp);
         if(tmp < 1000 || tmp < blkcnt) //最后一层数据太少，不再分层
@@ -810,7 +813,7 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
 
 void CgefWriter::getblkcelldata_bottom(int lev)
 {
-    int x_num = pow(3,lev);//1<<lev;
+    int x_num = pow(m_allocat,lev);//1<<lev;
     int y_num = x_num;
     int x_size = ceil(m_x_len*1.0/x_num);
     int y_size = ceil(m_y_len*1.0/x_num);
@@ -846,7 +849,7 @@ void CgefWriter::getblkcelldata_bottom(int lev)
 
 void CgefWriter::getblkcelldata(int lev, int cnt)
 {
-    int x_num = pow(3,lev);//1<<lev;
+    int x_num = pow(m_allocat,lev);//1<<lev;
     int y_num = x_num;
     int x_size = ceil(m_x_len*1.0/x_num);
     int y_size = ceil(m_y_len*1.0/x_num);

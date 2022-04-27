@@ -82,7 +82,7 @@ class CgefWriter {
 
     void setRandomCellTypeNum(unsigned short random_cell_type_num);
 
-    int addLevel(int cnum, float ratio);
+    int addLevel(int allocat, int cnum, float ratio);
     void getblkcelldata_top(int lev, int cnt);
     void getblkcelldata_bottom(int lev);
     void getblkcelldata(int lev, int cnt);
@@ -111,6 +111,7 @@ class CgefWriter {
     hid_t m_blk_memtype;
     hid_t m_blk_filetype;
     CellData *m_cdataPtr = nullptr;
+    int m_allocat = 2;
 
     CellAttr cell_attr_ = {
         .average_gene_count=0.0,
