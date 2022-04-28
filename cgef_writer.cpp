@@ -58,7 +58,7 @@ void CgefWriter::openCellDataset()
 
     hid_t s1_tid = H5Dget_type(cell_dataset_id);
     int nmemb = H5Tget_nmembers(s1_tid);
-    if(nmemb != 9){
+    if(nmemb < 9){
         cerr << "Please use geftools(>=0.6) to regenerate this cgef file." << endl;
         exit(2);
     }
@@ -734,10 +734,20 @@ void CgefWriter::setVerbose(bool verbose) {
     verbose_ = verbose;
 }
 
-int CgefWriter::addLevel(int allocat, int cnum, float ratio)
+int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *blknum)
 {
-// m_x_len = 20000;
-// m_y_len = 20000;
+    if(cansize[0]>m_x_len && cansize[1]>m_y_len)
+    {
+        m_x_len = cansize[0];
+        m_y_len = cansize[1];
+    }
+    else{
+        printf("err: raw blk size:%d %d\n", m_x_len, m_y_len);
+        exit(1);
+    }
+    m_blknum[0] = blknum[0];
+    m_blknum[1] = blknum[1];
+
     m_allocat = allocat;
     createBlktype();
     m_level_gid = H5Gcreate(group_id_, "level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -756,8 +766,8 @@ int CgefWriter::addLevel(int allocat, int cnum, float ratio)
     {
         cnt = cell_num_*ratio;
         tmp = m_hash_cellid.size() - cnt;
-        blkcnt = pow(m_allocat,lev);
-        blkcnt*=blkcnt;
+        // blkcnt = pow(m_allocat,lev);
+        // blkcnt*=blkcnt;
 //printf("---%d %d %d\n", lev, cnt, tmp);
         if(tmp < 1000 || tmp < blkcnt) //最后一层数据太少，不再分层
         {
@@ -815,8 +825,10 @@ void CgefWriter::getblkcelldata_bottom(int lev)
 {
     int x_num = pow(m_allocat,lev);//1<<lev;
     int y_num = x_num;
+    if(x_num > m_blknum[0]) x_num = m_blknum[0];
+    if(y_num > m_blknum[1]) y_num = m_blknum[1];
     int x_size = ceil(m_x_len*1.0/x_num);
-    int y_size = ceil(m_y_len*1.0/x_num);
+    int y_size = ceil(m_y_len*1.0/y_num);
 
     vector<vector<int>> vec_vec_cellid;
     for(int i=0;i<x_num*y_num;i++)
@@ -849,10 +861,12 @@ void CgefWriter::getblkcelldata_bottom(int lev)
 
 void CgefWriter::getblkcelldata(int lev, int cnt)
 {
-    int x_num = pow(m_allocat,lev);//1<<lev;
+    int x_num = pow(m_allocat,lev);
     int y_num = x_num;
+    if(x_num > m_blknum[0]) x_num = m_blknum[0];
+    if(y_num > m_blknum[1]) y_num = m_blknum[1];
     int x_size = ceil(m_x_len*1.0/x_num);
-    int y_size = ceil(m_y_len*1.0/x_num);
+    int y_size = ceil(m_y_len*1.0/y_num);
 
     vector<vector<int>> vec_vec_cellid;
     for(int i=0;i<x_num*y_num;i++)

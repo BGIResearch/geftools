@@ -26,6 +26,8 @@ int cgef(int argc, char *argv[]) {
     ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
     ("a,allocat", "allocation strategy ", cxxopts::value<int>()->default_value("2"), "INT")
     ("g,gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
+    ("c,canvas", "set canvas size", cxxopts::value<std::string>()->default_value("90000,90000"), "FILE")
+    ("l,limit", "set blk limit", cxxopts::value<std::string>()->default_value("16,16"), "FILE")
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -81,6 +83,8 @@ int cgef(int argc, char *argv[]) {
     opts.ratio = tmpr*1.0/100;
     int allocat = result["allocat"].as<int>();
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
+    vector<string> canvas_size_tmp = split(result["canvas"].as<string>(), ',');
+    vector<string> limit_tmp = split(result["limit"].as<string>(), ',');
 
     if(block_size_tmp.size() != 2){
         std::cerr << "[ERROR] The -b,--block parameter must be given correctly.\n" << std::endl;
@@ -89,7 +93,12 @@ int cgef(int argc, char *argv[]) {
     }
     opts.block_size[0] = static_cast<int>(strtol(block_size_tmp[0].c_str(), nullptr, 10));
     opts.block_size[1] = static_cast<int>(strtol(block_size_tmp[1].c_str(), nullptr, 10));
-
+    int canvas_size[2]={0,0};
+    canvas_size[0] = static_cast<int>(strtol(canvas_size_tmp[0].c_str(), nullptr, 10));
+    canvas_size[1] = static_cast<int>(strtol(canvas_size_tmp[1].c_str(), nullptr, 10));
+    int limit_blk[2] = {0,0};
+    limit_blk[0] = static_cast<int>(strtol(limit_tmp[0].c_str(), nullptr, 10));
+    limit_blk[1] = static_cast<int>(strtol(limit_tmp[1].c_str(), nullptr, 10));
     
     cgefParam::GetInstance()->m_cellgemstr = opts.input_file;
     cgefParam::GetInstance()->m_maskstr = opts.mask_file;
@@ -99,7 +108,7 @@ int cgef(int argc, char *argv[]) {
     switch (patch)
     {
     case 0:
-        generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,
+        generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,canvas_size,limit_blk,
                     opts.rand_celltype_num, allocat, opts.cellnum, opts.ratio, opts.verbose);
         break;
     case 1:
@@ -116,7 +125,7 @@ int cgef(int argc, char *argv[]) {
         cgefCellgem cgem;
         cgem.writeFile(pcgef_writer);
 
-        //pcgef_writer->addLevel(allocat, opts.cellnum, opts.ratio);
+        //pcgef_writer->addLevel(allocat, opts.cellnum, opts.ratio, canvas_size, limit_blk);
         delete pcgef_writer;
     }
         break;
@@ -131,6 +140,8 @@ int generateCgef(const string &cgef_file,
                  const string &bgef_file,
                  const string &mask_file,
                  const int* block_size,
+                 int* canvas_size,
+                 int* limit_blk,
                  int rand_cell_type_num,
                  int allocat,
                  int cellnum,
@@ -153,13 +164,13 @@ int generateCgef(const string &cgef_file,
         cgef_writer.setOutput(cgef_file);
         cgef_writer.setRandomCellTypeNum(rand_cell_type_num);
         cgef_writer.write(common_bin_gef, mask);
-        cgef_writer.addLevel(allocat, cellnum, ratio);
+        cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     }
     else //为cgef 添加level层次
     {
         CgefWriter cgef_writer = CgefWriter(true);
         cgef_writer.setInput(bgef_file);
-        cgef_writer.addLevel(allocat, cellnum, ratio);
+        cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     }
 
     if(verbose) printCpuTime(cprev, "generateCgef");

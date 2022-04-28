@@ -7,20 +7,20 @@ Mask::Mask(const string& file, const int block_size[], const unsigned int mask_s
     cv::Mat img = cv::imread(file,-1);
     if( img.empty() ) { cerr << "Mask is empty!" << endl; exit(-1);}
 
-    // if(mask_size[0]> 0 && mask_size[1] > 0)
-    // {
-    //     if (img.rows != mask_size[0] || img.cols != mask_size[1]) {
-    //         if (img.rows == mask_size[1] && img.cols == mask_size[0]) {
-    //             img = img.t();
-    //         } else {
-    //             cerr << "The size of mask picture is inconsistent with the size of expression" << endl;
-    //             exit(2);
-    //         }
-    //     }else if(img.rows == img.cols){
-    //         cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted (transposed)"
-    //                 "to be consistent with the expression coordinates." << endl;
-    //     }
-    // }
+    if(mask_size[0]> 0 && mask_size[1] > 0)
+    {
+        if (img.rows != mask_size[0] || img.cols != mask_size[1]) {
+            if (img.rows == mask_size[1] && img.cols == mask_size[0]) {
+                img = img.t();
+            } else {
+                cerr << "The size of mask picture is inconsistent with the size of expression" << endl;
+                exit(2);
+            }
+        }else if(img.rows == img.cols){
+            cerr << "[WARN] Mask rows == cols, the mask coordinates are not automatically adjusted (transposed)"
+                    "to be consistent with the expression coordinates." << endl;
+        }
+    }
 
     rows_ = img.rows;
     cols_ = img.cols;

@@ -13,12 +13,28 @@
 #include "utils.h"
 int test()
 {
-    // BgefReader bgef_reader("/jdfssz1/ST_BIGDATA/Stereomics_TestData/debug_tmp/SS200000003BR_B3/0306_debug/SS200000003BR_B3.tissue.gef", 1);
+    //BgefReader bgef_reader("/ldfssz1/ST_BI/USER/gongchun/project/spatialTrans/tissueCut/dataFromZfx/tissuecut/result/standard/segmentation/SS200000003BR_B3.tissue.gef", 1);
     // int exp_num = bgef_reader.getExpressionNum();
     // unsigned int * cellid = new unsigned int[exp_num];
     // unsigned int * gene_ind = new unsigned int[exp_num];
     // unsigned int * count = new unsigned int[exp_num];
     // bgef_reader.getSparseMatrixIndices2(cellid, gene_ind, count);
+    //bgef_reader.getExpression();
+
+    hid_t gef_h5_id=H5Fopen("/ldfssz1/ST_BI/USER/gongchun/project/spatialTrans/tissueCut/dataFromZfx/tissuecut/result/standard/segmentation/SS200000003BR_B3.tissue.gef",H5F_ACC_RDONLY,H5P_DEFAULT);
+    hid_t dataset_id=H5Dopen(gef_h5_id,"/geneExp/bin1/expression",H5P_DEFAULT);
+    hid_t space_id = H5Dget_space(dataset_id);
+    hsize_t exp_dims[1];
+    H5Sget_simple_extent_dims(space_id, exp_dims, NULL);
+    Expression* expBuf=new Expression[exp_dims[0]];
+
+    hid_t expType = H5Tcreate (H5T_COMPOUND, sizeof(Expression));
+    H5Tinsert(expType, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
+    H5Tinsert(expType, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
+    H5Tinsert(expType, "MIDCount", HOFFSET(Expression, count), H5T_NATIVE_UINT);
+    herr_t status = H5Dread(dataset_id, expType, H5S_ALL, H5S_ALL,  H5P_DEFAULT, expBuf);
+
+    printf("stop");
     return 0;
 }
 

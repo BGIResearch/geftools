@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-26 09:52:29
+ * @LastEditTime: 2022-04-28 09:08:42
  * @Description: file content
  */
 
@@ -41,6 +41,7 @@ void cgefCellgem::readmask()
     assert(!img.empty());
     m_rows = img.rows;
     m_cols = img.cols;
+    printf("img row:%d col:%d\n", m_rows, m_cols);
 
     m_block_size[0] = cgefParam::GetInstance()->m_block_size[0];
     m_block_size[1] = cgefParam::GetInstance()->m_block_size[1];
@@ -91,10 +92,6 @@ void cgefCellgem::readmask()
         c_idx = map_cidx.at(r1);
         blkid = cx/m_block_size[0] + (cy/m_block_size[1])*m_block_size[2];
         m_vec_veccell[blkid].emplace_back(c_idx, i);
-        if(i+c_idx != scnt)
-        {
-            printf("%d--%d ",c_idx, i);
-        }
     }
 }
 
@@ -112,7 +109,7 @@ void cgefCellgem::readxy()
 
     for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
     {
-        readCellgemTask *rtask = new readCellgemTask(0);
+        readCellgemTask *rtask = new readCellgemTask(2);
         m_thpoolPtr->addTask(rtask);
     }
     m_thpoolPtr->waitTaskDone();
