@@ -28,6 +28,7 @@ int cgef(int argc, char *argv[]) {
     ("g,gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
     ("c,canvas", "set canvas size", cxxopts::value<std::string>()->default_value("90000,90000"), "FILE")
     ("l,limit", "set blk limit", cxxopts::value<std::string>()->default_value("16,16"), "FILE")
+    ("s,serial-number", "Serial number", cxxopts::value<int>()->default_value("500"), "INT")
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -105,6 +106,7 @@ int cgef(int argc, char *argv[]) {
     cgefParam::GetInstance()->m_block_size[0] = opts.block_size[0];
     cgefParam::GetInstance()->m_block_size[1] = opts.block_size[1];
     cgefParam::GetInstance()->m_intype = (InputType)patch;
+    cgefParam::GetInstance()->m_sn = result["serial-number"].as<int>();
     switch (patch)
     {
     case 0:

@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:56:17
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-22 15:36:03
+ * @LastEditTime: 2022-04-28 10:04:25
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFPARAM_H_
@@ -33,6 +33,7 @@ public:
 
     int m_threadcnt = 1;
     int m_block_size[2]={256,256};
+    int m_sn = 500;
     std::string m_rawgemstr;
     std::string m_maskstr;
     std::string m_cellgemstr;

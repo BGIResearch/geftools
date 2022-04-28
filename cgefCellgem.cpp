@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-28 09:08:42
+ * @LastEditTime: 2022-04-28 10:05:17
  * @Description: file content
  */
 
@@ -164,6 +164,8 @@ void cgefCellgem::writeFile(CgefWriter *cwptr)
         m_cgefwPtr->m_x_len = m_cols;
         m_cgefwPtr->m_y_len = m_rows;
         readxy();
+        printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_min_x+m_cols,
+                            cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_min_y+m_rows);
         readcellgem();
         writeAttr();
         writeCell();
@@ -185,7 +187,7 @@ void cgefCellgem::writeAttr()
 {
     CellBinAttr cell_bin_attr = {
             .version = 2,
-            .resolution = 0,
+            .resolution = cgefParam::GetInstance()->m_sn,
             .offsetX = cgefParam::GetInstance()->m_min_x,
             .offsetY = cgefParam::GetInstance()->m_min_y
     };
