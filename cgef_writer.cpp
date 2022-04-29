@@ -179,6 +179,7 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     H5Tinsert(filetype, "area", HOFFSET(CellData, area), H5T_STD_U16LE);
     H5Tinsert(filetype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_STD_U16LE);
     H5Tinsert(filetype, "clusterID", HOFFSET(CellData, cluster_id), H5T_STD_U16LE);
+    //H5Tinsert(filetype, "incnt", HOFFSET(CellData, incnt), H5T_STD_U16LE);
     hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
 
     hid_t dpid = H5Pcreate (H5P_DATASET_CREATE);
@@ -373,7 +374,7 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
             exp_count,
             dnb_coordinates.size(),
             area,
-            cell_type_id
+            cell_type_id,
     };
     expression_num_ += gene_count;
 
@@ -417,7 +418,7 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
             gene_exp_map_.insert(map<unsigned short, vector<GeneExpData>>::value_type(gene_id, v_gene_exp_data));
         }
 
-        CellExpData cexp_tmp = {gene_id, count};
+        CellExpData cexp_tmp = {gene_id, count,0};
         cell_exp_list_.emplace_back(cexp_tmp);
         ++iter_m;
     }
@@ -590,9 +591,10 @@ void CgefWriter::storeGeneAndGeneExp(unsigned int min_exp_count, unsigned int ma
     H5Awrite(attr, H5T_NATIVE_UINT32, &max_cell_count);
 
     memtype = getMemtypeOfGeneExpData();
-    filetype = H5Tcreate(H5T_COMPOUND, 6);
+    filetype = H5Tcreate(H5T_COMPOUND, 8);
     H5Tinsert(filetype, "cellID", 0, H5T_STD_U32LE);
     H5Tinsert(filetype, "count", 4, H5T_STD_U16LE);
+    H5Tinsert(filetype, "incnt", 6, H5T_STD_U16LE);
 
     hsize_t dims_exp[1] = {expression_num_};
     dataspace_id = H5Screate_simple(1, dims_exp, nullptr);
@@ -800,7 +802,8 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
     vector<block> vec_blk;
     vec_blk.emplace_back(0, cnt);
     default_random_engine rand(time(NULL));
-    uniform_int_distribution<int> rand1(0, m_hash_cellid.size());
+    uniform_int_distribution<int> rand1(0, m_hash_cellid.size()-1);
+    printf("%d %d\n", )
     set<int> set_tmp;
     int idx = 0;
     while (1)
@@ -893,7 +896,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
         vector<int> &blkcellid = vec_vec_cellid[i];
         scnt = blkcellid.size()*cnt/left;
         default_random_engine rand(time(NULL));
-        uniform_int_distribution<int> rand1(0, blkcellid.size());
+        uniform_int_distribution<int> rand1(0, blkcellid.size()-1);
         vec_blk.emplace_back(offset, scnt);
         offset += scnt;
         set<int> set_tmp;

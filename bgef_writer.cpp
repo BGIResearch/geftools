@@ -58,27 +58,31 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
     H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "incnt", HOFFSET(Expression, incnt), H5T_NATIVE_UINT);
 
     if (maxexp > USHRT_MAX)
+    {
+        filetype = H5Tcreate(H5T_COMPOUND, 8 + 8);
+        H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
+        H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
+        H5Tinsert(filetype, "count", 8, H5T_STD_U32LE);
+        H5Tinsert(filetype, "incnt", 12, H5T_STD_U32LE);
+    }
+    else if (maxexp > UCHAR_MAX)
     {
         filetype = H5Tcreate(H5T_COMPOUND, 8 + 4);
         H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
         H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
-        H5Tinsert(filetype, "count", 8, H5T_STD_U32LE);
+        H5Tinsert(filetype, "count", 8, H5T_STD_U16LE);
+        H5Tinsert(filetype, "incnt", 10, H5T_STD_U16LE);
     }
-    else if (maxexp > UCHAR_MAX)
+    else
     {
         filetype = H5Tcreate(H5T_COMPOUND, 8 + 2);
         H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
         H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
-        H5Tinsert(filetype, "count", 8, H5T_STD_U16LE);
-    }
-    else
-    {
-        filetype = H5Tcreate(H5T_COMPOUND, 8 + 1);
-        H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
-        H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
-        H5Tinsert(filetype, "count", 8, H5T_STD_U8LE);       
+        H5Tinsert(filetype, "count", 8, H5T_STD_U8LE);
+        H5Tinsert(filetype, "incnt", 9, H5T_STD_U8LE);       
     }
 
     hid_t dataspace_id = H5Screate_simple(rank, dims, nullptr);
@@ -146,34 +150,40 @@ bool BgefWriter::storeDnb(DnbMatrix & dnb_matrix, int binsize){
         memtype = H5Tcreate(H5T_COMPOUND, sizeof(BinStatUS));
         H5Tinsert(memtype, "MIDcount", HOFFSET(BinStatUS, mid_count), H5T_NATIVE_USHORT);
         H5Tinsert(memtype, "genecount", HOFFSET(BinStatUS, gene_count), H5T_NATIVE_USHORT);
+        H5Tinsert(memtype, "incnt", HOFFSET(BinStatUS, incnt), H5T_NATIVE_USHORT);
 
-        filetype = H5Tcreate(H5T_COMPOUND, 4);
+        filetype = H5Tcreate(H5T_COMPOUND, 6);
         H5Tinsert(filetype, "MIDcount", 0, H5T_STD_U16LE);
         H5Tinsert(filetype, "genecount", 2, H5T_STD_U16LE);
+        H5Tinsert(filetype, "incnt", 4, H5T_STD_U16LE);
     }
     else
     {
         memtype = H5Tcreate(H5T_COMPOUND, sizeof(BinStat));
         H5Tinsert(memtype, "MIDcount", HOFFSET(BinStat, mid_count), H5T_NATIVE_UINT);
         H5Tinsert(memtype, "genecount", HOFFSET(BinStat, gene_count), H5T_NATIVE_USHORT);
+        H5Tinsert(memtype, "incnt", HOFFSET(BinStat, incnt), H5T_NATIVE_USHORT);
 
         if (dnb_matrix.dnb_attr.max_mid > USHRT_MAX)
         {
-            filetype = H5Tcreate(H5T_COMPOUND, 6);
+            filetype = H5Tcreate(H5T_COMPOUND, 10);
             H5Tinsert(filetype, "MIDcount", 0, H5T_STD_U32LE);
             H5Tinsert(filetype, "genecount", 4, H5T_STD_U16LE);
+            H5Tinsert(filetype, "incnt", 6, H5T_STD_U32LE);
         }
         else if (dnb_matrix.dnb_attr.max_mid > UCHAR_MAX)
         {
-            filetype = H5Tcreate(H5T_COMPOUND, 4);
+            filetype = H5Tcreate(H5T_COMPOUND, 6);
             H5Tinsert(filetype, "MIDcount", 0, H5T_STD_U16LE);
             H5Tinsert(filetype, "genecount", 2, H5T_STD_U16LE);
+            H5Tinsert(filetype, "incnt", 4, H5T_STD_U16LE);
         }
         else
         {
-            filetype = H5Tcreate(H5T_COMPOUND, 3);
+            filetype = H5Tcreate(H5T_COMPOUND, 4);
             H5Tinsert(filetype, "MIDcount", 0, H5T_STD_U8LE);
             H5Tinsert(filetype, "genecount", 1, H5T_STD_U16LE);
+            H5Tinsert(filetype, "incnt", 3, H5T_STD_U8LE);
         }
     }
 

@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:25
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-26 09:52:16
+ * @LastEditTime: 2022-04-28 14:37:14
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFCELLGEM_H_
@@ -36,6 +36,8 @@ public:
     void celltype();
     void writeCell_celltype();
     void addCellborder(int cx, int cy, vector<char> &vec_border, celldata & cdata);
+
+    void readcellgem_new();
 private:
     unsigned int m_maskcellnum; //从mask文件获取的细胞个数
     unsigned int m_blocknum;

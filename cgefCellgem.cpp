@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-28 09:08:42
+ * @LastEditTime: 2022-04-29 15:35:18
  * @Description: file content
  */
 
@@ -11,6 +11,7 @@
 #include "readCellgemTask.h"
 #include "timer.h"
 #include <functional>
+#include "FileReader.h"
 
 cgefCellgem::cgefCellgem(/* args */)
 {
@@ -154,9 +155,56 @@ void cgefCellgem::readcellgem()
     }
 }
 
+void cgefCellgem::readcellgem_new()
+{
+    timer st(__FUNCTION__);
+
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        readCellgemTask *rtask = new readCellgemTask(4);
+        m_thpoolPtr->addTask(rtask);
+    }
+
+    FileReader freader(cgefParam::GetInstance()->m_cellgemstr);
+    freader.readfile();
+
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        cgefParam::GetInstance()->m_bpPtr->addptr(nullptr);
+    }
+    
+
+    m_thpoolPtr->waitTaskDone();
+
+    printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
+                        cgefParam::GetInstance()->m_map_gene.size());
+    auto itor = cgefParam::GetInstance()->m_map_gene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
+    {
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
+    }
+}
+
 void cgefCellgem::writeFile(CgefWriter *cwptr)
 {
     m_cgefwPtr = cwptr;
+// readmask();
+//     // readxy();
+//     //     printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
+//     //                                 cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
+
+//     long total = 22747;
+//     total *= 25666;
+//     cgefParam::GetInstance()->m_pdata = (char*)calloc(total, 1);
+//     readxy();
+
+//     cv::Mat img(25666, 22747, CV_8UC1, cgefParam::GetInstance()->m_pdata);
+
+//     Mat outimg;
+//     int count = connectedComponentsWithStats(img, outimg, m_stats, m_centroids);
+// printf("%d\n", count);
+//     return;
 
     if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_ADJUST)
     {
@@ -171,6 +219,8 @@ void cgefCellgem::writeFile(CgefWriter *cwptr)
     }
     else if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_LABEL)
     {
+        //readcellgem_new();
+        
         readcellgem();
         printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
                                     cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);

@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-04-01 10:15:19
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-22 16:24:28
+ * @LastEditTime: 2022-04-28 15:59:58
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFUTIL_H_
@@ -11,6 +11,8 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <math.h>
 
 class cgef_cell
 {
@@ -96,8 +98,8 @@ public:
         }
         else
         {
-            sort(m_vecx.begin(), m_vecx.end(), [](int a, int b){return a<b;});
-            sort(m_vecy.begin(), m_vecy.end(), [](int a, int b){return a<b;});
+            std::sort(m_vecx.begin(), m_vecx.end(), [](int a, int b){return a<b;});
+            std::sort(m_vecy.begin(), m_vecy.end(), [](int a, int b){return a<b;});
 
             int pos = ceil( (sz + 1)*1.0 /2 );
             m_centerx = ceil (m_vecx[pos-2]*0.5+m_vecx[pos-1]*0.5) - offx; //中位数

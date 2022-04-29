@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-03-31 14:17:48
+ * @LastEditTime: 2022-04-29 15:35:32
  * @Description: file content
  */
 #include "gef.h"
@@ -26,6 +26,7 @@ hid_t getMemtypeOfGeneExpData() {
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneExpData));
     H5Tinsert(memtype, "cellID", HOFFSET(GeneExpData, cell_id), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "count", HOFFSET(GeneExpData, count), H5T_NATIVE_USHORT);
+    H5Tinsert(memtype, "incnt", HOFFSET(GeneExpData, incnt), H5T_NATIVE_USHORT);
     return memtype;
 }
 
@@ -43,6 +44,7 @@ hid_t getMemtypeOfCellData() {
     H5Tinsert(memtype, "area", HOFFSET(CellData, area), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "clusterID", HOFFSET(CellData, cluster_id), H5T_NATIVE_USHORT);
+    //H5Tinsert(memtype, "incnt", HOFFSET(CellData, incnt), H5T_NATIVE_USHORT);
     return memtype;
 }
 

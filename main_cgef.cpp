@@ -118,6 +118,7 @@ int cgef(int argc, char *argv[]) {
     case 3:
     {
         cgefParam::GetInstance()->m_threadcnt = result["threads"].as<int>();
+        cgefParam::GetInstance()->m_bpPtr = new BufPool(cgefParam::GetInstance()->m_threadcnt*2);
         CgefWriter *pcgef_writer = new CgefWriter(true);
         pcgef_writer->setOutput(opts.output_file);
         pcgef_writer->setRandomCellTypeNum(opts.rand_celltype_num);

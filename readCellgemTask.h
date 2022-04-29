@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-22 15:35:07
+ * @LastEditTime: 2022-04-28 14:38:29
  * @Description: file content
  */
 #ifndef GEFTOOLS_READCELLGEMTASK_H_
@@ -30,6 +30,7 @@ private:
     int getInfo();
     int mergeinfo();
     int getInfo_celltype();
+    int getInfo_celltype_new();
 private:
     int m_type;
     int m_buflen = 0;

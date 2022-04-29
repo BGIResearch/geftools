@@ -29,6 +29,7 @@ struct Expression {
     unsigned int x; ///< dnb coordinates x
     unsigned int y; ///< dnb coordinates x
     unsigned int count; ///< expression count (MIDcount)
+    unsigned int incnt;
 };
 
 
@@ -104,11 +105,13 @@ struct GeneInfo2
 struct BinStat {
     unsigned int mid_count;
     unsigned short gene_count;
+    unsigned short incnt;
 };
 
 struct BinStatUS {
     unsigned short mid_count;
     unsigned short gene_count;
+    unsigned short incnt;
 };
 
 struct DnbAttr {
@@ -151,6 +154,7 @@ struct CellData {
     unsigned short area; ///< The polygon area of this cell
     unsigned short cell_type_id; ///< Cell type ID to index the CellTypeList
     unsigned short cluster_id; ///< Cluster ID, should start from 1
+    //unsigned short incnt;
 };
 
 struct CellAttr {
@@ -206,15 +210,17 @@ struct CellExpData {
 //        geneID = g;
 //        count = c;
 //    }
-    CellExpData(unsigned short id, unsigned short cnt):gene_id(id),count(cnt){}
+    CellExpData(unsigned short id, unsigned short cnt, unsigned short icnt=0):gene_id(id),count(cnt),incnt(icnt){}
     unsigned short gene_id;
     unsigned short count;
+    unsigned short incnt;
 };
 
 struct GeneExpData {
-    GeneExpData(unsigned int id, unsigned short cnt):cell_id(id),count(cnt){}
+    GeneExpData(unsigned int id, unsigned short cnt, unsigned short icnt=0):cell_id(id),count(cnt),incnt(icnt){}
     unsigned int cell_id;
     unsigned short count;
+    unsigned short incnt;
 };
 
 /**
