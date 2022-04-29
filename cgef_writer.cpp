@@ -800,7 +800,7 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
     vector<block> vec_blk;
     vec_blk.emplace_back(0, cnt);
     default_random_engine rand(time(NULL));
-    uniform_int_distribution<int> rand1(0, m_hash_cellid.size());
+    uniform_int_distribution<int> rand1(0, m_hash_cellid.size()-1);
     set<int> set_tmp;
     int idx = 0;
     while (1)
@@ -893,7 +893,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
         vector<int> &blkcellid = vec_vec_cellid[i];
         scnt = blkcellid.size()*cnt/left;
         default_random_engine rand(time(NULL));
-        uniform_int_distribution<int> rand1(0, blkcellid.size());
+        uniform_int_distribution<int> rand1(0, blkcellid.size()-1);
         vec_blk.emplace_back(offset, scnt);
         offset += scnt;
         set<int> set_tmp;
