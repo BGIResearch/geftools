@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-28 14:38:29
+ * @LastEditTime: 2022-05-09 15:16:20
  * @Description: file content
  */
 #ifndef GEFTOOLS_READCELLGEMTASK_H_
@@ -19,20 +19,16 @@
 class readCellgemTask:public ITask
 {
 public:
-    readCellgemTask(int type);
+    readCellgemTask();
     ~readCellgemTask();
     void doTask();
-private:
+protected:
     bool readbuf();
     int cuttail(char *pbuf);
-    int getCellInfo();
-    int mergeCellinfo();
-    int getInfo();
-    int mergeinfo();
-    int getInfo_celltype();
-    int getInfo_celltype_new();
-private:
-    int m_type;
+    virtual int getInfo();
+    virtual int mergeinfo();
+
+protected:
     int m_buflen = 0;
     char *m_pbuf = nullptr;
     unordered_map<int, cgef_cell*> m_map_cell; 
@@ -43,8 +39,53 @@ private:
     static mutex m_mergemtx; //合并锁
 
     int m_min_x = INT_MAX, m_min_y = INT_MAX, m_max_x = 0, m_max_y = 0;
-    std::stringstream m_sstr;
-    double t1 = 0.0, t2 = 0.0;
 };
+
+//geneID  xPos    yPos    UMICount 
+class readCellgemTask_raw:public readCellgemTask
+{
+public:
+    readCellgemTask_raw(){};
+    ~readCellgemTask_raw(){};
+    int getInfo();
+    int mergeinfo();
+private:
+    unordered_map<string, bgef_gene*> m_map_bgene;
+};
+
+//geneID  x       y       UMICount        label   tag(adjust/raw)
+//Hnrnpdl 19414   15299   1       39054.0 adjust
+class readCellgemTask_tag:public readCellgemTask
+{
+public:
+    readCellgemTask_tag(){};
+    ~readCellgemTask_tag(){};
+    int getInfo();
+    //int mergeinfo();
+};
+
+//geneID  xPos    yPos    UMICount        cellN   areaID
+//NOC2L   30632   35146   2       15324   L-F1-l3
+class readCellgemTask_areaID:public readCellgemTask
+{
+public:
+    readCellgemTask_areaID(){};
+    ~readCellgemTask_areaID(){};
+    int getInfo();
+    //int mergeinfo();
+};
+
+//geneID  x       y       MIDCount        cell
+//Cr2     15653   20188   1       113231
+class readCellgemTask_cell:public readCellgemTask
+{
+public:
+    readCellgemTask_cell(){};
+    ~readCellgemTask_cell(){};
+    int getInfo();
+    //int mergeinfo();
+};
+
+
 
 #endif

@@ -105,20 +105,19 @@ int cgef(int argc, char *argv[]) {
     cgefParam::GetInstance()->m_block_size[0] = opts.block_size[0];
     cgefParam::GetInstance()->m_block_size[1] = opts.block_size[1];
     cgefParam::GetInstance()->m_intype = (InputType)patch;
-    switch (patch)
+
+    if(patch == 0)
     {
-    case 0:
         generateCgef(opts.output_file, opts.input_file, opts.mask_file, opts.block_size,canvas_size,limit_blk,
                     opts.rand_celltype_num, allocat, opts.cellnum, opts.ratio, opts.verbose);
-        break;
-    case 1:
-        break;
-    case 2:
-        cgefParam::GetInstance()->m_rawgemstr = result["gem"].as<string>();
-    case 3:
+    }
+    else
     {
+        if (result.count("gem") != 1)
+        {
+            cgefParam::GetInstance()->m_rawgemstr = result["gem"].as<string>();
+        }
         cgefParam::GetInstance()->m_threadcnt = result["threads"].as<int>();
-        cgefParam::GetInstance()->m_bpPtr = new BufPool(cgefParam::GetInstance()->m_threadcnt*2);
         CgefWriter *pcgef_writer = new CgefWriter(true);
         pcgef_writer->setOutput(opts.output_file);
         pcgef_writer->setRandomCellTypeNum(opts.rand_celltype_num);
@@ -128,10 +127,6 @@ int cgef(int argc, char *argv[]) {
 
         //pcgef_writer->addLevel(allocat, opts.cellnum, opts.ratio, canvas_size, limit_blk);
         delete pcgef_writer;
-    }
-        break;
-    default:
-        break;
     }
 
     return 0;

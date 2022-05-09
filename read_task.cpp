@@ -98,7 +98,7 @@ int ReadTask::getGeneInfo()
     //     i+=20;
     // }
     std::string geneid;
-    Expression expression{};
+    Expression expression{0,0,0};
     for(;i<m_buflen;i++)
     {
         if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')

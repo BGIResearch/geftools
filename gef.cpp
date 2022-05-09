@@ -26,7 +26,7 @@ hid_t getMemtypeOfGeneExpData() {
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneExpData));
     H5Tinsert(memtype, "cellID", HOFFSET(GeneExpData, cell_id), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "count", HOFFSET(GeneExpData, count), H5T_NATIVE_USHORT);
-    H5Tinsert(memtype, "incnt", HOFFSET(GeneExpData, incnt), H5T_NATIVE_USHORT);
+    //H5Tinsert(memtype, "incnt", HOFFSET(GeneExpData, incnt), H5T_NATIVE_USHORT);
     return memtype;
 }
 
@@ -45,6 +45,7 @@ hid_t getMemtypeOfCellData() {
     H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "clusterID", HOFFSET(CellData, cluster_id), H5T_NATIVE_USHORT);
     //H5Tinsert(memtype, "incnt", HOFFSET(CellData, incnt), H5T_NATIVE_USHORT);
+    
     return memtype;
 }
 

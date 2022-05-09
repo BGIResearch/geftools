@@ -26,10 +26,11 @@ union Coordinate {
  * @brief Expression struct
  */
 struct Expression {
+    Expression(unsigned int x, unsigned int y, unsigned int count):
+    x(x),y(y),count(count){};
     unsigned int x; ///< dnb coordinates x
     unsigned int y; ///< dnb coordinates x
     unsigned int count; ///< expression count (MIDcount)
-    unsigned int incnt;
 };
 
 
@@ -105,13 +106,13 @@ struct GeneInfo2
 struct BinStat {
     unsigned int mid_count;
     unsigned short gene_count;
-    unsigned short incnt;
+    //unsigned short incnt;
 };
 
 struct BinStatUS {
     unsigned short mid_count;
     unsigned short gene_count;
-    unsigned short incnt;
+    //unsigned short incnt;
 };
 
 struct DnbAttr {
@@ -210,17 +211,15 @@ struct CellExpData {
 //        geneID = g;
 //        count = c;
 //    }
-    CellExpData(unsigned short id, unsigned short cnt, unsigned short icnt=0):gene_id(id),count(cnt),incnt(icnt){}
+    CellExpData(unsigned short id, unsigned short cnt):gene_id(id),count(cnt){}
     unsigned short gene_id;
     unsigned short count;
-    unsigned short incnt;
 };
 
 struct GeneExpData {
-    GeneExpData(unsigned int id, unsigned short cnt, unsigned short icnt=0):cell_id(id),count(cnt),incnt(icnt){}
+    GeneExpData(unsigned int id, unsigned short cnt):cell_id(id),count(cnt){}
     unsigned int cell_id;
     unsigned short count;
-    unsigned short incnt;
 };
 
 /**

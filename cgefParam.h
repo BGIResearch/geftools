@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:56:17
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-29 13:53:51
+ * @LastEditTime: 2022-05-09 10:31:03
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFPARAM_H_
@@ -18,9 +18,10 @@
 enum InputType
 {
     INPUTTYPE_BGEF = 0,
-    INPUTTYPE_GEM,
-    INPUTTYPE_GEM_ADJUST,
-    INPUTTYPE_GEM_LABEL
+    INPUTTYPE_GEM_MASK,
+    INPUTTYPE_GEM_TAGMASK,
+    INPUTTYPE_GEM_AREAID,
+    INPUTTYPE_GEM_CELL
 };
 
 class cgefParam
@@ -44,6 +45,9 @@ public:
     InputType m_intype = INPUTTYPE_BGEF;
     BufPool *m_bpPtr = nullptr;
     char *m_pdata = nullptr;
+
+    unordered_map<string, bgef_gene*> m_map_bgene;
+    uint32_t m_minExp = UINT_MAX, m_maxExp = 0, m_minCell = UINT_MAX, m_maxCell = 0, m_maxExp_gexp = 0;
 private:
     cgefParam(/* args */){};
     ~cgefParam(){};

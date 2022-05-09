@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:37
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-29 14:00:17
+ * @LastEditTime: 2022-05-09 15:10:50
  * @Description: file content
  */
 
@@ -14,7 +14,7 @@ string readCellgemTask::m_leftstr;
 mutex readCellgemTask::m_readmtx;
 mutex readCellgemTask::m_mergemtx;
 
-readCellgemTask::readCellgemTask(int type):m_type(type)
+readCellgemTask::readCellgemTask()
 {
     m_pbuf = new char[READLEN];
 }
@@ -27,54 +27,14 @@ readCellgemTask::~readCellgemTask()
 void readCellgemTask::doTask()
 {
     bool brun = true;
+    while (brun)
+    {
+        brun = readbuf();
+        getInfo();
+    }
 
-    switch (m_type)
-    {
-    case 1: //geneID  x       y       UMICount        label   tag
-    {
-        while (brun)
-        {
-            brun = readbuf();
-            getCellInfo();
-        }
-
-        mergeCellinfo();
-    }
-        break;
-    case 2: //geneID  x       y       MIDCount
-    {
-        while (brun)
-        {
-            brun = readbuf();
-            getInfo();
-        }
-
-        mergeinfo();
-    }
-        break;
-    case 3: //geneID  xPos    yPos    UMICount        cellN   areaID
-    {
-        while (brun)
-        {
-            brun = readbuf();
-            getInfo_celltype();
-        }
-
-        mergeCellinfo();
-    }
-        break;
-    case 4:
-    {
-        while (brun)
-        {
-            brun = getInfo_celltype_new();
-        }
-        mergeCellinfo();
-    }
-    break;
-    default:
-        break;
-    }
+    mergeinfo();
+    printf("read task end\n");
 }
 
 bool readCellgemTask::readbuf()
@@ -118,12 +78,100 @@ int readCellgemTask::cuttail(char *pbuf)
     return 0;
 }
 
-int readCellgemTask::getCellInfo()
+
+
+int readCellgemTask::mergeinfo()
 {
-    int i = 0, k = 0, celllabel=0;
+    lock_guard<mutex> lock(m_mergemtx);
+
+    auto itor = m_map_cell.begin();
+    auto &tmap_cell = cgefParam::GetInstance()->m_map_cell;
+    for(;itor!=m_map_cell.end();itor++)
+    {
+        if(tmap_cell.find(itor->first) != tmap_cell.end())
+        {
+            tmap_cell[itor->first]->merge(*(itor->second));
+            delete itor->second;
+        }
+        else
+        {
+            tmap_cell.emplace(itor->first, itor->second);
+        }
+    }
+
+    auto itor_g = m_map_gene.begin();
+    auto &tmp_gene = cgefParam::GetInstance()->m_map_gene;
+    for(;itor_g!=m_map_gene.end();itor_g++)
+    {
+        if(tmp_gene.find(itor_g->first) != tmp_gene.end())
+        {
+            tmp_gene[itor_g->first]->merge(*(itor_g->second));
+            delete itor_g->second;
+        }
+        else
+        {
+            tmp_gene.emplace(itor_g->first, itor_g->second);
+        }
+    }
+
+
+    cgefParam::GetInstance()->m_min_x = std::min(cgefParam::GetInstance()->m_min_x, m_min_x);
+    cgefParam::GetInstance()->m_max_x = std::max(cgefParam::GetInstance()->m_max_x, m_max_x);
+    cgefParam::GetInstance()->m_min_y = std::min(cgefParam::GetInstance()->m_min_y, m_min_y);
+    cgefParam::GetInstance()->m_max_y = std::max(cgefParam::GetInstance()->m_max_y, m_max_y);
+
+    return 0;
+}
+
+int readCellgemTask::getInfo()
+{
+    int i = 0, k = 0;
     char *ptr = m_pbuf;
 
-    //char gname[64]={0};
+    int len = 0, x = 0, y=0, umi=0;
+    for(;i<m_buflen;i++)
+    {
+        if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')
+        {
+            switch (k)
+            {
+            case 0:
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 1:
+                x = atoi(ptr);
+                m_min_x = std::min(m_min_x, x);
+                m_max_x = std::max(m_max_x, x);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 2:
+                y = atoi(ptr);
+                m_min_y = std::min(m_min_y, y);
+                m_max_y = std::max(m_max_y, y);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 3:
+                k=0;
+                ptr = &m_pbuf[i+1];
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+
+/////////////////////////////////
+int readCellgemTask_raw::getInfo()
+{
+    int i = 0, k = 0;
+    char *ptr = m_pbuf;
+
     string gname;
     int len = 0, x = 0, y=0, umi=0;
     for(;i<m_buflen;i++)
@@ -136,18 +184,93 @@ int readCellgemTask::getCellInfo()
                 len = &m_pbuf[i]-ptr;
                 gname.clear();
                 gname.append(ptr, len);
-                // memcpy(gname, ptr, len);
-                // gname[len]='\0';
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
             case 1:
-                //x = atoi(ptr);
+                x = atoi(ptr);
+                m_min_x = std::min(m_min_x, x);
+                m_max_x = std::max(m_max_x, x);
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
             case 2:
-                //y = atoi(ptr);
+                y = atoi(ptr);
+                m_min_y = std::min(m_min_y, y);
+                m_max_y = std::max(m_max_y, y);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 3:
+                k=0;
+                ptr = &m_pbuf[i+1];
+                if(m_map_bgene.find(gname) == m_map_bgene.end())
+                {
+                    bgef_gene *gptr = new bgef_gene();
+                    m_map_bgene.emplace(gname, gptr);
+                }
+                m_map_bgene[gname]->add(x,y,umi);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    return m_map_bgene.size();
+}
+
+int readCellgemTask_raw::mergeinfo()
+{
+    lock_guard<mutex> lock(m_mergemtx);
+
+    cgefParam::GetInstance()->m_min_x = std::min(cgefParam::GetInstance()->m_min_x, m_min_x);
+    cgefParam::GetInstance()->m_min_y = std::min(cgefParam::GetInstance()->m_min_y, m_min_y);
+    cgefParam::GetInstance()->m_max_x = std::max(cgefParam::GetInstance()->m_max_x, m_max_x);
+    cgefParam::GetInstance()->m_max_y = std::max(cgefParam::GetInstance()->m_max_y, m_max_y);
+
+    auto itor_g = m_map_bgene.begin();
+    auto &tmp_gene = cgefParam::GetInstance()->m_map_bgene;
+    for(;itor_g!=m_map_bgene.end();itor_g++)
+    {
+        if(tmp_gene.find(itor_g->first) != tmp_gene.end())
+        {
+            tmp_gene[itor_g->first]->merge(*(itor_g->second));
+            delete itor_g->second;
+        }
+        else
+        {
+            tmp_gene.emplace(itor_g->first, itor_g->second);
+        }
+    }
+    return 0;
+}
+
+////////////////
+int readCellgemTask_tag::getInfo()
+{
+    int i = 0, k = 0, celllabel=0;
+    char *ptr = m_pbuf;
+
+    string gname;
+    int len = 0, x = 0, y=0, umi=0;
+    for(;i<m_buflen;i++)
+    {
+        if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')
+        {
+            switch (k)
+            {
+            case 0:
+                len = &m_pbuf[i]-ptr;
+                gname.clear();
+                gname.append(ptr, len);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 1:
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 2:
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
@@ -187,104 +310,8 @@ int readCellgemTask::getCellInfo()
     return m_map_cell.size();
 }
 
-int readCellgemTask::mergeCellinfo()
-{
-    lock_guard<mutex> lock(m_mergemtx);
-
-    // auto itor = m_map_cell.begin();
-    // auto &tmap_cell = cgefParam::GetInstance()->m_map_cell;
-    // for(;itor!=m_map_cell.end();itor++)
-    // {
-    //     if(tmap_cell.find(itor->first) != tmap_cell.end())
-    //     {
-    //         tmap_cell[itor->first]->merge(*(itor->second));
-    //         delete itor->second;
-    //     }
-    //     else
-    //     {
-    //         tmap_cell.emplace(itor->first, itor->second);
-    //     }
-    // }
-
-    // auto itor_g = m_map_gene.begin();
-    // auto &tmp_gene = cgefParam::GetInstance()->m_map_gene;
-    // for(;itor_g!=m_map_gene.end();itor_g++)
-    // {
-    //     if(tmp_gene.find(itor_g->first) != tmp_gene.end())
-    //     {
-    //         tmp_gene[itor_g->first]->merge(*(itor_g->second));
-    //         delete itor_g->second;
-    //     }
-    //     else
-    //     {
-    //         tmp_gene.emplace(itor_g->first, itor_g->second);
-    //     }
-    // }
-
-    //if(m_type == 3)
-    {
-        cgefParam::GetInstance()->m_min_x = std::min(cgefParam::GetInstance()->m_min_x, m_min_x);
-        cgefParam::GetInstance()->m_max_x = std::max(cgefParam::GetInstance()->m_max_x, m_max_x);
-        cgefParam::GetInstance()->m_min_y = std::min(cgefParam::GetInstance()->m_min_y, m_min_y);
-        cgefParam::GetInstance()->m_max_y = std::max(cgefParam::GetInstance()->m_max_y, m_max_y);
-    }
-
-    return 0;
-}
-
-///////////////////////
-int readCellgemTask::getInfo()
-{
-    int i = 0, k = 0, celllabel=0;
-    char *ptr = m_pbuf;
-
-    int len = 0, x = 0, y=0, umi=0;
-    for(;i<m_buflen;i++)
-    {
-        if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')
-        {
-            switch (k)
-            {
-            case 0:
-                k++;
-                ptr = &m_pbuf[i+1];
-                break;
-            case 1:
-                x = atoi(ptr);
-                m_min_x = std::min(m_min_x, x);
-                m_max_x = std::max(m_max_x, x);
-                k++;
-                ptr = &m_pbuf[i+1];
-                break;
-            case 2:
-                y = atoi(ptr);
-                m_min_y = std::min(m_min_y, y);
-                m_max_y = std::max(m_max_y, y);
-                k++;
-                ptr = &m_pbuf[i+1];
-                break;
-            case 3:
-                k++;
-                cgefParam::GetInstance()->m_pdata[y*22747+x] = 1;
-                ptr = &m_pbuf[i+1];
-                break;
-            default:
-                break;
-            }
-        }
-    }
-}
-
-int readCellgemTask::mergeinfo()
-{
-    lock_guard<mutex> lock(m_mergemtx);
-    cgefParam::GetInstance()->m_min_x = std::min(cgefParam::GetInstance()->m_min_x, m_min_x);
-    cgefParam::GetInstance()->m_min_y = std::min(cgefParam::GetInstance()->m_min_y, m_min_y);
-    cgefParam::GetInstance()->m_max_x = std::max(cgefParam::GetInstance()->m_max_x, m_max_x);
-    cgefParam::GetInstance()->m_max_y = std::max(cgefParam::GetInstance()->m_max_y, m_max_y);
-}
-
-int readCellgemTask::getInfo_celltype()
+////////////////////
+int readCellgemTask_areaID::getInfo()
 {
     int i = 0, k = 0, celllabel=0;
     char *ptr = m_pbuf;
@@ -357,72 +384,64 @@ int readCellgemTask::getInfo_celltype()
     return m_map_cell.size();
 }
 
-
-int readCellgemTask::getInfo_celltype_new()
+/////////////////////////////
+int readCellgemTask_cell::getInfo()
 {
-    Membuf *mptr = cgefParam::GetInstance()->m_bpPtr->getptr();
-    if(mptr == nullptr) return 0;
     int i = 0, k = 0, celllabel=0;
-    char *ptr = mptr->m_buf;
+    char *ptr = m_pbuf;
 
     string gname;
     int len = 0, x = 0, y=0, umi=0;
-    for(;i<mptr->m_len;i++)
+    for(;i<m_buflen;i++)
     {
-        if(mptr->m_buf[i] == '\t' || mptr->m_buf[i] == '\n')
+        if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')
         {
             switch (k)
             {
             case 0:
-                len = mptr->m_buf+i-ptr;
+                len = &m_pbuf[i]-ptr;
                 gname.clear();
                 gname.append(ptr, len);
                 k++;
-                ptr = mptr->m_buf+i+1;
+                ptr = &m_pbuf[i+1];
                 break;
             case 1:
                 x = atoi(ptr);
                 m_min_x = std::min(m_min_x, x);
                 m_max_x = std::max(m_max_x, x);
                 k++;
-                ptr = mptr->m_buf+i+1;
+                ptr = &m_pbuf[i+1];
                 break;
             case 2:
                 y = atoi(ptr);
                 m_min_y = std::min(m_min_y, y);
                 m_max_y = std::max(m_max_y, y);
                 k++;
-                ptr = mptr->m_buf+i+1;
+                ptr = &m_pbuf[i+1];
                 break;
             case 3:
                 umi = atoi(ptr);
                 k++;
-                ptr = mptr->m_buf+i+1;
+                ptr = &m_pbuf[i+1];
                 break;
             case 4:
-                celllabel = atoi(ptr);
-                k++;
-                ptr = mptr->m_buf+i+1;;
-                break;
-            case 5:
                 k = 0;
-                if(celllabel > 0 && (memcmp(ptr,"NA",2)!=0) )
-                {
-                    if(m_map_cell.find(celllabel) == m_map_cell.end())
-                    {
-                        cgef_cell *cptr = new cgef_cell(celllabel, ptr, mptr->m_buf+i-ptr);
-                        m_map_cell.emplace(celllabel, cptr);
-                    }
-                    m_map_cell[celllabel]->add(gname,umi, x, y);
+                celllabel = atoi(ptr);
+                ptr = &m_pbuf[i+1];
 
-                    if(m_map_gene.find(gname) == m_map_gene.end())
-                    {
-                        cgef_gene *gptr = new cgef_gene();
-                        m_map_gene.emplace(gname, gptr);
-                    }
-                    m_map_gene[gname]->add(celllabel, umi);
+                if(m_map_cell.find(celllabel) == m_map_cell.end())
+                {
+                    cgef_cell *cptr = new cgef_cell(celllabel);
+                    m_map_cell.emplace(celllabel, cptr);
                 }
-                ptr = mptr->m_buf+i+1;;
+                m_map_cell[celllabel]->add(gname,umi, x, y);
+
+                if(m_map_gene.find(gname) == m_map_gene.end())
+                {
+                    cgef_gene *gptr = new cgef_gene();
+                    m_map_gene.emplace(gname, gptr);
+                }
+                m_map_gene[gname]->add(celllabel, umi);
                 break;
             default:
                 break;
@@ -430,6 +449,5 @@ int readCellgemTask::getInfo_celltype_new()
         }
     }
 
-    delete mptr;
     return m_map_cell.size();
 }
