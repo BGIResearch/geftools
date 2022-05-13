@@ -7,6 +7,7 @@
 #include "bin_task.h"
 #include "dnb_merge_task.h"
 #include "getdataTask.h"
+#include "getBgefExpTask.h"
 
 #define FILE_HEADER "#FileFormat=GEMv%d.%d\n" \
 "#SortedBy=None\n" \
@@ -272,41 +273,113 @@ ExpressionAttr &BgefReader::getExpressionAttr() {
     return expression_attr_;
 }
 
-vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count){
-    unsigned long cprev=clock();
+// vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count){
+//     unsigned long cprev=clock();
+//     unsigned long long uniq_cell_id;
+//     Expression* expData = getExpression();
+
+//     vector<unsigned long long> uniq_cells;
+//     unsigned int index = 0;
+
+//     int absent, is_missing;
+//     khint_t k;
+//     khash_t(m64) *h = kh_init(m64);  // allocate a hash table
+
+//     for (int i = 0; i < expression_num_; ++i) {
+//         uniq_cell_id = expData[i].x;
+//         uniq_cell_id = uniq_cell_id << 32 | expData[i].y;
+
+//         k = kh_get(m64, h, uniq_cell_id);
+//         is_missing = (k == kh_end(h));
+//         if (!is_missing){
+//             cell_ind[i] = kh_value(h, k);
+//         }else {
+//             cell_ind[i] = index;
+//             uniq_cells.push_back(uniq_cell_id);
+//             k = kh_put(m64, h, uniq_cell_id, &absent);  // insert a key to the hash table
+//             kh_value(h, k) = index;
+//             ++index;
+//         }
+
+//         count[i] = expData[i].count;
+//     }
+
+//     cell_num_ = index;
+//     kh_destroy(m64, h);
+//     if(verbose_) printCpuTime(cprev, "getSparseMatrixIndicesOfExp");
+//     return uniq_cells;
+// }
+
+// vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count)
+// {
+//     unsigned long long uniq_cell_id;
+//     Expression* expData = getExpression();
+
+//     vector<unsigned long long> uniq_cells;
+//     uniq_cells.reserve(expression_num_/2);
+//     uint32_t index = 0;
+
+//     std::unordered_map<unsigned long long, uint32_t> hash_map;
+//     for(uint32_t i=0;i<expression_num_;i++)
+//     {
+//         uniq_cell_id = expData[i].x;
+//         uniq_cell_id = (uniq_cell_id << 32) | expData[i].y;
+
+//         if(hash_map.find(uniq_cell_id) != hash_map.end())
+//         {
+//             cell_ind[i] = hash_map[uniq_cell_id];
+//         }
+//         else
+//         {
+//             cell_ind[i] = index;
+//             uniq_cells.emplace_back(uniq_cell_id);
+//             hash_map.emplace(uniq_cell_id, index++);
+//         }
+//         count[i] = expData[i].count;
+//     }
+
+//     cell_num_ = index;
+//     return uniq_cells;
+// }
+
+void BgefReader::getSparseMatrixIndicesOfExp(vector<unsigned long long> &uniq_cells, unsigned int * cell_ind, unsigned int * pcount)
+{
     unsigned long long uniq_cell_id;
     Expression* expData = getExpression();
 
-    vector<unsigned long long> uniq_cells;
-    unsigned int index = 0;
-
-    int absent, is_missing;
-    khint_t k;
-    khash_t(m64) *h = kh_init(m64);  // allocate a hash table
-
-    for (int i = 0; i < expression_num_; ++i) {
-        uniq_cell_id = expData[i].x;
-        uniq_cell_id = uniq_cell_id << 32 | expData[i].y;
-
-        k = kh_get(m64, h, uniq_cell_id);
-        is_missing = (k == kh_end(h));
-        if (!is_missing){
-            cell_ind[i] = kh_value(h, k);
-        }else {
-            cell_ind[i] = index;
-            uniq_cells.push_back(uniq_cell_id);
-            k = kh_put(m64, h, uniq_cell_id, &absent);  // insert a key to the hash table
-            kh_value(h, k) = index;
-            ++index;
+    uint32_t index = 0;
+    unsigned long long *pcellid = new unsigned long long[expression_num_];
+    ThreadPool thpool(n_thread_);
+    uint32_t count = expression_num_/n_thread_;
+    for(int i=0;i<n_thread_;i++)
+    {
+        Expression* pdata_tmp = expData + i*count;
+        unsigned int *pcount_tmp = pcount + i*count;
+        unsigned long long *pcellid_tmp = pcellid + i*count;
+        if(i == n_thread_-1)
+        {
+            count = expression_num_ - (n_thread_-1)*count;
         }
-
-        count[i] = expData[i].count;
+        getBgefExpTask *ptask = new getBgefExpTask(count, pdata_tmp, pcount_tmp, pcellid_tmp);
+        thpool.addTask(ptask);
     }
+    thpool.waitTaskDone();
 
-    cell_num_ = index;
-    kh_destroy(m64, h);
-    if(verbose_) printCpuTime(cprev, "getSparseMatrixIndicesOfExp");
-    return uniq_cells;
+    std::unordered_map<unsigned long long, uint32_t> hash_map;
+    for(uint32_t i=0;i<expression_num_;i++)
+    {
+        if(hash_map.find(pcellid[i]) != hash_map.end())
+        {
+            cell_ind[i] = hash_map[pcellid[i]];
+        }
+        else
+        {
+            cell_ind[i] = index;
+            uniq_cells.emplace_back(pcellid[i]);
+            hash_map.emplace(pcellid[i], index++);
+        }
+    }
+    delete pcellid;
 }
 
 vector<string> BgefReader::getSparseMatrixIndicesOfGene(unsigned int *gene_index) {
@@ -918,6 +991,16 @@ void BgefReader::getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsig
     }
 
     printCpuTime(cprev, "getGeneExpInRegion");
+}
+
+void BgefReader::getOffset(int *data)
+{
+    if(data)
+    {
+        ExpressionAttr & expression_attr = getExpressionAttr();
+        data[0] = expression_attr.min_x;
+        data[1] = expression_attr.min_y;
+    }
 }
 
 void BgefReader::getExpAttr(int *data)

@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-05-12 15:04:09
+ * @Description: file content
+ */
 /** @file mask.h
     @brief Declare a Mask class to describe mask file info.
 
@@ -57,7 +64,7 @@ class Mask {
      *
      * @param border_array A pointer to a memory block, size = cell_num * BORDERCNT * 2 *sizeof(char)
      */
-    void getBorders(char * border_array);
+    void getBorders(short * border_array);
 
     void getEffectiveRectangle(unsigned int* effective_rect) const;
 

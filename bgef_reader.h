@@ -127,7 +127,8 @@ class BgefReader {
      * @param count
      * @deprecated For special reasons, this function may be removed in future versions
      */
-    vector<unsigned long long int> getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count);
+    //vector<unsigned long long int> getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count);
+    void getSparseMatrixIndicesOfExp(vector<unsigned long long> &uniq_cells, unsigned int * cell_ind, unsigned int * count);
 
     /**
      * @brief Gets indices of gene for building csr_matrix.
@@ -193,6 +194,7 @@ class BgefReader {
 
     void getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsigned int max_x, unsigned int max_y, std::string &strgene, vector<Expression> &outExp);
 
+    void getOffset(int *data);
     void getExpAttr(int *data);
 };
 

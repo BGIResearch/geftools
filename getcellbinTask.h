@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-05-05 17:30:29
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-09 15:18:34
+ * @LastEditTime: 2022-05-10 15:32:54
  * @Description: file content
  */
 #ifndef GEFTOOL_GETCELLBINTASK_H
@@ -17,13 +17,6 @@
 #include "cgefParam.h"
 #include "opencv2/opencv.hpp"
 using namespace cv;
-
-struct cellt
-{
-    uint16_t expcnt;
-    uint16_t dnbcnt;
-};
-
 
 class getcellbinTask:public ITask
 {
@@ -45,34 +38,24 @@ public:
     void doTask()
     {
         uint32_t cid = 0, cell_label = 0;
-        std::map<uint32_t, cellt> map_cell;//cid cellt
+        std::map<uint32_t, std::vector<Expression*>> map_cell;
         for(Expression &exp : m_gptr->m_vecExp)
         {
             cell_label = m_outimg.at<uint32_t>(exp.x-cgefParam::GetInstance()->m_min_x, exp.y-cgefParam::GetInstance()->m_min_y);
             if(cell_label)
             {
                 cid = m_map_clabel2cid[cell_label];
-                if(map_cell.find(cid) != map_cell.end())
-                {
-                    map_cell[cid].dnbcnt++;
-                    map_cell[cid].expcnt+=exp.count;
-                }
-                else
-                {
-                    cellt ct{exp.count, 1};
-                    map_cell.emplace(cid, ct);
-                }
+                map_cell[cid].emplace_back(&exp);
 
                 m_expsum += exp.count;
                 m_maxExp = std::max(m_maxExp, exp.count);
             }
-
         }
 
         addGeneArry(map_cell);
     }
 
-    void addGeneArry(std::map<uint32_t, cellt> &map_cell)
+    void addGeneArry(std::map<uint32_t, std::vector<Expression*>> &map_cell)
     {
         lock_guard<mutex> lock(m_mutex_gene);
         memcpy(m_gdptr[m_gid].gene_name, m_gene.c_str(), m_gene.length());

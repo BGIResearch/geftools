@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-09 15:16:20
+ * @LastEditTime: 2022-05-12 13:45:33
  * @Description: file content
  */
 #ifndef GEFTOOLS_READCELLGEMTASK_H_
@@ -84,6 +84,17 @@ public:
     ~readCellgemTask_cell(){};
     int getInfo();
     //int mergeinfo();
+};
+
+
+//geneID  x       y       MIDCount        label
+//Cr1l    69740   110213  1       20756
+class readCellgemTask_labelmask:public readCellgemTask
+{
+public:
+    readCellgemTask_labelmask(){};
+    ~readCellgemTask_labelmask(){};
+    int getInfo();
 };
 
 

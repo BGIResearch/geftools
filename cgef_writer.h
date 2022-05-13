@@ -54,8 +54,8 @@ class CgefWriter {
     void storeAttr(CellBinAttr& cell_attr) const;
     void storeCell(unsigned int block_num, unsigned int *block_index, const unsigned int * block_size);
     void storeCellExp();
-    void storeCellBorder(char* borderPath, unsigned int cell_num) const;
-    void storeCellBorderWithAttr(char* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
+    void storeCellBorder(short* borderPath, unsigned int cell_num) const;
+    void storeCellBorderWithAttr(short* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
     void storeCellTypeList();
     void storeCellTypeList_N();
 
@@ -87,12 +87,11 @@ class CgefWriter {
     void getblkcelldata_bottom(int lev);
     void getblkcelldata(int lev, int cnt);
     void createBlktype();
-    void writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid);
+    void writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid, vector<int> &vec_blk_idx);
     void openCellDataset();
 
-    void storeBlkidx(unsigned int block_num, unsigned int * block_index);
+    void storeBlkidx(unsigned int block_num, unsigned int * block_index, const unsigned int *block_size);
     void storeCellLabel(vector<unsigned int> &vecdata);
-
   public:
     hid_t file_id_;
     hid_t group_id_;
@@ -103,7 +102,7 @@ class CgefWriter {
     vector<CellData> cell_list_;
     vector<CellExpData> cell_exp_list_;
     vector<S32> cell_type_list_;
-    char *m_borderptr = nullptr;
+    short *m_borderptr = nullptr;
     int m_x_len = 0;
     int m_y_len = 0;
     unordered_set<int> m_hash_cellid;

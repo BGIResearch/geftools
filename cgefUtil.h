@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-04-01 10:15:19
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-07 17:34:53
+ * @LastEditTime: 2022-05-13 15:04:05
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFUTIL_H_
@@ -46,9 +46,9 @@ public:
 
     bool add(std::string &gene, unsigned short umi, int x, int y)
     {
+        m_vecPoint.emplace_back(x,y);
         dnbcnt++;
         expcnt+=umi;
-        m_vecPoint.emplace_back(x,y);
 
         if(m_map_cellexp.find(gene) != m_map_cellexp.end())
         {
@@ -81,38 +81,43 @@ public:
 
         if(m_bsort)
         {
-            // m_vecx.insert(m_vecx.end(), cell.m_vecx.begin(), cell.m_vecx.end());
-            // m_vecy.insert(m_vecy.end(), cell.m_vecy.begin(), cell.m_vecy.end());
             m_vecPoint.insert(m_vecPoint.end(), cell.m_vecPoint.begin(), cell.m_vecPoint.end());
         }
         return true;
     }
 
-    bool getCenter(unsigned int *block_size, int offx, int offy)
+    bool getCenter_median(unsigned int *block_size, int offx, int offy) //中位数
+    {
+        int sz = m_vecPoint.size();
+        if(sz<3) return false;
+
+        vector<int> vecx; vecx.reserve(sz);
+        vector<int> vecy; vecy.reserve(sz);
+        for(Point &pt : m_vecPoint)
+        {
+            vecx.emplace_back(pt.x);
+            vecy.emplace_back(pt.y);
+        }
+
+        std::sort(vecx.begin(), vecx.end(), [](int a, int b){return a<b;});
+        std::sort(vecy.begin(), vecy.end(), [](int a, int b){return a<b;});
+
+        int pos = ceil( (sz + 1)*1.0 /2 );
+        m_center.x = ceil (vecx[pos-2]*0.5+vecx[pos-1]*0.5) - offx;
+        m_center.y = ceil (vecy[pos-2]*0.5+vecy[pos-1]*0.5) - offy;
+        
+        m_blkid = m_center.x/block_size[0] + (m_center.y/block_size[1])*block_size[2];
+        assert(m_blkid < block_size[2] * block_size[3]);
+        return true;
+    }
+
+    bool getCenter_border(unsigned int *block_size)//凸多边形
     {
         if(m_vecPoint.size() <3) return false;
         vector<Point> tmp, hull;
         convexHull(m_vecPoint, hull, true);
         m_vecPoint.swap(tmp);
         int sz = hull.size();
-        // if(sz < 2)
-        // {
-        //     m_centerx = m_vecx[0] - offx;
-        //     m_centery = m_vecy[0] - offy;
-        // }
-        // else
-        // {
-        //     std::sort(m_vecx.begin(), m_vecx.end(), [](int a, int b){return a<b;});
-        //     std::sort(m_vecy.begin(), m_vecy.end(), [](int a, int b){return a<b;});
-
-        //     int pos = ceil( (sz + 1)*1.0 /2 );
-        //     m_centerx = ceil (m_vecx[pos-2]*0.5+m_vecx[pos-1]*0.5) - offx; //中位数
-        //     m_centery = ceil (m_vecy[pos-2]*0.5+m_vecy[pos-1]*0.5) - offy;
-
-        //     vector<int> tmp1,tmp2;
-        //     m_vecx.swap(tmp1);
-        //     m_vecy.swap(tmp2);
-        // }
         if(sz <= 2)
         {
             return false;
@@ -142,7 +147,7 @@ public:
     }
 
 public:
-    bool m_bsort = true;
+    bool m_bsort = false;
     Point m_center;
     vector<Point> m_vecPoint;
     vector<Point> m_border;
@@ -151,7 +156,7 @@ public:
     unsigned short expcnt = 0; //细胞umi之和
     unsigned short dnbcnt = 0; //细胞所有坐标点个数 >= gene个数
     char m_type[32]={0};
-    double m_area;
+    uint16_t m_area = 0;
     std::map<std::string, unsigned short> m_map_cellexp;//包含的基因情况
 };
 
@@ -216,18 +221,31 @@ public:
 class bgef_cell
 {
 public:
-    bgef_cell(){};
+    bgef_cell(uint32_t cid, int x, int y, uint16_t area):
+    m_cid(cid), m_cx(x), m_cy(y), m_area(area)
+    {};
     ~bgef_cell(){};
-    void add(uint16_t gid, uint16_t exp, uint16_t dnb)
+    // void add(uint16_t gid, Expression &exp)
+    // {
+    //     m_vecCexp.emplace_back(gid, exp.count);
+    //     m_vecpos.emplace_back(exp.x);
+    //     m_vecpos.emplace_back(exp.y);
+    //     m_expcnt += exp;
+    // }
+    void add(uint16_t gid, uint16_t expcnt, uint16_t dnbcnt)
     {
-        m_vecCexp.emplace_back(gid, exp);
-        m_expcnt += exp;
-        m_dnbcnt += dnb;
+        m_vecCexp.emplace_back(gid, expcnt);
+        m_expcnt += expcnt;
+        dnbcnt += dnbcnt;
     }
 public:
-    uint16_t m_expcnt;
-    uint16_t m_dnbcnt;
+    uint16_t m_expcnt = 0;
+    uint16_t m_dnbcnt = 0;
+    uint16_t m_area = 0;
+    int m_cx,m_cy;
+    uint32_t m_cid;
     vector<CellExpData> m_vecCexp;
+    //vector<int> m_vecpos;
 };
 
 #endif

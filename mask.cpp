@@ -79,7 +79,7 @@ void Mask::showMaskInWindow() {
     waitKey(0);
 }
 
-void Mask::getBorders(char * border_array) {
+void Mask::getBorders(short * border_array) {
     for (unsigned int i = 0; i < cell_num_; i++) {
         Polygon polygon = polygons_[i];
         vector<Point> border = polygon.getBorder();
@@ -95,8 +95,8 @@ void Mask::getBorders(char * border_array) {
                 border_array[index2+1] = 0;
             }else{
                 Point p = border[j];
-                border_array[index2] = static_cast<char>(p.x - center.x);
-                border_array[index2+1] = static_cast<char>(p.y - center.y);
+                border_array[index2] = static_cast<short>(p.x - center.x);
+                border_array[index2+1] = static_cast<short>(p.y - center.y);
             }
         }
     }

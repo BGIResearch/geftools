@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:25
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-09 14:54:33
+ * @LastEditTime: 2022-05-13 14:12:31
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFCELLGEM_H_
@@ -21,28 +21,38 @@ struct celldata
     int l_idx; //连通域idx
 };
 
+struct cellt
+{
+    uint16_t expcnt;
+    uint16_t dnbcnt;
+};
+
 
 class cgefCellgem
 {
 public:
-    cgefCellgem(/* args */);
+    cgefCellgem();
     ~cgefCellgem();
-    void readmask();
-    void readxy();
-    void readcellgem();
-    void writeFile(CgefWriter *cwptr);
+    void readmask(const string &strmask);
+    void readxy(const string &strrawgem);
+    void readcellgem(const string &strinput);
+    void writeFile(CgefWriter *cwptr, const string &strmask, const string &strinput, const string &strrawgem);
     void writeAttr();
     void writeCell();
     void writeGene();
-    void celltype();
+    void getCelldata();
+    void getCelldata_celltype();
     void writeCell_celltype();
-    void addCellborder(int cx, int cy, vector<char> &vec_border, uint32_t idx);
+    void addCellborder(int cx, int cy, vector<short> &vec_border, uint32_t idx);
 
     void readcellgem_new();
 
     void clabeltocid();
     void writeGene_raw();
     void writeCell_raw();
+
+    void readBgef(const string &strinput);
+    void writeGene_bgef();
 private:
     unsigned int m_maskcellnum = 0; //从mask文件获取的细胞个数
     unsigned int m_blocknum;
@@ -60,11 +70,13 @@ private:
     unordered_map<string, int> m_hash_celltype;//celltype到typeid的映射
     vector<string> m_vec_celltype;
 
-
     vector<uint32_t> m_vec_blkidx;
     vector<uint32_t> m_vec_cellLabel;
     //map<uint32_t, bgef_cell *> m_mapcellexp;
     vector<bgef_cell *> m_vec_cellexp;
+
+    Gene *m_genePtr = nullptr;
+    Expression *m_expPtr = nullptr;
 };
 
 #endif

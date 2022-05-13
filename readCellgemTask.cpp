@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:37
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-09 15:10:50
+ * @LastEditTime: 2022-05-13 14:26:53
  * @Description: file content
  */
 
@@ -407,14 +407,14 @@ int readCellgemTask_cell::getInfo()
                 break;
             case 1:
                 x = atoi(ptr);
-                m_min_x = std::min(m_min_x, x);
+                // m_min_x = std::min(m_min_x, x);
                 m_max_x = std::max(m_max_x, x);
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
             case 2:
                 y = atoi(ptr);
-                m_min_y = std::min(m_min_y, y);
+                // m_min_y = std::min(m_min_y, y);
                 m_max_y = std::max(m_max_y, y);
                 k++;
                 ptr = &m_pbuf[i+1];
@@ -435,6 +435,70 @@ int readCellgemTask_cell::getInfo()
                     m_map_cell.emplace(celllabel, cptr);
                 }
                 m_map_cell[celllabel]->add(gname,umi, x, y);
+
+                if(m_map_gene.find(gname) == m_map_gene.end())
+                {
+                    cgef_gene *gptr = new cgef_gene();
+                    m_map_gene.emplace(gname, gptr);
+                }
+                m_map_gene[gname]->add(celllabel, umi);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    return m_map_cell.size();
+}
+
+/////////////////////////////
+int readCellgemTask_labelmask::getInfo()
+{
+    int i = 0, k = 0, celllabel=0;
+    char *ptr = m_pbuf;
+
+    string gname;
+    int len = 0, x = 0, y=0, umi=0;
+    for(;i<m_buflen;i++)
+    {
+        if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')
+        {
+            switch (k)
+            {
+            case 0:
+                len = &m_pbuf[i]-ptr;
+                gname.clear();
+                gname.append(ptr, len);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 1:
+                x = atoi(ptr);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 2:
+                y = atoi(ptr);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 3:
+                umi = atoi(ptr);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 4:
+                k = 0;
+                celllabel = atoi(ptr);
+                ptr = &m_pbuf[i+1];
+
+                if(m_map_cell.find(celllabel) == m_map_cell.end())
+                {
+                    cgef_cell *cptr = new cgef_cell(celllabel);
+                    m_map_cell.emplace(celllabel, cptr);
+                }
+                m_map_cell[celllabel]->add(gname,umi);
 
                 if(m_map_gene.find(gname) == m_map_gene.end())
                 {

@@ -20,16 +20,19 @@ int ftoi(float n)
 
 int test()
 {
-    //BgefReader bgef_reader("/ldfssz1/ST_BI/USER/gongchun/project/spatialTrans/tissueCut/dataFromZfx/tissuecut/result/standard/segmentation/SS200000003BR_B3.tissue.gef", 1);
-    // int exp_num = bgef_reader.getExpressionNum();
+    BgefReader bgef_reader("/ldfssz1/ST_BI/USER/zhaozijian/celldata/SS200000144TR_C1E4_new.gef", 1, 20);
+    int exp_num = bgef_reader.getExpressionNum();
+    uint32_t *cell_ind = new uint32_t[exp_num];
+    uint32_t *count = new uint32_t[exp_num];
+    vector<unsigned long long> ret;
+    ret.reserve(exp_num/2);
+    bgef_reader.getSparseMatrixIndicesOfExp(ret, cell_ind, count);
     // unsigned int * cellid = new unsigned int[exp_num];
     // unsigned int * gene_ind = new unsigned int[exp_num];
     // unsigned int * count = new unsigned int[exp_num];
     // bgef_reader.getSparseMatrixIndices2(cellid, gene_ind, count);
     //bgef_reader.getExpression();
-    int a= ftoi(0.4);
-    int b = ftoi(0.36);
-    int d = ftoi(0.52);
+    printf("end\n");
 
     return 0;
 }
@@ -390,8 +393,7 @@ unsigned int parseResolutin(string& filename) {
         {"S1", 900},{"F3", 715},{"F1", 800},{"V1", 800},{"DP84", 715},
         {"DP8", 850},{"FP2", 500},{"SS2", 500},{"FP1", 600},{"E1", 700},{"DP40", 700},
         {"G1", 700},{"A", 500},{"B", 500},{"C", 500},{"D", 500},
-        {"U", 715},{"V", 715},{"W", 715},{"X", 715},{"Z", 500},
-        {"Y", 900}});
+        {"U", 715},{"V", 715},{"W", 715},{"X", 715},{"Y", 500}});
 
     auto pos = filename.find_last_of('/');
     if (pos == std::string::npos)
