@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-15 14:35:09
+ * @LastEditTime: 2022-05-16 14:15:54
  * @Description: file content
  */
 
@@ -36,7 +36,7 @@ public:
     string input_file_;
     string output_file_;
     vector<unsigned int> bin_sizes_;
-    std::vector<unsigned int> region_;
+    std::vector<int> region_;
 
     std::unordered_map<std::string, std::vector<Expression>> map_gene_exp_;
     std::vector<GeneErank> vec_bin100_;
@@ -46,13 +46,13 @@ public:
 
     mutex dnbmtx_;
     DnbMatrix dnbmatrix_;
-    std::vector<unsigned int> range_ = {UINT_MAX, 0, UINT_MAX, 0};
+    std::vector<int> range_ = {INT_MAX, 0, INT_MAX, 0};
     GeneInfoQueue gene_info_queue_;
     GeneQueue gene_queue_;
     std::vector<Expression> expressions_;
     std::vector<Gene> genes_;
-    unsigned int offset_x_ = 0; // offset of coordinate
-    unsigned int offset_y_ = 0;
+    int offset_x_ = 0; // offset of coordinate
+    int offset_y_ = 0;
 };
 
 #endif //GENETOH5_COMMANDPARSE_H

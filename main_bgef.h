@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-04-15 13:34:40
+ * @LastEditTime: 2022-05-16 14:17:38
  * @Description: file content
  */
 /** @file main_cgef.h
@@ -59,7 +59,7 @@ int generateBgef(const string &input_file,
                  const string &bgef_file,
                  int n_thread = 8,
                  vector<unsigned int> bin_sizes = vector<unsigned int>(),
-                 vector<unsigned int> region = vector<unsigned int>(),
+                 vector<int> region = vector<int>(),
                  bool verbose = false);
 
 void gem2gef(BgefOptions *opts);

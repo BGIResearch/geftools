@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-05-16 14:00:03
+ * @Description: file content
+ */
 
 #ifndef GENETOH5_READTASK_H
 #define GENETOH5_READTASK_H
@@ -30,7 +37,7 @@ private:
     int mergeGeneinfo();
 private:
     int m_buflen = 0;
-    unsigned int min_x = UINT_MAX, min_y = UINT_MAX, max_x = 0, max_y = 0;
+    int min_x = INT_MAX, min_y = INT_MAX, max_x = 0, max_y = 0;
     char *m_pbuf = nullptr;
     BgefOptions *m_pcmd = nullptr;
     unordered_map<string, vector<Expression>> m_map_gege;

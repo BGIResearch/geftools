@@ -131,7 +131,7 @@ int generateBgef(const string &input_file,
                  const string &bgef_file,
                  int n_thread,
                  vector<unsigned int> bin_sizes,
-                 vector<unsigned int> region,
+                 vector<int> region,
                  bool verbose) {
     unsigned long cprev=clock();
     BgefOptions *opts = BgefOptions::GetInstance();
@@ -166,10 +166,10 @@ void gem2gef(BgefOptions *opts)
             opts->offset_y_ = expression_attr.min_y;
         }else{
             bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
-            unsigned int min_x = opts->region_[0];
-            unsigned int max_x = opts->region_[1];
-            unsigned int min_y = opts->region_[2];
-            unsigned int max_y = opts->region_[3];
+            int min_x = opts->region_[0];
+            int max_x = opts->region_[1];
+            int min_y = opts->region_[2];
+            int max_y = opts->region_[3];
 
             opts->range_ = {expression_attr.min_x + min_x, min(expression_attr.max_x, max_x+expression_attr.min_x),
                             expression_attr.min_y + min_y, min(expression_attr.max_y, max_y+expression_attr.min_y)};
@@ -368,8 +368,8 @@ int mRead(BgefOptions *opts) //多线程读
     gzclose(opts->infile_);
 
     // Subtract min value of coordinates
-    unsigned int minx = opts->range_[0];
-    unsigned int miny = opts->range_[2];
+    int minx = opts->range_[0];
+    int miny = opts->range_[2];
     if (minx != 0 || miny != 0)
     {
         opts->offset_x_ += minx;

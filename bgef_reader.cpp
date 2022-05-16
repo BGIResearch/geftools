@@ -255,13 +255,13 @@ ExpressionAttr &BgefReader::getExpressionAttr() {
         return expression_attr_;
     hid_t attr;
     attr = H5Aopen(exp_dataset_id_, "minX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.min_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.min_x));
     attr = H5Aopen(exp_dataset_id_, "minY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.min_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.min_y));
     attr = H5Aopen(exp_dataset_id_, "maxX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.max_x));
     attr = H5Aopen(exp_dataset_id_, "maxY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.max_y));
     attr = H5Aopen(exp_dataset_id_, "maxExp", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
     attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);
@@ -427,8 +427,8 @@ Expression *BgefReader::getExpression() {
     hid_t memtype;
 
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
-    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_INT);
     H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
 
     expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
@@ -470,8 +470,8 @@ void BgefReader::getBinGeneExpMap(
         DnbExpression * dnb_exp_info) {
     unsigned long cprev=clock();
     hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(DnbExpression));
-    H5Tinsert(memtype, "x", HOFFSET(DnbExpression, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(DnbExpression, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(DnbExpression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(DnbExpression, y), H5T_NATIVE_INT);
     H5Tinsert(memtype, "count", HOFFSET(DnbExpression, count), H5T_NATIVE_USHORT);
     H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, dnb_exp_info);
 
@@ -728,16 +728,16 @@ unsigned int BgefReader::toGem(string &filename, string &sn) {
 }
 
 void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &gene_exp_map,
-                                   const vector<unsigned int>& regions) {
+                                   const vector<int>& regions) {
     if(regions.empty()){
         getGeneExpression(gene_exp_map);
         return;
     }
 
-    unsigned int min_x = regions[0];
-    unsigned int max_x = regions[1];
-    unsigned int min_y = regions[2];
-    unsigned int max_y = regions[3];
+    int min_x = regions[0];
+    int max_x = regions[1];
+    int min_y = regions[2];
+    int max_y = regions[3];
 
     Gene * gene = getGene();
     Expression * expression = getExpression();
@@ -790,13 +790,13 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
 
     hid_t attr;
     attr = H5Aopen(exp_dataset_id_, "minX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.min_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.min_x));
     attr = H5Aopen(exp_dataset_id_, "minY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.min_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.min_y));
     attr = H5Aopen(exp_dataset_id_, "maxX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.max_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.max_x));
     attr = H5Aopen(exp_dataset_id_, "maxY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.max_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.max_y));
     attr = H5Aopen(exp_dataset_id_, "maxExp", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
     attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);

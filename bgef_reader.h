@@ -64,7 +64,7 @@ class BgefReader {
     unsigned int getExpressionNum() const;
     ExpressionAttr &getExpressionAttr();
 
-    void getGeneExpression(unordered_map<string, vector<Expression>> & gene_exp_map, const vector<unsigned int>& regions);
+    void getGeneExpression(unordered_map<string, vector<Expression>> & gene_exp_map, const vector<int>& regions);
     void getGeneExpression(unordered_map<string, vector<Expression>> & gene_exp_map);
 
     /**
