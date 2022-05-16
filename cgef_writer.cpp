@@ -375,6 +375,7 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
     unsigned short cell_type_id = random_cell_type_num_ == 0 ? 0 : rand()%(random_cell_type_num_ + 1);
 
     CellData cell = {
+            cell_num_,
             center_point.x,
             center_point.y,
             expression_num_, //offset
@@ -382,8 +383,7 @@ void CgefWriter::addDnbExp(vector<Point> & dnb_coordinates,
             exp_count,
             dnb_coordinates.size(),
             area,
-            cell_type_id,
-            cell_num_
+            cell_type_id
     };
     expression_num_ += gene_count;
 

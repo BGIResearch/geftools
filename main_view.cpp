@@ -14,7 +14,7 @@ int test1()
     return 0;
 }
 int view(int argc, char *argv[]) {
-    return test1();
+    //return test1();
     cxxopts::Options options("geftools view",
                              "About:  Show the contents of cell bin GEF\n");
     //TODO support restrict gene_list and region for bGEF 
