@@ -600,7 +600,7 @@ void CgefWriter::storeGeneAndGeneExp(unsigned int min_exp_count, unsigned int ma
     H5Awrite(attr, H5T_NATIVE_UINT32, &max_cell_count);
 
     memtype = getMemtypeOfGeneExpData();
-    filetype = H5Tcreate(H5T_COMPOUND, 8);
+    filetype = H5Tcreate(H5T_COMPOUND, 6);
     H5Tinsert(filetype, "cellID", 0, H5T_STD_U32LE);
     H5Tinsert(filetype, "count", 4, H5T_STD_U16LE);
     //H5Tinsert(filetype, "incnt", 6, H5T_STD_U16LE);
