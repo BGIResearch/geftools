@@ -55,29 +55,29 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
 
     hid_t memtype, filetype;
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
-    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_INT);
     H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
 
     if (maxexp > USHRT_MAX)
     {
         filetype = H5Tcreate(H5T_COMPOUND, 8 + 4);
-        H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
-        H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
+        H5Tinsert(filetype, "x", 0, H5T_STD_I32LE);
+        H5Tinsert(filetype, "y", 4, H5T_STD_I32LE);
         H5Tinsert(filetype, "count", 8, H5T_STD_U32LE);
     }
     else if (maxexp > UCHAR_MAX)
     {
         filetype = H5Tcreate(H5T_COMPOUND, 8 + 2);
-        H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
-        H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
+        H5Tinsert(filetype, "x", 0, H5T_STD_I32LE);
+        H5Tinsert(filetype, "y", 4, H5T_STD_I32LE);
         H5Tinsert(filetype, "count", 8, H5T_STD_U16LE);
     }
     else
     {
         filetype = H5Tcreate(H5T_COMPOUND, 8 + 1);
-        H5Tinsert(filetype, "x", 0, H5T_STD_U32LE);
-        H5Tinsert(filetype, "y", 4, H5T_STD_U32LE);
+        H5Tinsert(filetype, "x", 0, H5T_STD_I32LE);
+        H5Tinsert(filetype, "y", 4, H5T_STD_I32LE);
         H5Tinsert(filetype, "count", 8, H5T_STD_U8LE);       
     }
 
@@ -92,13 +92,13 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
     hsize_t dimsAttr[1] = {1};
     hid_t attr;
     dataspace_id = H5Screate_simple(1, dimsAttr, nullptr);
-    attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.min_x);
-    attr = H5Acreate(dataset_id, "minY", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.min_y);
-    attr = H5Acreate(dataset_id, "maxX", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_x);
-    attr = H5Acreate(dataset_id, "maxY", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_y);
     attr = H5Acreate(dataset_id, "maxExp", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_exp);

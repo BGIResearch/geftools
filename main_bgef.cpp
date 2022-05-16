@@ -11,30 +11,29 @@
 #include "bin_task.h"
 #include "special_bin.h"
 #include "utils.h"
+
+int ftoi(float n)
+{
+    int i = n*10;
+    return i;
+}
+
 int test()
 {
-    //BgefReader bgef_reader("/ldfssz1/ST_BI/USER/gongchun/project/spatialTrans/tissueCut/dataFromZfx/tissuecut/result/standard/segmentation/SS200000003BR_B3.tissue.gef", 1);
-    // int exp_num = bgef_reader.getExpressionNum();
+    BgefReader bgef_reader("/ldfssz1/ST_BI/USER/zhaozijian/celldata/SS200000144TR_C1E4_new.gef", 1, 20);
+    int exp_num = bgef_reader.getExpressionNum();
+    uint32_t *cell_ind = new uint32_t[exp_num];
+    uint32_t *count = new uint32_t[exp_num];
+    vector<unsigned long long> ret;
+    ret.reserve(exp_num/2);
+    bgef_reader.getSparseMatrixIndicesOfExp(ret, cell_ind, count);
     // unsigned int * cellid = new unsigned int[exp_num];
     // unsigned int * gene_ind = new unsigned int[exp_num];
     // unsigned int * count = new unsigned int[exp_num];
     // bgef_reader.getSparseMatrixIndices2(cellid, gene_ind, count);
     //bgef_reader.getExpression();
+    printf("end\n");
 
-    hid_t gef_h5_id=H5Fopen("/ldfssz1/ST_BI/USER/gongchun/project/spatialTrans/tissueCut/dataFromZfx/tissuecut/result/standard/segmentation/SS200000003BR_B3.tissue.gef",H5F_ACC_RDONLY,H5P_DEFAULT);
-    hid_t dataset_id=H5Dopen(gef_h5_id,"/geneExp/bin1/expression",H5P_DEFAULT);
-    hid_t space_id = H5Dget_space(dataset_id);
-    hsize_t exp_dims[1];
-    H5Sget_simple_extent_dims(space_id, exp_dims, NULL);
-    Expression* expBuf=new Expression[exp_dims[0]];
-
-    hid_t expType = H5Tcreate (H5T_COMPOUND, sizeof(Expression));
-    H5Tinsert(expType, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
-    H5Tinsert(expType, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
-    H5Tinsert(expType, "MIDCount", HOFFSET(Expression, count), H5T_NATIVE_UINT);
-    herr_t status = H5Dread(dataset_id, expType, H5S_ALL, H5S_ALL,  H5P_DEFAULT, expBuf);
-
-    printf("stop");
     return 0;
 }
 
@@ -132,7 +131,7 @@ int generateBgef(const string &input_file,
                  const string &bgef_file,
                  int n_thread,
                  vector<unsigned int> bin_sizes,
-                 vector<unsigned int> region,
+                 vector<int> region,
                  bool verbose) {
     unsigned long cprev=clock();
     BgefOptions *opts = BgefOptions::GetInstance();
@@ -167,10 +166,10 @@ void gem2gef(BgefOptions *opts)
             opts->offset_y_ = expression_attr.min_y;
         }else{
             bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
-            unsigned int min_x = opts->region_[0];
-            unsigned int max_x = opts->region_[1];
-            unsigned int min_y = opts->region_[2];
-            unsigned int max_y = opts->region_[3];
+            int min_x = opts->region_[0];
+            int max_x = opts->region_[1];
+            int min_y = opts->region_[2];
+            int max_y = opts->region_[3];
 
             opts->range_ = {expression_attr.min_x + min_x, min(expression_attr.max_x, max_x+expression_attr.min_x),
                             expression_attr.min_y + min_y, min(expression_attr.max_y, max_y+expression_attr.min_y)};
@@ -369,8 +368,8 @@ int mRead(BgefOptions *opts) //多线程读
     gzclose(opts->infile_);
 
     // Subtract min value of coordinates
-    unsigned int minx = opts->range_[0];
-    unsigned int miny = opts->range_[2];
+    int minx = opts->range_[0];
+    int miny = opts->range_[2];
     if (minx != 0 || miny != 0)
     {
         opts->offset_x_ += minx;
@@ -394,8 +393,7 @@ unsigned int parseResolutin(string& filename) {
         {"S1", 900},{"F3", 715},{"F1", 800},{"V1", 800},{"DP84", 715},
         {"DP8", 850},{"FP2", 500},{"SS2", 500},{"FP1", 600},{"E1", 700},{"DP40", 700},
         {"G1", 700},{"A", 500},{"B", 500},{"C", 500},{"D", 500},
-        {"U", 715},{"V", 715},{"W", 715},{"X", 715},{"Z", 500},
-        {"Y", 900}});
+        {"U", 715},{"V", 715},{"W", 715},{"X", 715},{"Y", 500}});
 
     auto pos = filename.find_last_of('/');
     if (pos == std::string::npos)

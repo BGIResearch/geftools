@@ -63,7 +63,7 @@ void BinTask::bin100task()
     // pgenedata->vecdataptr->reserve(map_dnb.size()*3);
     pgenedata->umicnt = umicnt;
     auto itor_dnb = map_dnb.begin();
-    Expression exp{};
+    Expression exp{0,0,0};
     for(;itor_dnb!=map_dnb.end();itor_dnb++)
     {
         exp.x = itor_dnb->first>>32;
@@ -131,7 +131,7 @@ void BinTask::othertask()
     // pgenedata->vecdataptr = new std::vector<int>;
     // pgenedata->vecdataptr->reserve(map_dnb.size()*3);
     auto itor_dnb = map_dnb.begin();
-    Expression exp{};
+    Expression exp{0,0,0};
     for(;itor_dnb!=map_dnb.end();itor_dnb++)
     {
         exp.x = itor_dnb->first>>32;

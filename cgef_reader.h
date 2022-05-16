@@ -83,6 +83,7 @@ class CgefReader {
     int offsetX = 0;
     int offsetY = 0;
     unsigned int m_ver_tool[3] ={0};
+    string m_bgefstr;
   public:
     explicit CgefReader(const string &filename, bool verbose = false);
     ~CgefReader();
@@ -244,6 +245,13 @@ class CgefReader {
     char* getCellBorders(bool ball, unsigned int cell_id);
 
     void getAttr();
+
+    void setBgefpath(string &filename)
+    {
+        m_bgefstr = filename;
+    }
+
+    
 };
 
 #endif //GEFTOOLS_CGEF_READER_H

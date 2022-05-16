@@ -26,15 +26,17 @@ union Coordinate {
  * @brief Expression struct
  */
 struct Expression {
-    unsigned int x; ///< dnb coordinates x
-    unsigned int y; ///< dnb coordinates x
+    Expression(int x, int y, unsigned int count):
+    x(x),y(y),count(count){};
+    int x; ///< dnb coordinates x
+    int y; ///< dnb coordinates x
     unsigned int count; ///< expression count (MIDcount)
 };
 
 
 struct DnbExpression {
-    unsigned int x; ///< dnb coordinates x
-    unsigned int y; ///< dnb coordinates x
+    int x; ///< dnb coordinates x
+    int y; ///< dnb coordinates x
     unsigned short count; ///< expression count (MIDcount)
     unsigned short gene_id;
 };
@@ -44,10 +46,10 @@ struct DnbExpression {
  */
 struct ExpressionAttr
 {
-    unsigned int min_x; ///< Min X of dnb coordinate
-    unsigned int min_y; ///< Min Y of dnb coordinate
-    unsigned int max_x; ///< Max X of dnb coordinate
-    unsigned int max_y; ///< Max Y of dnb coordinate
+    int min_x; ///< Min X of dnb coordinate
+    int min_y; ///< Min Y of dnb coordinate
+    int max_x; ///< Max X of dnb coordinate
+    int max_y; ///< Max Y of dnb coordinate
     unsigned int max_exp;  ///< Max expression count
     unsigned int resolution; ///< The resolution of stereo chip
 };
@@ -104,17 +106,19 @@ struct GeneInfo2
 struct BinStat {
     unsigned int mid_count;
     unsigned short gene_count;
+    //unsigned short incnt;
 };
 
 struct BinStatUS {
     unsigned short mid_count;
     unsigned short gene_count;
+    //unsigned short incnt;
 };
 
 struct DnbAttr {
-    unsigned int min_x;
+    int min_x;
     unsigned int len_x;
-    unsigned int min_y;
+    int min_y;
     unsigned int len_y;
     unsigned int max_mid;
     unsigned int max_gene;
@@ -151,6 +155,7 @@ struct CellData {
     unsigned short area; ///< The polygon area of this cell
     unsigned short cell_type_id; ///< Cell type ID to index the CellTypeList
     unsigned short cluster_id; ///< Cluster ID, should start from 1
+    //unsigned short incnt;
 };
 
 struct CellAttr {

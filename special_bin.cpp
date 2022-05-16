@@ -1,5 +1,4 @@
 #include "special_bin.h"
-#include "lodepng.h"
 #include<stdlib.h>
 #include <cmath>
 #include <map>
