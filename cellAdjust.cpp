@@ -2,23 +2,23 @@
  * @Author: zhaozijian
  * @Date: 2022-05-16 11:02:23
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-16 11:15:21
+ * @LastEditTime: 2022-05-17 14:46:57
  * @Description: file content
  */
-#include "getCellgeneData.h"
+#include "cellAdjust.h"
 
 
-getCellgeneData::getCellgeneData(string &bgef, string &cgef):
+cellAdjust::cellAdjust(string &bgef, string &cgef):
     m_bgef(bgef), m_cgef(cgef)
 {
 }
 
-getCellgeneData::~getCellgeneData()
+cellAdjust::~cellAdjust()
 {
 }
 
 
-void getCellgeneData::readBgef(const string &strinput)
+void cellAdjust::readBgef(const string &strinput)
 {
     timer st(__FUNCTION__);
     hid_t file_id = H5Fopen(strinput.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -60,6 +60,8 @@ void getCellgeneData::readBgef(const string &strinput)
     m_expPtr = (Expression *) malloc(dims[0] * sizeof(Expression));
     H5Dread(exp_did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_expPtr);
 
+    for(int i=0;i<)
+
     hid_t attr = H5Aopen(exp_did, "minX", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &m_min_x);
     attr = H5Aopen(exp_did, "minY", H5P_DEFAULT);
@@ -80,14 +82,64 @@ void getCellgeneData::readBgef(const string &strinput)
     H5Fclose(file_id);
 }
 
-void getCellgeneData::readCgef(const string &strinput)
+void cellAdjust::readCgef(const string &strinput)
 {
+    timer st(__FUNCTION__);
+    hid_t file_id = H5Fopen(strinput.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t cell_did = H5Dopen(file_id, "/cellBin/cell", H5P_DEFAULT);
 
+    hsize_t dims[1];
+    hid_t cell_sid = H5Dget_space(cell_did);
+    H5Sget_simple_extent_dims(cell_sid, dims, nullptr);
+
+    hid_t memtype = getMemtypeOfCellData();
+    CellData *cell_array = new CellData[dims[0]];
+    H5Dread(cell_did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_array);
+
+    H5Tclose(memtype);
+    H5Sclose(cell_sid);
+    H5Dclose(cell_did);
+
+    hsize_t dims[3];
+    hid_t border_id = H5Dopen(file_id, "/cellBin/cellBorder", H5P_DEFAULT);
+    hid_t border_sid = H5Dget_space(border_id);
+    H5Sget_simple_extent_dims(border_sid, dims, nullptr);
+
+    short *borderdataPtr = (short*)calloc(dims[0]*dims[1]*dims[2], 2);
+    H5Dread(dataset_id, H5T_STD_I16LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, borderdataPtr);
+
+    for(int i=0;i<dims[0];i++)
+    {
+        for(int j=0;j<dims[1];j++)
+        {
+            if(borderdataPtr[j]==0)
+            {
+                break;
+            }
+            borderdataPtr[j] += cell_array[i].x;
+            borderdataPtr[j] += cell_array[i].y;
+        }
+    }
+
+    int min_x, min_y, max_x, max_y;
+    hid_t attr = H5Aopen(border_id, "minX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT, &min_x);
+    attr = H5Aopen(border_id, "minY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT, &min_y);
+    attr = H5Aopen(border_id, "maxX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT, &max_x);
+    attr = H5Aopen(border_id, "maxY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT, &max_y);
+
+    H5Aclose(attr);
+    H5Sclose(border_sid);
+    H5Dclose(border_id);
+    H5Fclose(file_id);
 }
 
-void getCellgeneData(string &bgef, string &cgef)
+void cellAdjust(string &bgef, string &cgef)
 {
-    getCellgeneData cellgene(bgef, cgef);
+    cellAdjust cellgene(bgef, cgef);
     cellgene.readBgef();
     cellgene.readCgef();
 }

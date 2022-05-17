@@ -2,24 +2,25 @@
  * @Author: zhaozijian
  * @Date: 2022-05-16 11:02:15
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-16 11:28:09
+ * @LastEditTime: 2022-05-17 13:46:14
  * @Description: file content
  */
-#ifndef GEFTOOLS_GETCELLGENEDATA_H
-#define GEFTOOLS_GETCELLGENEDATA_H
+#ifndef GEFTOOLS_CELLADJUST_H
+#define GEFTOOLS_CELLADJUST_H
 
 #include "gef.h"
 #include <unordered_map>
 #include "opencv2/opencv.hpp"
 using namespace cv;
 
-class getCellgeneData
+class cellAdjust
 {
 public:
-    getCellgeneData(string &bgef, string &cgef);
-    ~getCellgeneData();
+    cellAdjust(string &bgef, string &cgef);
+    ~cellAdjust();
     void readBgef(const string &strinput);
     void readCgef(const string &strinput);
+    void 
 private:
     string m_bgef;
     string m_cgef;
@@ -32,7 +33,7 @@ private:
 };
 
 
-void getCellgeneData(string &bgef, string &cgef);
+void cellAdjust(string &bgef, string &cgef);
 
 
 #endif
