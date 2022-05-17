@@ -2,13 +2,12 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:18:37
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-13 14:26:53
+ * @LastEditTime: 2022-05-17 14:58:28
  * @Description: file content
  */
 
 #include "readCellgemTask.h"
 #include "cgefParam.h"
-#include "BufPool.h"
 
 string readCellgemTask::m_leftstr;
 mutex readCellgemTask::m_readmtx;
