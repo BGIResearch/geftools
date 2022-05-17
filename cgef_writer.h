@@ -9,6 +9,8 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
+#include <set>
 #include "hdf5.h"
 #include "opencv2/opencv.hpp"
 #include "utils.h"
@@ -16,11 +18,20 @@
 #include "mask.h"
 #include "bgef_reader.h"
 
+struct block
+{
+    block(int off, int cnt):offset(off), count(cnt){};
+    int offset;
+    int count;
+};
+
 class CgefWriter {
   public:
-    explicit CgefWriter(const string& output_cell_gef, bool verbose = false);
+    explicit CgefWriter(bool verbose = false);
     ~CgefWriter();
 
+    void setOutput(const string& output_cell_gef);
+    void setInput(const string& input_cell_gef);
 
     /**
      * @brief Add dnb expression info of one cell
@@ -43,15 +54,19 @@ class CgefWriter {
     void storeAttr(CellBinAttr& cell_attr) const;
     void storeCell(unsigned int block_num, unsigned int *block_index, const unsigned int * block_size);
     void storeCellExp();
-    void storeCellBorder(char* borderPath, unsigned int cell_num) const;
-    void storeCellBorderWithAttr(char* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
+    void storeCellBorder(short* borderPath, unsigned int cell_num) const;
+    void storeCellBorderWithAttr(short* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
     void storeCellTypeList();
+    void storeCellTypeList_N();
 
     /**
      * @brief Writing the contents of geneData and geneExpData to GEF.
      * @param gene_name_list
      */
-    void storeGeneAndGeneExp(const vector<string> &gene_name_list);
+    void createGenedata(const vector<string> &gene_name_list);
+    void storeGeneAndGeneExp(unsigned int min_exp_count, unsigned int max_exp_count,
+                                    unsigned int min_cell_count, unsigned int max_cell_count,
+                                    GeneData* gene_data_list, vector<GeneExpData> &gene_exp_list);
 
     /**
      * @brief Writing to cgef.
@@ -67,16 +82,36 @@ class CgefWriter {
 
     void setRandomCellTypeNum(unsigned short random_cell_type_num);
 
-  private:
+    int addLevel(int allocat, int cnum, float ratio, int *cansize, int *blknum);
+    void getblkcelldata_top(int lev, int cnt);
+    void getblkcelldata_bottom(int lev);
+    void getblkcelldata(int lev, int cnt);
+    void createBlktype();
+    void writeCelldata(int lev, int *blknum, vector<block> &blk, vector<int> &vecid, vector<int> &vec_blk_idx);
+    void openCellDataset();
+
+    void storeBlkidx(unsigned int block_num, unsigned int * block_index, const unsigned int *block_size);
+    void storeCellLabel(vector<unsigned int> &vecdata);
+  public:
     hid_t file_id_;
     hid_t group_id_;
     hid_t str32_type_;
-    string bin_gef_;
-    string mask_file_;
+    // string bin_gef_;
+    // string mask_file_;
     map<unsigned short, vector<GeneExpData>> gene_exp_map_;
     vector<CellData> cell_list_;
     vector<CellExpData> cell_exp_list_;
     vector<S32> cell_type_list_;
+    short *m_borderptr = nullptr;
+    int m_x_len = 0;
+    int m_y_len = 0;
+    unordered_set<int> m_hash_cellid;
+    hid_t m_level_gid;
+    hid_t m_blk_memtype;
+    hid_t m_blk_filetype;
+    CellData *m_cdataPtr = nullptr;
+    int m_allocat = 2;
+    int m_blknum[2];
 
     CellAttr cell_attr_ = {
         .average_gene_count=0.0,
@@ -87,8 +122,8 @@ class CgefWriter {
         .median_exp_count=0.0,
         .median_dnb_count=0.0,
         .median_area=0.0,
-        .min_x=USHRT_MAX,
-        .min_y=USHRT_MAX,
+        .min_x=INT_MAX,
+        .min_y=INT_MAX,
         .min_gene_count=USHRT_MAX,
         .min_exp_count=USHRT_MAX,
         .min_dnb_count=USHRT_MAX,

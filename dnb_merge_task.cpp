@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-04-08 15:22:58
+ * @Description: file content
+ */
 #include "dnb_merge_task.h"
 
 mutex DnbMergeTask::m_mutex;
@@ -19,7 +26,7 @@ void DnbMergeTask::doTask()
     unsigned int maxMID = 0, maxGene = 0;
     // unsigned int min_x = m_pcmd->m_dnbmatrix.dnb_attr.min_x;
     // unsigned int min_y = m_pcmd->m_dnbmatrix.dnb_attr.min_y;
-
+    
     unsigned int idx = 0;
     while (idx < m_genecnt)
     {
@@ -46,8 +53,8 @@ void DnbMergeTask::doTask()
                     // printf("x %d y %d ylen %d col %d\n", x, y, y_len, col);
                     pmatrix[col].mid_count += exp.count;
                     pmatrix[col].gene_count += 1;
-                    if (pmatrix[col].mid_count > maxMID)
-                        maxMID = pmatrix[col].mid_count;
+                    // if (pmatrix[col].mid_count > maxMID)
+                    //     maxMID = pmatrix[col].mid_count;
                     if (pmatrix[col].gene_count > maxGene)
                         maxGene = pmatrix[col].gene_count;
                 }
@@ -65,8 +72,8 @@ void DnbMergeTask::doTask()
                     col = x*y_len + y;
                     pmatrix[col].mid_count += exp.count;
                     pmatrix[col].gene_count += 1;
-                    if (pmatrix[col].mid_count > maxMID)
-                        maxMID = pmatrix[col].mid_count;
+                    // if (pmatrix[col].mid_count > maxMID)
+                    //     maxMID = pmatrix[col].mid_count;
                     if (pmatrix[col].gene_count > maxGene)
                         maxGene = pmatrix[col].gene_count;
                 }
@@ -76,6 +83,6 @@ void DnbMergeTask::doTask()
     }
 
     lock_guard<mutex> lock(m_mutex);
-    opts_->dnbmatrix_.dnb_attr.max_mid = std::max(opts_->dnbmatrix_.dnb_attr.max_mid, maxMID);
+    //opts_->dnbmatrix_.dnb_attr.max_mid = std::max(opts_->dnbmatrix_.dnb_attr.max_mid, maxMID);
     opts_->dnbmatrix_.dnb_attr.max_gene = std::max(opts_->dnbmatrix_.dnb_attr.max_gene, maxGene);
 }

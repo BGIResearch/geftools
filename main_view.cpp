@@ -4,9 +4,17 @@
 
 #include "main_view.h"
 #include "cxxopts.h"
-
+int test1()
+{
+    CgefReader cgef_reader = CgefReader("/hwfssz1/ST_BIOINTEL/P20Z10200N0039/06.user/shichang/ng_demo_data/gefs/monkey_brain.T31.cellbin.gef", true);
+    // cgef_reader.restrictRegion(7680, 9728, 8704, 10752);
+    // cgef_reader.getCellBorders(true, 0);
+    cgef_reader.getCell();
+    printf("end\n");
+    return 0;
+}
 int view(int argc, char *argv[]) {
-
+    //return test1();
     cxxopts::Options options("geftools view",
                              "About:  Show the contents of cell bin GEF\n");
     //TODO support restrict gene_list and region for bGEF 

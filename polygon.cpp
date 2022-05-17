@@ -1,9 +1,10 @@
 #include "polygon.h"
+#include "utils.h"
 
 bool Polygon::applyContour(const vector<Point>& contour){
     original_contour_size_ = static_cast<short>(contour.size());
 
-    if(contour.size() > 16){
+    if(contour.size() > BORDERCNT){
         double epsilon = 0.01 * arcLength(contour, true);
         approxPolyDP(contour, border_, epsilon, true);
     }else{
@@ -12,6 +13,7 @@ bool Polygon::applyContour(const vector<Point>& contour){
 
     border_size_ = static_cast<short>(border_.size());
     if(border_size_ <= 2 ) return false;
+    assert(border_size_ < 33);
 
     Moments mu = moments(border_, true);
     if(mu.m00 == 0) return false;

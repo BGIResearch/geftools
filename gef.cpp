@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-04-29 15:35:32
+ * @Description: file content
+ */
 #include "gef.h"
 #include "utils.h"
 
@@ -19,6 +26,7 @@ hid_t getMemtypeOfGeneExpData() {
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(GeneExpData));
     H5Tinsert(memtype, "cellID", HOFFSET(GeneExpData, cell_id), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "count", HOFFSET(GeneExpData, count), H5T_NATIVE_USHORT);
+    //H5Tinsert(memtype, "incnt", HOFFSET(GeneExpData, incnt), H5T_NATIVE_USHORT);
     return memtype;
 }
 
@@ -26,8 +34,9 @@ hid_t getMemtypeOfGeneExpData() {
 hid_t getMemtypeOfCellData() {
     hid_t memtype;
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(CellData));
-    H5Tinsert(memtype, "x", HOFFSET(CellData, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(CellData, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "id", HOFFSET(CellData, id), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(CellData, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(CellData, y), H5T_NATIVE_INT);
     H5Tinsert(memtype, "offset", HOFFSET(CellData, offset), H5T_NATIVE_UINT);
     H5Tinsert(memtype, "geneCount", HOFFSET(CellData, gene_count), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "expCount", HOFFSET(CellData, exp_count), H5T_NATIVE_USHORT);
@@ -35,6 +44,8 @@ hid_t getMemtypeOfCellData() {
     H5Tinsert(memtype, "area", HOFFSET(CellData, area), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "cellTypeID", HOFFSET(CellData, cell_type_id), H5T_NATIVE_USHORT);
     H5Tinsert(memtype, "clusterID", HOFFSET(CellData, cluster_id), H5T_NATIVE_USHORT);
+    //H5Tinsert(memtype, "incnt", HOFFSET(CellData, incnt), H5T_NATIVE_USHORT);
+    
     return memtype;
 }
 

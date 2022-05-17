@@ -7,11 +7,12 @@
 #include "bin_task.h"
 #include "dnb_merge_task.h"
 #include "getdataTask.h"
+#include "getBgefExpTask.h"
 
 #define FILE_HEADER "#FileFormat=GEMv%d.%d\n" \
 "#SortedBy=None\n" \
 "#BinSize=%d\n" \
-"#StereoChip=%s\n" \
+"#STOmicsChip=%s\n" \
 "#OffsetX=%d\n" \
 "#OffsetY=%d\n" \
 "geneID\tx\ty\tMIDCount\n"
@@ -254,13 +255,13 @@ ExpressionAttr &BgefReader::getExpressionAttr() {
         return expression_attr_;
     hid_t attr;
     attr = H5Aopen(exp_dataset_id_, "minX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.min_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.min_x));
     attr = H5Aopen(exp_dataset_id_, "minY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.min_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.min_y));
     attr = H5Aopen(exp_dataset_id_, "maxX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.max_x));
     attr = H5Aopen(exp_dataset_id_, "maxY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr_.max_y));
     attr = H5Aopen(exp_dataset_id_, "maxExp", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
     attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);
@@ -272,41 +273,113 @@ ExpressionAttr &BgefReader::getExpressionAttr() {
     return expression_attr_;
 }
 
-vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count){
-    unsigned long cprev=clock();
+// vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count){
+//     unsigned long cprev=clock();
+//     unsigned long long uniq_cell_id;
+//     Expression* expData = getExpression();
+
+//     vector<unsigned long long> uniq_cells;
+//     unsigned int index = 0;
+
+//     int absent, is_missing;
+//     khint_t k;
+//     khash_t(m64) *h = kh_init(m64);  // allocate a hash table
+
+//     for (int i = 0; i < expression_num_; ++i) {
+//         uniq_cell_id = expData[i].x;
+//         uniq_cell_id = uniq_cell_id << 32 | expData[i].y;
+
+//         k = kh_get(m64, h, uniq_cell_id);
+//         is_missing = (k == kh_end(h));
+//         if (!is_missing){
+//             cell_ind[i] = kh_value(h, k);
+//         }else {
+//             cell_ind[i] = index;
+//             uniq_cells.push_back(uniq_cell_id);
+//             k = kh_put(m64, h, uniq_cell_id, &absent);  // insert a key to the hash table
+//             kh_value(h, k) = index;
+//             ++index;
+//         }
+
+//         count[i] = expData[i].count;
+//     }
+
+//     cell_num_ = index;
+//     kh_destroy(m64, h);
+//     if(verbose_) printCpuTime(cprev, "getSparseMatrixIndicesOfExp");
+//     return uniq_cells;
+// }
+
+// vector<unsigned long long> BgefReader::getSparseMatrixIndicesOfExp(unsigned int * cell_ind, unsigned int * count)
+// {
+//     unsigned long long uniq_cell_id;
+//     Expression* expData = getExpression();
+
+//     vector<unsigned long long> uniq_cells;
+//     uniq_cells.reserve(expression_num_/2);
+//     uint32_t index = 0;
+
+//     std::unordered_map<unsigned long long, uint32_t> hash_map;
+//     for(uint32_t i=0;i<expression_num_;i++)
+//     {
+//         uniq_cell_id = expData[i].x;
+//         uniq_cell_id = (uniq_cell_id << 32) | expData[i].y;
+
+//         if(hash_map.find(uniq_cell_id) != hash_map.end())
+//         {
+//             cell_ind[i] = hash_map[uniq_cell_id];
+//         }
+//         else
+//         {
+//             cell_ind[i] = index;
+//             uniq_cells.emplace_back(uniq_cell_id);
+//             hash_map.emplace(uniq_cell_id, index++);
+//         }
+//         count[i] = expData[i].count;
+//     }
+
+//     cell_num_ = index;
+//     return uniq_cells;
+// }
+
+void BgefReader::getSparseMatrixIndicesOfExp(vector<unsigned long long> &uniq_cells, unsigned int * cell_ind, unsigned int * pcount)
+{
     unsigned long long uniq_cell_id;
     Expression* expData = getExpression();
 
-    vector<unsigned long long> uniq_cells;
-    unsigned int index = 0;
-
-    int absent, is_missing;
-    khint_t k;
-    khash_t(m64) *h = kh_init(m64);  // allocate a hash table
-
-    for (int i = 0; i < expression_num_; ++i) {
-        uniq_cell_id = expData[i].x;
-        uniq_cell_id = uniq_cell_id << 32 | expData[i].y;
-
-        k = kh_get(m64, h, uniq_cell_id);
-        is_missing = (k == kh_end(h));
-        if (!is_missing){
-            cell_ind[i] = kh_value(h, k);
-        }else {
-            cell_ind[i] = index;
-            uniq_cells.push_back(uniq_cell_id);
-            k = kh_put(m64, h, uniq_cell_id, &absent);  // insert a key to the hash table
-            kh_value(h, k) = index;
-            ++index;
+    uint32_t index = 0;
+    unsigned long long *pcellid = new unsigned long long[expression_num_];
+    ThreadPool thpool(n_thread_);
+    uint32_t count = expression_num_/n_thread_;
+    for(int i=0;i<n_thread_;i++)
+    {
+        Expression* pdata_tmp = expData + i*count;
+        unsigned int *pcount_tmp = pcount + i*count;
+        unsigned long long *pcellid_tmp = pcellid + i*count;
+        if(i == n_thread_-1)
+        {
+            count = expression_num_ - (n_thread_-1)*count;
         }
-
-        count[i] = expData[i].count;
+        getBgefExpTask *ptask = new getBgefExpTask(count, pdata_tmp, pcount_tmp, pcellid_tmp);
+        thpool.addTask(ptask);
     }
+    thpool.waitTaskDone();
 
-    cell_num_ = index;
-    kh_destroy(m64, h);
-    if(verbose_) printCpuTime(cprev, "getSparseMatrixIndicesOfExp");
-    return uniq_cells;
+    std::unordered_map<unsigned long long, uint32_t> hash_map;
+    for(uint32_t i=0;i<expression_num_;i++)
+    {
+        if(hash_map.find(pcellid[i]) != hash_map.end())
+        {
+            cell_ind[i] = hash_map[pcellid[i]];
+        }
+        else
+        {
+            cell_ind[i] = index;
+            uniq_cells.emplace_back(pcellid[i]);
+            hash_map.emplace(pcellid[i], index++);
+        }
+    }
+    delete pcellid;
 }
 
 vector<string> BgefReader::getSparseMatrixIndicesOfGene(unsigned int *gene_index) {
@@ -354,8 +427,8 @@ Expression *BgefReader::getExpression() {
     hid_t memtype;
 
     memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
-    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_INT);
     H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
 
     expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
@@ -397,8 +470,8 @@ void BgefReader::getBinGeneExpMap(
         DnbExpression * dnb_exp_info) {
     unsigned long cprev=clock();
     hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(DnbExpression));
-    H5Tinsert(memtype, "x", HOFFSET(DnbExpression, x), H5T_NATIVE_UINT);
-    H5Tinsert(memtype, "y", HOFFSET(DnbExpression, y), H5T_NATIVE_UINT);
+    H5Tinsert(memtype, "x", HOFFSET(DnbExpression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(DnbExpression, y), H5T_NATIVE_INT);
     H5Tinsert(memtype, "count", HOFFSET(DnbExpression, count), H5T_NATIVE_USHORT);
     H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, dnb_exp_info);
 
@@ -655,16 +728,16 @@ unsigned int BgefReader::toGem(string &filename, string &sn) {
 }
 
 void BgefReader::getGeneExpression(unordered_map<string, vector<Expression>> &gene_exp_map,
-                                   const vector<unsigned int>& regions) {
+                                   const vector<int>& regions) {
     if(regions.empty()){
         getGeneExpression(gene_exp_map);
         return;
     }
 
-    unsigned int min_x = regions[0];
-    unsigned int max_x = regions[1];
-    unsigned int min_y = regions[2];
-    unsigned int max_y = regions[3];
+    int min_x = regions[0];
+    int max_x = regions[1];
+    int min_y = regions[2];
+    int max_y = regions[3];
 
     Gene * gene = getGene();
     Expression * expression = getExpression();
@@ -717,13 +790,13 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
 
     hid_t attr;
     attr = H5Aopen(exp_dataset_id_, "minX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.min_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.min_x));
     attr = H5Aopen(exp_dataset_id_, "minY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.min_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.min_y));
     attr = H5Aopen(exp_dataset_id_, "maxX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.max_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.max_x));
     attr = H5Aopen(exp_dataset_id_, "maxY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr.max_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(expression_attr.max_y));
     attr = H5Aopen(exp_dataset_id_, "maxExp", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
     attr = H5Aopen(exp_dataset_id_, "resolution", H5P_DEFAULT);
@@ -927,5 +1000,19 @@ void BgefReader::getOffset(int *data)
         ExpressionAttr & expression_attr = getExpressionAttr();
         data[0] = expression_attr.min_x;
         data[1] = expression_attr.min_y;
+    }
+}
+
+void BgefReader::getExpAttr(int *data)
+{
+    if(data)
+    {
+        ExpressionAttr & expression_attr = getExpressionAttr();
+        data[0] = expression_attr.min_x;
+        data[1] = expression_attr.min_y;
+        data[2] = expression_attr.max_x;
+        data[3] = expression_attr.max_y;
+        data[4] = expression_attr.max_exp;
+        data[5] = expression_attr.resolution;
     }
 }

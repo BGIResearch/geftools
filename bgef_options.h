@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-05-16 14:15:54
+ * @Description: file content
+ */
 
 #ifndef GENETOH5_COMMANDPARSE_H
 #define GENETOH5_COMMANDPARSE_H
@@ -24,11 +31,12 @@ public:
 //    int m_thread_dnb = 8; //设置dnbmerge线程数
     bool reverse_ = false; // true: gef to gem, false: gem to gef
     bool verbose_ = false;
+    int m_stattype = 0; //0:不生成stat 1:只生成stat 2:生成stat和对应bin数据 
 
     string input_file_;
     string output_file_;
     vector<unsigned int> bin_sizes_;
-    std::vector<unsigned int> region_;
+    std::vector<int> region_;
 
     std::unordered_map<std::string, std::vector<Expression>> map_gene_exp_;
     std::vector<GeneErank> vec_bin100_;
@@ -38,13 +46,13 @@ public:
 
     mutex dnbmtx_;
     DnbMatrix dnbmatrix_;
-    std::vector<unsigned int> range_ = {UINT_MAX, 0, UINT_MAX, 0};
+    std::vector<int> range_ = {INT_MAX, 0, INT_MAX, 0};
     GeneInfoQueue gene_info_queue_;
     GeneQueue gene_queue_;
     std::vector<Expression> expressions_;
     std::vector<Gene> genes_;
-    unsigned int offset_x_ = 0; // offset of coordinate
-    unsigned int offset_y_ = 0;
+    int offset_x_ = 0; // offset of coordinate
+    int offset_y_ = 0;
 };
 
 #endif //GENETOH5_COMMANDPARSE_H

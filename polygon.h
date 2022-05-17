@@ -38,7 +38,7 @@ class Polygon {
 
     /**
      * @brief Get border points of this polygon
-     * @return A vector of points, point num \<= 16
+     * @return A vector of points, point num \<= BORDERCNT
      */
     const vector<Point> &getBorder() const;
 

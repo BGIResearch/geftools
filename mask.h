@@ -1,3 +1,10 @@
+/*
+ * @Author: zhaozijian
+ * @Date: 2022-02-10 14:53:03
+ * @LastEditors: zhaozijian
+ * @LastEditTime: 2022-05-12 15:04:09
+ * @Description: file content
+ */
 /** @file mask.h
     @brief Declare a Mask class to describe mask file info.
 
@@ -17,7 +24,7 @@ using namespace std;
  * @brief A mask class to describe mask file info.
  */
 class Mask {
-  private:
+  public:
     unsigned int cell_num_;
     unsigned int block_num_;
     unsigned int block_size_[4] = {0};
@@ -55,9 +62,9 @@ class Mask {
 
     /**
      *
-     * @param border_array A pointer to a memory block, size = cell_num * 16 * 2 *sizeof(char)
+     * @param border_array A pointer to a memory block, size = cell_num * BORDERCNT * 2 *sizeof(char)
      */
-    void getBorders(char * border_array);
+    void getBorders(short * border_array);
 
     void getEffectiveRectangle(unsigned int* effective_rect) const;
 
