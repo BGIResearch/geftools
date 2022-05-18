@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-16 10:42:33
+ * @LastEditTime: 2022-05-18 14:41:44
  * @Description: file content
  */
 
@@ -753,7 +753,7 @@ void cgefCellgem::writeGene_bgef()
         for(;itor !=map_cell.end();itor++)
         {
             gene_exp_list.emplace_back(itor->first, itor->second.expcnt);
-            m_vec_cellexp[cid]->add(i, itor->second.expcnt, itor->second.dnbcnt);
+            m_vec_cellexp[itor->first]->add(i, itor->second.expcnt, itor->second.dnbcnt);
             maxMID = std::max(maxMID, itor->second.expcnt);
         }
 
@@ -804,11 +804,11 @@ void cgefCellgem::clabeltocid()
             cy = m_centroids.at<double>(cdata.l_idx,1);
             area = m_stats.at<int>(cdata.l_idx, CC_STAT_AREA);
 
-            bgef_cell *ptr = new bgef_cell(cid, cx, cy, area);
+            bgef_cell *ptr = new bgef_cell(cid, cx, cy, area, cdata.l_idx);
             m_vec_cellexp.emplace_back(ptr);
             m_hash_clabel2cid.emplace(cdata.l_idx, cid);
             m_vec_cellLabel.push_back(cdata.l_idx);
-            addCellborder(cx, cy, vec_border, cid);
+            addCellborder(cx, cy, vec_border, cdata.c_idx);
             cid++;
         }
         m_vec_blkidx.push_back(offcnt);
@@ -867,7 +867,7 @@ void cgefCellgem::writeGene_raw()
         for(;itor_c !=map_cell.end();itor_c++)
         {
             gene_exp_list.emplace_back(itor_c->first, itor_c->second.expcnt);
-            m_vec_cellexp[cid]->add(gid, itor_c->second.expcnt, itor_c->second.dnbcnt);
+            m_vec_cellexp[itor_c->first]->add(gid, itor_c->second.expcnt, itor_c->second.dnbcnt);
             maxMID = std::max(maxMID, itor_c->second.expcnt);
         }
 
@@ -898,7 +898,7 @@ void cgefCellgem::writeCell_raw()
     timer st(__FUNCTION__);
     unsigned int gid = 0, offcnt = 0; 
     unsigned short cell_type_id;
-
+    uint32_t offset = 0;
     for(bgef_cell *ptr : m_vec_cellexp)
     {
         m_cgefwPtr->cell_exp_list_.insert(m_cgefwPtr->cell_exp_list_.end(), ptr->m_vecCexp.begin(), ptr->m_vecCexp.end());
@@ -908,15 +908,32 @@ void cgefCellgem::writeCell_raw()
                 ptr->m_cid,
                 ptr->m_cx,
                 ptr->m_cy,
-                m_cgefwPtr->expression_num_,
+                offset,
                 ptr->m_vecCexp.size(),
                 ptr->m_expcnt,
                 ptr->m_dnbcnt,
                 ptr->m_area,
                 cell_type_id
         };
-
-
+// if(ptr->m_expcnt == 0)
+// {
+//     int    x = m_stats.at<int>(ptr->m_clabel, CC_STAT_LEFT);
+//     int    y = m_stats.at<int>(ptr->m_clabel, CC_STAT_TOP);
+//     int    w = m_stats.at<int>(ptr->m_clabel, CC_STAT_WIDTH);
+//     int    h = m_stats.at<int>(ptr->m_clabel, CC_STAT_HEIGHT);
+//     int la = 0;
+//     for(int m=0;m<m_cgefwPtr->expression_num_;m++)
+//     {
+//         if(m_expPtr[m].x >= x && m_expPtr[m].x < x+w 
+//         && m_expPtr[m].y >= y && m_expPtr[m].y < y+h )
+//         {
+//             la = m_outimg.at<uint32_t>(m_expPtr[m].x, m_expPtr[m].y);
+//             printf("%d %d %d\n", la, m_expPtr[m].x, m_expPtr[m].y);
+//         }
+//     }
+//     printf("err %d %d %d %d %d\n", x,y,x+w,y+h);
+// }
+        offset += ptr->m_vecCexp.size();
         m_cgefwPtr->cell_attr_.min_x = std::min(m_cgefwPtr->cell_attr_.min_x, cell.x);
         m_cgefwPtr->cell_attr_.max_x = std::max(m_cgefwPtr->cell_attr_.max_x, cell.x);
 
@@ -935,7 +952,6 @@ void cgefCellgem::writeCell_raw()
         m_cgefwPtr->cell_attr_.min_dnb_count = std::min(m_cgefwPtr->cell_attr_.min_dnb_count, cell.dnb_count);
         m_cgefwPtr->cell_attr_.max_dnb_count = std::max(m_cgefwPtr->cell_attr_.max_dnb_count, cell.dnb_count);
 
-        m_cgefwPtr->expression_num_ += cell.gene_count;
         m_cgefwPtr->exp_count_sum_ += cell.exp_count;
         m_cgefwPtr->dnb_count_sum_ += cell.dnb_count;
         m_cgefwPtr->area_sum_ += cell.area;

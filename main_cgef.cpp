@@ -132,20 +132,20 @@ int generateCgef(const string &cgef_file,
     unsigned long cprev=clock();
     // if(!cgef_file.empty()) //从bgef生成cgef
     // {
-    //     BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
-    //     ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
+        // BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
+        // ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
 
-    //     unsigned int mask_size[2]; // rows, cols
-    //     mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
-    //     mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
+        // unsigned int mask_size[2]; // rows, cols
+        // mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
+        // mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
 
-    //     Mask mask = Mask(mask_file, block_size, mask_size);
-    //     if(verbose) cprev = printCpuTime(cprev, "Mask init");
-    //     cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
-    //     CgefWriter cgef_writer = CgefWriter(true);
-    //     cgef_writer.setOutput(cgef_file);
-    //     cgef_writer.setRandomCellTypeNum(rand_cell_type_num);
-    //     cgef_writer.write(common_bin_gef, mask);
+        // Mask mask = Mask(mask_file, block_size, mask_size);
+        // if(verbose) cprev = printCpuTime(cprev, "Mask init");
+        // cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
+        // CgefWriter cgef_writer = CgefWriter(true);
+        // cgef_writer.setOutput(cgef_file);
+        // cgef_writer.setRandomCellTypeNum(rand_celltype_num);
+        // cgef_writer.write(common_bin_gef, mask);
     //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     // }
     // else //为cgef 添加level层次

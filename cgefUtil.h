@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-04-01 10:15:19
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-13 15:04:05
+ * @LastEditTime: 2022-05-18 14:41:57
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFUTIL_H_
@@ -221,8 +221,8 @@ public:
 class bgef_cell
 {
 public:
-    bgef_cell(uint32_t cid, int x, int y, uint16_t area):
-    m_cid(cid), m_cx(x), m_cy(y), m_area(area)
+    bgef_cell(uint32_t cid, int x, int y, uint16_t area, uint32_t label):
+    m_cid(cid), m_cx(x), m_cy(y), m_area(area),m_clabel(label)
     {};
     ~bgef_cell(){};
     // void add(uint16_t gid, Expression &exp)
@@ -244,6 +244,7 @@ public:
     uint16_t m_area = 0;
     int m_cx,m_cy;
     uint32_t m_cid;
+    uint32_t m_clabel = 0;
     vector<CellExpData> m_vecCexp;
     //vector<int> m_vecpos;
 };

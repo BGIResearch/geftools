@@ -96,31 +96,44 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
         exit(2);
     }
 
-    // hsize_t dims_attr[1];
-    // hid_t attr, attr_dataspace;
-    // attr = H5Aopen(cell_dataset_id_, "blockIndex", H5P_DEFAULT);
-    // attr_dataspace = H5Aget_space(attr);
-    // H5Sget_simple_extent_dims(attr_dataspace, dims_attr, nullptr);
+    if(m_ver_tool[1] == 6 && m_ver_tool[2] < 3)
+    {
+        hsize_t dims_attr[1];
+        hid_t attr, attr_dataspace;
+        attr = H5Aopen(cell_dataset_id_, "blockIndex", H5P_DEFAULT);
+        attr_dataspace = H5Aget_space(attr);
+        H5Sget_simple_extent_dims(attr_dataspace, dims_attr, nullptr);
 
-    // block_index_ = static_cast<unsigned int *>(
-    //         malloc(dims_attr[0] * sizeof(unsigned int)));
+        block_index_ = static_cast<unsigned int *>(
+                malloc(dims_attr[0] * sizeof(unsigned int)));
 
-    // H5Aread(attr, H5T_NATIVE_UINT32, block_index_);
+        H5Aread(attr, H5T_NATIVE_UINT32, block_index_);
 
-    hid_t attr = H5Aopen(cell_dataset_id_, "blockSize", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT32, block_size_);
+        attr = H5Aopen(cell_dataset_id_, "blockSize", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_UINT32, block_size_);
 
-    // H5Aclose(attr);
-    // H5Sclose(attr_dataspace);
-    hid_t d_id = H5Dopen(group_id, "blkidx", H5P_DEFAULT);
-    hsize_t dims[1];
-    hid_t s_id = H5Dget_space(d_id);
-    H5Sget_simple_extent_dims(s_id, dims, nullptr);
-    block_index_ = static_cast<unsigned int *>(calloc(dims[0], sizeof(unsigned int)));
-    H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_index_);
+        H5Aclose(attr);
+        H5Sclose(attr_dataspace);
+    }
+    else
+    {
 
-    H5Sclose(s_id);
-    H5Dclose(d_id);
+
+        hid_t d_id = H5Dopen(group_id, "blockIndex", H5P_DEFAULT);
+        hsize_t dims[1];
+        hid_t s_id = H5Dget_space(d_id);
+        H5Sget_simple_extent_dims(s_id, dims, nullptr);
+        block_index_ = static_cast<unsigned int *>(calloc(dims[0], sizeof(unsigned int)));
+        H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_index_);
+
+        H5Sclose(s_id);
+        H5Dclose(d_id);
+
+        d_id = H5Dopen(group_id, "blockSize", H5P_DEFAULT);
+        H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_size_);
+        H5Sclose(s_id);
+        H5Dclose(d_id);
+    }
 
     return cell_dataset_id_;
 }
