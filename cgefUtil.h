@@ -236,7 +236,7 @@ public:
     {
         m_vecCexp.emplace_back(gid, expcnt);
         m_expcnt += expcnt;
-        dnbcnt += dnbcnt;
+        m_dnbcnt += dnbcnt;
     }
 public:
     uint16_t m_expcnt = 0;

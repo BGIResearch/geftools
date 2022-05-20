@@ -77,13 +77,15 @@ class CgefReader {
 
     char *m_borderdataPtr = nullptr;
     char *m_borderdata_currentPtr = nullptr;
+    short *m_borderdataPtr_s = nullptr;
+    short *m_borderdata_currentPtr_s = nullptr;
 
     unsigned int m_ver = 0;
     unsigned int m_resolution = 0;
     int offsetX = 0;
     int offsetY = 0;
     unsigned int m_ver_tool[3] ={0};
-    string m_bgefstr;
+
   public:
     explicit CgefReader(const string &filename, bool verbose = false);
     ~CgefReader();
@@ -242,16 +244,14 @@ class CgefReader {
 
     void closeH5();
 
-    char* getCellBorders(bool ball, unsigned int cell_id);
+    char* getCellBorders_char(bool ball, unsigned int cell_id);
+    short* getCellBorders_short(bool ball, unsigned int cell_id);
 
     void getAttr();
-
-    void setBgefpath(string &filename)
+    uint32_t* getGefVer()
     {
-        m_bgefstr = filename;
+        return m_ver_tool;
     }
-
-    
 };
 
 #endif //GEFTOOLS_CGEF_READER_H

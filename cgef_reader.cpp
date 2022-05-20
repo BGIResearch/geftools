@@ -117,8 +117,6 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
     }
     else
     {
-
-
         hid_t d_id = H5Dopen(group_id, "blockIndex", H5P_DEFAULT);
         hsize_t dims[1];
         hid_t s_id = H5Dget_space(d_id);
@@ -131,7 +129,6 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
 
         d_id = H5Dopen(group_id, "blockSize", H5P_DEFAULT);
         H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_size_);
-        H5Sclose(s_id);
         H5Dclose(d_id);
     }
 
@@ -800,7 +797,7 @@ bool CgefReader::isInRegion(unsigned int cell_id) {
     return true;
 }
 
-char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
+char* CgefReader::getCellBorders_char(bool ball, unsigned int cell_id)
 {
     unsigned long cprev = clock();
     if(m_borderdataPtr == nullptr)
@@ -817,15 +814,7 @@ char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
         H5Dclose(dataset_id);
     }
 
-    int cnt = 0;
-    if(m_ver_tool[1] == 6 && m_ver_tool[2]<3)
-    {
-        cnt = 32;
-    }
-    else
-    {
-        cnt = 64;
-    }
+    int cnt = 32;
     if(!ball)
     {
         if(m_borderdata_currentPtr)
@@ -862,5 +851,62 @@ char* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
     else
     {
         return m_borderdataPtr;
+    }
+}
+
+short* CgefReader::getCellBorders_short(bool ball, unsigned int cell_id)
+{
+    unsigned long cprev = clock();
+    if(m_borderdataPtr == nullptr)
+    {
+        hsize_t dims[3];
+        hid_t dataset_id = H5Dopen(group_id_, "cellBorder", H5P_DEFAULT);
+        hid_t dataspace_id = H5Dget_space(dataset_id);
+        H5Sget_simple_extent_dims(dataspace_id, dims, nullptr);
+
+        m_borderdataPtr_s = (short*)calloc(dims[0]*dims[1]*dims[2], 2);
+        H5Dread(dataset_id, H5T_STD_I16LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_borderdataPtr_s);
+
+        H5Sclose(dataspace_id);
+        H5Dclose(dataset_id);
+    }
+
+    int cnt = 64;
+    if(!ball)
+    {
+        if(m_borderdata_currentPtr_s)
+        {
+            free(m_borderdata_currentPtr_s);
+            m_borderdata_currentPtr_s = nullptr;
+        }
+        m_borderdata_currentPtr_s = (short*)calloc(cnt,2);
+        short *psrc = m_borderdataPtr_s + cell_id*cnt;
+        memcpy(m_borderdata_currentPtr_s, psrc, cnt*2);
+        return m_borderdata_currentPtr_s;
+    }
+
+    if(restrict_region_)
+    {
+        if(m_borderdata_currentPtr_s)
+        {
+            free(m_borderdata_currentPtr_s);
+            m_borderdata_currentPtr_s = nullptr;
+        }
+        m_borderdata_currentPtr_s = (short*)calloc(cell_num_current_*cnt,2);
+        short *psrc = nullptr;
+        short *pdest = m_borderdata_currentPtr_s;
+        for(unsigned int i=0;i<cell_num_current_;i++)
+        {
+            psrc = m_borderdataPtr_s + cell_id_array_current_[i]*cnt;
+            memcpy(pdest, psrc, cnt*2);
+            pdest += cnt;
+        }
+        printf("%d \n", cell_num_current_);
+        printCpuTime(cprev, "getCellBorders");
+        return m_borderdata_currentPtr_s;
+    }
+    else
+    {
+        return m_borderdataPtr_s;
     }
 }

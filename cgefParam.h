@@ -35,7 +35,6 @@ public:
 
     int m_threadcnt = 1;
     int m_block_size[2]={256,256};
-    int m_sn = 500;
     std::string m_rawgemstr;
     std::string m_maskstr;
     std::string m_inputstr;
