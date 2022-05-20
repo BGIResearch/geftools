@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:56:17
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-13 14:04:42
+ * @LastEditTime: 2022-05-18 17:45:15
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFPARAM_H_
@@ -13,7 +13,6 @@
 #include <vector>
 #include "gef.h"
 #include "cgefUtil.h"
-#include "BufPool.h"
 
 enum InputType
 {
@@ -45,7 +44,6 @@ public:
     std::unordered_map<std::string, cgef_gene*> m_map_gene;
     int m_min_x = INT_MAX, m_min_y = INT_MAX, m_max_x = 0, m_max_y = 0;
     InputType m_intype = INPUTTYPE_BGEF_MASK;
-    BufPool *m_bpPtr = nullptr;
     char *m_pdata = nullptr;
 
     unordered_map<string, bgef_gene*> m_map_bgene;

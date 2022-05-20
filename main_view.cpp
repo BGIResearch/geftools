@@ -6,13 +6,41 @@
 #include "cxxopts.h"
 int test1()
 {
-    CgefReader cgef_reader = CgefReader("/hwfssz1/ST_BIOINTEL/P20Z10200N0039/06.user/shichang/ng_demo_data/gefs/monkey_brain.T31.cellbin.gef", true);
+    CgefReader cgef_reader = CgefReader("/jdfssz2/ST_BIGDATA/Stomics/auto_analysis/tmppath/users/st_stomics_uat/P20Z10200N0039/S2022042010007/FP200000364TL_D1/FP200000364TL_D1_result/FP200000364TL_D1.cellbin.gef", true);
     // cgef_reader.restrictRegion(7680, 9728, 8704, 10752);
     // cgef_reader.getCellBorders(true, 0);
-    cgef_reader.getCell();
+    
+    CellData *arryptr = cgef_reader.getCell();
+    int cellnum = cgef_reader.getCellNum();
+    for(int i=0;i<cellnum;i++)
+    {
+        if(arryptr[i].gene_count == 0)
+        {
+            printf("%d\n", i);
+        }
+    }
+
     printf("end\n");
     return 0;
 }
+int test2()
+{
+    BgefReader bgef_reader("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000364TL_D1.raw.gef",1);
+    Expression *arrptr = bgef_reader.getExpression();
+    int num = bgef_reader.getExpressionNum();
+    int kk = 0;
+    for(int i=0;i<num;i++)
+    {
+        if(arrptr[i].x >= 8857 && arrptr[i].x < 8866  &&
+        arrptr[i].y >= 9071 && arrptr[i].y < 9080)
+        {
+            kk++;
+        }
+    }
+    printf("%d\n",kk);
+    return 0;
+}
+
 int view(int argc, char *argv[]) {
     //return test1();
     cxxopts::Options options("geftools view",

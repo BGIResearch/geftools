@@ -71,6 +71,13 @@ struct Gene {
     unsigned int count;
 };
 
+struct Cell
+{
+    unsigned int cellid;
+    unsigned int offset;
+    unsigned int count;
+};
+
 struct GeneStat
 {
     GeneStat(string& g, unsigned int m, float e)
