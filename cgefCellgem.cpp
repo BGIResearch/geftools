@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-20 09:54:37
+ * @LastEditTime: 2022-05-21 13:49:38
  * @Description: file content
  */
 
@@ -296,26 +296,34 @@ void cgefCellgem::writeAttr()
 void cgefCellgem::addCellborder(int cx, int cy, vector<short> &vec_border, uint32_t idx)
 {
     vector<Point> &vborder = m_contours[idx];
-    vector<Point> tmpborder;
+    int i=0;
     int sz = vborder.size();
-    if(vborder.size() > BORDERCNT)
+    if(sz > BORDERCNT)
     {
+        vector<Point> tmpborder;
         double epsilon = 0.01 * arcLength(vborder, true);
         approxPolyDP(vborder, tmpborder, epsilon, true);
+
+        sz = tmpborder.size();
+        for(;i<sz;i++)
+        {
+            vec_border.emplace_back(tmpborder[i].x - cx);
+            vec_border.emplace_back(tmpborder[i].y - cy);
+        }
+    }
+    else
+    {
+        for(;i<sz;i++)
+        {
+            vec_border.emplace_back(vborder[i].x - cx);
+            vec_border.emplace_back(vborder[i].y - cy);
+        }
     }
     
-    sz = tmpborder.size();
-    int i=0;
-    for(;i<sz;i++)
-    {
-        vec_border.emplace_back(vborder[i].x - cx);
-        vec_border.emplace_back(vborder[i].y - cy);
-    }
-
     for(;i<BORDERCNT;i++) //不足补0
     {
-        vec_border.emplace_back(0);
-        vec_border.emplace_back(0);
+        vec_border.emplace_back(SHRT_MAX);
+        vec_border.emplace_back(SHRT_MAX);
     }
 }
 
@@ -406,7 +414,7 @@ void cgefCellgem::writeCell()
     
     m_cgefwPtr->cell_num_ = cid;
 
-    unsigned int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
+    int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
 
     m_cgefwPtr->storeCell(m_blocknum, vec_blkidx.data(), m_block_size);
@@ -572,8 +580,8 @@ void cgefCellgem::writeCell_celltype()
 
             for(;i<BORDERCNT;i++) //不足补0
             {
-                vec_border.emplace_back(0);
-                vec_border.emplace_back(0);
+                vec_border.emplace_back(SHRT_MAX);
+                vec_border.emplace_back(SHRT_MAX);
             }
 
             gene_count = cellptr->m_map_cellexp.size();
@@ -641,7 +649,7 @@ void cgefCellgem::writeCell_celltype()
     
     m_cgefwPtr->cell_num_ = cid;
 
-    unsigned int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
+    int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
 
     m_cgefwPtr->storeCell(m_blocknum, vec_blkidx.data(), m_block_size);
@@ -711,10 +719,11 @@ void cgefCellgem::readBgef(const string &strinput)
     H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_max_x));
     attr = H5Aopen(exp_did, "maxY", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_max_y));
-    // attr = H5Aopen(exp_did, "maxExp", H5P_DEFAULT);
-    // H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.max_exp));
     attr = H5Aopen(exp_did, "resolution", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_resolution));
+    printf("minx:%d miny:%d maxx:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, 
+    cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_x,
+    cgefParam::GetInstance()->m_max_y);
 
     H5Aclose(attr);
     H5Tclose(memtype);
@@ -736,6 +745,8 @@ void cgefCellgem::writeGene_bgef()
     map<uint32_t, cellt> map_cell;
     for(int i=0;i<m_genecnt;i++)
     {
+        maxMID = 0;
+        expsum = 0;
         map_cell.clear();
         Expression *expPtr = m_expPtr+m_genePtr[i].offset;
         for(int j=0;j<m_genePtr[i].count;j++)
@@ -759,9 +770,6 @@ void cgefCellgem::writeGene_bgef()
             }
         }
 
-        if(map_cell.empty()) continue;
-
-        m_cgefwPtr->gene_num_++;
         auto itor = map_cell.begin();
         for(;itor !=map_cell.end();itor++)
         {
@@ -788,7 +796,8 @@ void cgefCellgem::writeGene_bgef()
     free(m_genePtr);
     free(m_expPtr);
 
-    m_cgefwPtr->expression_num_ = m_vec_cellexp.size();
+    m_cgefwPtr->gene_num_ = m_genecnt;
+    m_cgefwPtr->expression_num_ = gene_exp_list.size();
     m_cgefwPtr->max_mid_count_ = cgefParam::GetInstance()->m_maxExp_gexp;
     m_cgefwPtr->storeGeneAndGeneExp(cgefParam::GetInstance()->m_minExp, cgefParam::GetInstance()->m_maxExp,
                                     cgefParam::GetInstance()->m_minCell, cgefParam::GetInstance()->m_maxCell,
@@ -821,7 +830,7 @@ void cgefCellgem::clabeltocid()
             bgef_cell *ptr = new bgef_cell(cid, cx, cy, area, cdata.l_idx);
             m_vec_cellexp.emplace_back(ptr);
             m_hash_clabel2cid.emplace(cdata.l_idx, cid);
-            m_vec_cellLabel.push_back(cdata.l_idx);
+            //m_vec_cellLabel.push_back(cdata.l_idx);
             addCellborder(cx, cy, vec_border, cdata.c_idx);
             cid++;
         }
@@ -830,9 +839,9 @@ void cgefCellgem::clabeltocid()
     }
     m_vec_blkidx.push_back(cid);
     m_cgefwPtr->cell_num_ = cid;
-    unsigned int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
+    int effective_rect[4] ={m_min_x, m_min_y, m_max_x-1, m_max_y-1};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
-    m_cgefwPtr->storeCellLabel(m_vec_cellLabel);
+    //m_cgefwPtr->storeCellLabel(m_vec_cellLabel);
     m_centroids.release();
     m_stats.release();
 }
@@ -853,6 +862,8 @@ void cgefCellgem::writeGene_raw()
     auto itor = cgefParam::GetInstance()->m_map_bgene.begin();
     for(;itor != cgefParam::GetInstance()->m_map_bgene.end();itor++, gid++)
     {
+        maxMID = 0 ;
+        expsum = 0;
         map_cell.clear();
         for(Expression &exp : itor->second->m_vecExp)
         {

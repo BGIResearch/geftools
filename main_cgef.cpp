@@ -5,9 +5,22 @@
 #include "opencv2/opencv.hpp"
 #include "cgefParam.h"
 #include "cgefCellgem.h"
+#include "cellAdjust.h"
+
+int ctest()
+{
+    cellAdjust ca;
+    ca.readBgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.bgef");
+    ca.readCgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.cgef");
+    vector<string> genename;
+    vector<cellgem_label> vecCellgem;
+    ca.getCellLabelgem(genename, vecCellgem);
+
+    return 0;
+}
 
 int cgef(int argc, char *argv[]) {
-
+    //return ctest();
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");
@@ -139,13 +152,14 @@ int generateCgef(const string &cgef_file,
         // mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
         // mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
 
-        // Mask mask = Mask(mask_file, block_size, mask_size);
+        // Mask mask(mask_file, block_size, mask_size);
         // if(verbose) cprev = printCpuTime(cprev, "Mask init");
         // cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
         // CgefWriter cgef_writer1;
         // cgef_writer1.setOutput(cgef_file);
         // cgef_writer1.setRandomCellTypeNum(rand_celltype_num);
         // cgef_writer1.write(common_bin_gef, mask);
+        // return 0;
     //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     // }
     // else //为cgef 添加level层次

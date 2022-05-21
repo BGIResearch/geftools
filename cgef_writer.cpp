@@ -106,7 +106,7 @@ void CgefWriter::storeCellBorder(short* borderPath, unsigned int cell_num) const
 }
 
 
-void CgefWriter::storeCellBorderWithAttr(short *borderPath, unsigned int cell_num, unsigned int *effective_rect) const {
+void CgefWriter::storeCellBorderWithAttr(short *borderPath, unsigned int cell_num, int *effective_rect) const {
     unsigned long cprev=clock();
     storeCellBorder(borderPath, cell_num);
 
@@ -115,14 +115,14 @@ void CgefWriter::storeCellBorderWithAttr(short *borderPath, unsigned int cell_nu
     hsize_t dims_attr[1] = {1};
     hid_t attr;
     hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
-    attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, effective_rect);
-    attr = H5Acreate(dataset_id, "minY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[1]);
-    attr = H5Acreate(dataset_id, "maxX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[2]);
-    attr = H5Acreate(dataset_id, "maxY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[3]);
+    attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, effective_rect);
+    attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &effective_rect[1]);
+    attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &effective_rect[2]);
+    attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &effective_rect[3]);
 
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
@@ -679,6 +679,8 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
     common_bin_gef.getBinGeneExpMap(bin_gene_exp_map, dnb_exp_info);
 
     const vector<Polygon>& polygons = mask.getPolygons();
+// FILE *f = fopen("mask_raw.txt","wb");
+// char pbuf[1024];
 
     unsigned long cprev=clock();
     for(unsigned int i = 0; i < mask.getCellNum(); i++){
@@ -699,8 +701,19 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
             dnb_exp_info,
             p.getCenter(),
             p.getAreaUshort());
+        
+        
+        // const vector<Point> &vp = p.getBorder();
+        // int l = 0;
+        // for(const Point &po : vp)
+        // {
+        //     l += sprintf(pbuf+l,"%d-%d ",po.x, po.y);
+        // }
+        // l += sprintf(pbuf+l, "%d %d %d %d %d\n", vp.size(), p.getMinX(), p.getMinY(), p.getMaxX(), p.getMaxY());
+        // fwrite(pbuf, 1, l, f);
     }
-    
+    //fclose(f);
+
     if(verbose_) printCpuTime(cprev, "addDnbExp");
 
     m_borderptr = static_cast<short *>(malloc(mask.getCellNum() * BORDERCNT * 2 * sizeof(short)));
@@ -716,7 +729,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
 
     storeAttr(cell_bin_attr);
 
-    unsigned int effective_rect[4];
+    int effective_rect[4];
     mask.getEffectiveRectangle(effective_rect);
     storeCellBorderWithAttr(m_borderptr, mask.getCellNum(), effective_rect);
     storeCell(mask.getBlockNum(), mask.getBlockIndex(), mask.getBlockSize());

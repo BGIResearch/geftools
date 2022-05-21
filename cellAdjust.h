@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-05-16 11:02:15
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-19 16:22:41
+ * @LastEditTime: 2022-05-21 10:55:23
  * @Description: file content
  */
 #ifndef GEFTOOLS_CELLADJUST_H
@@ -39,12 +39,12 @@ struct cellgem_label
 class cellAdjust
 {
 public:
-    cellAdjust(string &outpath);
+    cellAdjust();
     ~cellAdjust();
     void readBgef(const string &strinput);
     void readCgef(const string &strinput);
     uint32_t getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem);
-    void writeCellAdjust(vector<Cell> &veccell, vector<DnbExpression> &vecDnb);
+    void writeCellAdjust(const string &outpath, vector<Cell> &veccell, vector<DnbExpression> &vecDnb);
     bool addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border);
     void writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb);
     void writeGene();

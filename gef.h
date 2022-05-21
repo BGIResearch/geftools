@@ -75,7 +75,7 @@ struct Cell
 {
     unsigned int cellid;
     unsigned int offset;
-    unsigned int count;
+    unsigned short count;
 };
 
 struct GeneStat

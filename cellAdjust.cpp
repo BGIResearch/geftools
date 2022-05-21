@@ -2,22 +2,19 @@
  * @Author: zhaozijian
  * @Date: 2022-05-16 11:02:23
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-19 16:40:42
+ * @LastEditTime: 2022-05-21 11:35:58
  * @Description: file content
  */
 #include "cellAdjust.h"
 #include "timer.h"
 
 
-cellAdjust::cellAdjust(string &outpath)
+cellAdjust::cellAdjust()
 {
-    m_cgefwPtr = new CgefWriter();
-    m_cgefwPtr->setOutput(outpath);
 }
 
 cellAdjust::~cellAdjust()
 {
-    delete m_cgefwPtr;
     delete []m_cell_arrayptr;
     free(m_blkidxPtr);
 }
@@ -74,13 +71,12 @@ void cellAdjust::readBgef(const string &strinput)
     H5Aread(attr, H5T_NATIVE_UINT, &m_max_y);
     attr = H5Aopen(exp_did, "resolution", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &m_resolution);
-
+    printf("minx:%d miny:%d maxx:%d maxy:%d\n", m_min_x, m_min_y, m_max_x, m_max_y);
     H5Aclose(attr);
     H5Tclose(memtype);
     H5Sclose(exp_sid);
     H5Dclose(exp_did);
     H5Fclose(file_id);
-
 
     uint64_t l_id = 0;
     for(int i=0;i<m_genencnt;i++)
@@ -89,20 +85,20 @@ void cellAdjust::readBgef(const string &strinput)
         Expression *ptr = expPtr + genePtr[i].offset;
         for(int j=0;j<genePtr[i].count;j++)
         {
-            l_id = ptr->x;
-            l_id = (l_id<<32) | ptr->y;
+            l_id = ptr[j].x;
+            l_id = (l_id<<32) | ptr[j].y;
             
             if(m_hash_vecdnb.find(l_id) == m_hash_vecdnb.end())
             {
                 vector<Dnbs> tvec;
                 m_hash_vecdnb.emplace(l_id, tvec);
             }
-            m_hash_vecdnb[l_id].emplace_back(i, ptr->count);
+            m_hash_vecdnb[l_id].emplace_back(i, ptr[j].count);
         }
     }
     free(genePtr);
     free(expPtr);
-    printf("%ld\n", m_hash_vecdnb.size());
+    printf("gene:%d geneexp:%d hashcnt:%d\n", m_genencnt, m_geneexpcnt, m_hash_vecdnb.size());
 }
 
 void cellAdjust::readCgef(const string &strinput)
@@ -145,31 +141,49 @@ void cellAdjust::readCgef(const string &strinput)
     short *borderdataPtr = (short*)calloc(bdims[0]*bdims[1]*bdims[2], 2);
     H5Dread(border_id, H5T_STD_I16LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, borderdataPtr);
 
-    vector<vector<Point>> vec_vec_border;
-    short x,y;
-    short minx = SHRT_MAX, miny = SHRT_MAX, maxx = 0, maxy = 0;
-    
+    int x,y;
+    int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
+    vector<Point> vecborder;
+    //m_fill_points = Mat::zeros(m_max_y-m_min_y+1, m_max_x-m_min_x+1, CV_8UC1);
+    m_fill_points = Mat::zeros(20501, 21801, CV_8UC1);
+    short *ptmp = borderdataPtr;
     for(int i=0;i<bdims[0];i++)
     {
-        vector<Point> vecborder;
-        vec_vec_border.emplace_back(vecborder);
+        minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
+        vecborder.clear();
         for(int j=0;j<bdims[1];j++)
         {
-            if(borderdataPtr[j]==0)
+            x = ptmp[2*j];
+            y = ptmp[2*j+1];
+            if(x==SHRT_MAX && y==SHRT_MAX)
             {
                 break;
             }
-            x = borderdataPtr[2*j] + m_cell_arrayptr[i].x;
-            y = borderdataPtr[2*j+1] + m_cell_arrayptr[i].y;
-            vec_vec_border[i].emplace_back(x,y);
+            x += m_cell_arrayptr[i].x;
+            y += m_cell_arrayptr[i].y;
+            vecborder.emplace_back(x,y);
             minx = std::min(minx, x);
             maxx = std::max(maxx, x);
             miny = std::min(miny, y);
             maxy = std::max(maxy, y);
+
         }
-        Rect rtmp(minx, miny, maxx-minx+1, maxy-miny+1);
-        m_hash_cellrect.emplace(i, rtmp);
+        if(!vecborder.empty())
+        {
+            Rect rtmp(minx, miny, maxx-minx+1, maxy-miny+1);
+            m_hash_cellrect.emplace(i, rtmp);
+            fillPoly(m_fill_points, vecborder, 1);
+        }
+        else
+        {
+            printf("cid %d\n",i);
+        }
+        ptmp += 64;
     }
+
+    free(borderdataPtr);
+    printf("cellcnt:%d hashrect %d\n", m_cellcnt, m_hash_cellrect.size());
+
 
     int min_x, min_y, max_x, max_y;
     hid_t attr = H5Aopen(border_id, "minX", H5P_DEFAULT);
@@ -180,28 +194,26 @@ void cellAdjust::readCgef(const string &strinput)
     H5Aread(attr, H5T_NATIVE_INT, &max_x);
     attr = H5Aopen(border_id, "maxY", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_INT, &max_y);
+    printf("minx:%d miny:%d maxx:%d maxy:%d\n", min_x, min_y, max_x, max_y);
 
+    // attr = H5Aopen(file_id, "offsetX", H5P_DEFAULT);
+    // H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
+
+    // attr = H5Aopen(file_id, "offsetY", H5P_DEFAULT);
+    // H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
     H5Aclose(attr);
     H5Sclose(border_sid);
     H5Dclose(border_id);
     H5Fclose(file_id);
 
-
-    attr = H5Aopen(file_id, "offsetX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
-
-    attr = H5Aopen(file_id, "offsetY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
-    H5Aclose(attr);
-    
-    m_fill_points = Mat::zeros(max_y+1, max_x+1, CV_8UC1);
-    fillPoly(m_fill_points, vec_vec_border, 1);
 }
 
 uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem)
 {
     uint64_t l_id = 0;
     vector<Point> vecpoint;
+    int x,y;
+    int t_f = 0, t_n = 0;
     auto itor = m_hash_cellrect.begin();
     for(;itor != m_hash_cellrect.end();itor++)
     {
@@ -211,18 +223,36 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
 
         for(Point &pt : vecpoint)
         {
-            l_id = pt.x;
-            l_id = (l_id << 32) | pt.y;
+            x = pt.x+itor->second.x;
+            y = pt.y+itor->second.y;
+            l_id = x;
+            l_id = (l_id << 32) | y;
             auto dnb_itor = m_hash_vecdnb.find(l_id);
             if(dnb_itor!= m_hash_vecdnb.end())
             {
+                t_f++;
                 for(Dnbs &dnbs : dnb_itor->second)
                 {
-                    vecCellgem.emplace_back(dnbs.geneid, pt.x, pt.y, dnbs.midcnt, itor->first);
+                    vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, itor->first+1);
                 }
+                m_hash_vecdnb.erase(l_id);
             }
         }
     }
+    printf("%d\n", m_hash_vecdnb.size());
+
+    auto itor_s = m_hash_vecdnb.begin();
+    for(;itor_s != m_hash_vecdnb.end();itor_s++)
+    {
+        t_n++;
+        x = (itor_s->first) >> 32;
+        y = (itor_s->first) | 0xFFFFFFFF;
+        for(Dnbs &dnbs : itor_s->second)
+        {
+            vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, 0);
+        }
+    }
+
     genename.insert(genename.end(), m_vecgenename.begin(), m_vecgenename.end());
     return vecCellgem.size();
 }
@@ -238,16 +268,33 @@ bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Poi
 
     int bsz = border.size();
     int i=0;
-    for(;i<bsz;i++)
+
+    if(bsz > BORDERCNT)
     {
-        vec_border.emplace_back(border[i].x - m_cell_arrayptr[cid].x);
-        vec_border.emplace_back(border[i].y - m_cell_arrayptr[cid].y);
+        vector<Point> tmpborder;
+        double epsilon = 0.01 * arcLength(border, true);
+        approxPolyDP(border, tmpborder, epsilon, true);
+
+        bsz = tmpborder.size();
+        for(;i<bsz;i++)
+        {
+            vec_border.emplace_back(tmpborder[i].x - m_cell_arrayptr[cid].x);
+            vec_border.emplace_back(tmpborder[i].y - m_cell_arrayptr[cid].y);
+        }
+    }
+    else
+    {
+        for(;i<bsz;i++)
+        {
+            vec_border.emplace_back(border[i].x - m_cell_arrayptr[cid].x);
+            vec_border.emplace_back(border[i].y - m_cell_arrayptr[cid].y);
+        }
     }
 
-    for(;i<BORDERCNT;i++) //不足补0
+    for(;i<BORDERCNT;i++) //不足补SHRT_MAX
     {
-        vec_border.emplace_back(0);
-        vec_border.emplace_back(0);
+        vec_border.emplace_back(SHRT_MAX);
+        vec_border.emplace_back(SHRT_MAX);
     }
 
     return true;
@@ -257,7 +304,7 @@ void cellAdjust::writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
 {
     uint16_t gene_count, exp_count, dnb_count, area, cell_type_id;
     map<uint16_t, uint16_t> map_gene_cnt; //gid midcnt
-    uint64_t offset = 0;
+    uint32_t offset = 0;
     vector<Point> vecPoint;
     vector<Point> border;
 
@@ -342,7 +389,7 @@ void cellAdjust::writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
         m_cgefwPtr->cell_list_.emplace_back(std::move(cell));
     }
 
-    unsigned int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
+    int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), m_cgefwPtr->cell_num_, effective_rect);
     m_cgefwPtr->storeCell(m_block_size[2]*m_block_size[3], m_blkidxPtr, m_block_size);
     m_cgefwPtr->storeCellExp();
@@ -392,8 +439,11 @@ void cellAdjust::writeGene()
     free(gene_data_list);
 }
 
-void cellAdjust::writeCellAdjust(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
+void cellAdjust::writeCellAdjust(const string &outpath, vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
 {
+    m_cgefwPtr = new CgefWriter();
+    m_cgefwPtr->setOutput(outpath);
     writeCell(veccell, vecDnb);
     writeGene();
+    delete m_cgefwPtr;
 }
