@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:30
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-21 13:49:38
+ * @LastEditTime: 2022-05-21 14:31:48
  * @Description: file content
  */
 
@@ -433,6 +433,7 @@ void cgefCellgem::writeGene()
     unsigned int cell_count, min_cell_count = UINT32_MAX, max_cell_count = 0;
     unsigned short max_MID_count = 0;
     vector<GeneExpData> gene_exp_list;
+    gene_exp_list.reserve(m_cgefwPtr->expression_num_);
 
     int cid = 0, i = 0;
     auto itor = cgefParam::GetInstance()->m_map_gene.begin();

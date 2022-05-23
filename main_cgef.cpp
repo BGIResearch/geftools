@@ -169,10 +169,10 @@ int generateCgef(const string &cgef_file,
     //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     // }
 
-string str(cgef_file);
-str.append("_tk");
+// string str(cgef_file);
+// str.append("_tk");
     CgefWriter cgef_writer(verbose);
-    cgef_writer.setOutput(str);
+    cgef_writer.setOutput(cgef_file);
     cgef_writer.setRandomCellTypeNum(rand_celltype_num);
 
     cgefCellgem cgem;

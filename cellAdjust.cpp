@@ -210,6 +210,9 @@ void cellAdjust::readCgef(const string &strinput)
 
 uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem)
 {
+    genename.reserve(m_vecgenename.size());
+    vecCellgem.reserve(m_geneexpcnt);
+
     uint64_t l_id = 0;
     vector<Point> vecpoint;
     int x,y;
@@ -300,7 +303,8 @@ bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Poi
     return true;
 }
 
-void cellAdjust::writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
+//void cellAdjust::writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
+void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt)
 {
     uint16_t gene_count, exp_count, dnb_count, area, cell_type_id;
     map<uint16_t, uint16_t> map_gene_cnt; //gid midcnt
@@ -309,17 +313,19 @@ void cellAdjust::writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
     vector<Point> border;
 
     vector<short> vec_border;
-    vec_border.reserve(veccell.size()*2*BORDERCNT);
+    vec_border.reserve(cellcnt*2*BORDERCNT);
 
-    m_cgefwPtr->cell_num_ = veccell.size();
-    for(Cell &ce : veccell)
+    m_cgefwPtr->cell_num_ = cellcnt;
+    //for(Cell &ce : veccell)
+    for(int ci=0;ci<cellcnt;ci++)
     {
+        Cell &ce = cellptr[ci];
         vecPoint.clear();
         border.clear();
         map_gene_cnt.clear();
         for(int i=0;i<ce.count;i++)
         {
-            DnbExpression &dnb = vecDnb[ce.offset+i];
+            DnbExpression &dnb = dnbptr[ce.offset+i];
             if(map_gene_cnt.find(dnb.gene_id) != map_gene_cnt.end())
             {
                 map_gene_cnt[dnb.gene_id] += dnb.count;
@@ -439,11 +445,11 @@ void cellAdjust::writeGene()
     free(gene_data_list);
 }
 
-void cellAdjust::writeCellAdjust(const string &outpath, vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
+void cellAdjust::writeCellAdjust(const string &outpath, Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt)
 {
     m_cgefwPtr = new CgefWriter();
     m_cgefwPtr->setOutput(outpath);
-    writeCell(veccell, vecDnb);
+    writeCell(cellptr, cellcnt, dnbptr, dnbcnt);
     writeGene();
     delete m_cgefwPtr;
 }

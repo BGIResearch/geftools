@@ -44,9 +44,9 @@ public:
     void readBgef(const string &strinput);
     void readCgef(const string &strinput);
     uint32_t getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem);
-    void writeCellAdjust(const string &outpath, vector<Cell> &veccell, vector<DnbExpression> &vecDnb);
+    void writeCellAdjust(const string &outpath, Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
     bool addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border);
-    void writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb);
+    void writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
     void writeGene();
 private:
     uint32_t m_genencnt;

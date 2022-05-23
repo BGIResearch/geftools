@@ -1016,3 +1016,27 @@ void BgefReader::getExpAttr(int *data)
         data[5] = expression_attr.resolution;
     }
 }
+
+////////////////////////////
+unsigned int *BgefReader::getGeneExon()
+{
+    char dname[128]={0};
+    sprintf(dname, "/geneExp/bin%d/exon", bin_size_);
+    if(H5Lexists(file_id_, dname, H5P_DEFAULT))
+    {
+        if(m_exonPtr) return m_exonPtr;
+
+        hsize_t dims[1];
+        hid_t did = H5Dopen(file_id_, dname, H5P_DEFAULT);
+        hid_t sid = H5Dget_space(did);
+        H5Sget_simple_extent_dims(sid, dims, nullptr);
+
+        m_exonPtr = new unsigned int[dims[0]];
+        H5Dread(did, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_exonPtr);
+        H5Sclose(sid);
+        H5Dclose(did);
+        return m_exonPtr;
+    }
+    printf("%s is not exist\n", dname);
+    return nullptr;
+}
