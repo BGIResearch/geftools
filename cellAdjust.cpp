@@ -144,8 +144,8 @@ void cellAdjust::readCgef(const string &strinput)
     int x,y;
     int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
     vector<Point> vecborder;
-    //m_fill_points = Mat::zeros(m_max_y-m_min_y+1, m_max_x-m_min_x+1, CV_8UC1);
-    m_fill_points = Mat::zeros(20501, 21801, CV_8UC1);
+    m_fill_points = Mat::zeros(m_max_y-m_min_y+1, m_max_x-m_min_x+1, CV_8UC1);
+    //m_fill_points = Mat::zeros(20501, 21801, CV_8UC1);
     short *ptmp = borderdataPtr;
     for(int i=0;i<bdims[0];i++)
     {
@@ -249,7 +249,7 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
     {
         t_n++;
         x = (itor_s->first) >> 32;
-        y = (itor_s->first) | 0xFFFFFFFF;
+        y = (itor_s->first) & 0xFFFFFFFF;
         for(Dnbs &dnbs : itor_s->second)
         {
             vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, 0);
