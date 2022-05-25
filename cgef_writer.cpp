@@ -767,6 +767,37 @@ void CgefWriter::setVerbose(bool verbose) {
     verbose_ = verbose;
 }
 
+int CgefWriter::addLevel_1()
+{
+    createBlktype();
+    m_level_gid = H5Gcreate(group_id_, "level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    int lev = 1;
+    vector<int> vec_cellid;
+    vector<block> vec_blk;
+    vec_blk.emplace_back(0, cell_num_);
+
+    for(int i=0;i<cell_num_;i++)
+    {
+        vec_cellid.emplace_back(i);
+    }
+
+    vector<int> vec_blk_idx;
+    vec_blk_idx.emplace_back(0);
+    int blknum[2]={1,1};
+    writeCelldata(lev, blknum, vec_blk, vec_cellid, vec_blk_idx);
+
+    hsize_t dims_attr[1] = {1};
+    hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
+    hid_t attr = H5Acreate(m_level_gid, "levelnum", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &lev);
+    H5Aclose(attr);
+    H5Sclose(attr_dataspace);
+    
+    H5Tclose(m_blk_memtype);
+    H5Tclose(m_blk_filetype);
+    H5Gclose(m_level_gid);
+}
+
 int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *blknum)
 {
     if(cansize[0]>m_x_len && cansize[1]>m_y_len)

@@ -92,6 +92,7 @@ class CgefWriter {
 
     void storeBlkidx(unsigned int block_num, unsigned int * block_index, const unsigned int *block_size);
     void storeCellLabel(vector<unsigned int> &vecdata);
+    int addLevel_1();
   public:
     hid_t file_id_;
     hid_t group_id_;

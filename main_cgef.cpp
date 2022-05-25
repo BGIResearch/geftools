@@ -41,7 +41,7 @@ int cgef(int argc, char *argv[]) {
     ("g,raw-gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
     ("c,canvas", "set canvas size", cxxopts::value<std::string>()->default_value("90000,90000"), "FILE")
     ("l,limit", "set blk limit", cxxopts::value<std::string>()->default_value("16,16"), "FILE")
-    ("S,split", "split cellid to layers and blks", cxxopts::value<bool>()->default_value("false"))
+    ("S,split", "split cellid to layers and blks", cxxopts::value<int>()->default_value("0"))
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -104,8 +104,8 @@ int cgef(int argc, char *argv[]) {
     float ratio = 0.2;
     int canvas_size[2]={0,0}; //全局画布大小
     int limit_blk[2] = {0,0};//分块限制
-    bool bsplit = result["split"].as<bool>();
-    if(bsplit)
+    int isplit = result["split"].as<int>();
+    if(isplit > 0)
     {
         int tmpr = result["ratio"].as<int>();
         ratio = tmpr*1.0/100;
@@ -121,7 +121,15 @@ int cgef(int argc, char *argv[]) {
 
         CgefWriter cgef_writer(true);
         cgef_writer.setInput(cgefParam::GetInstance()->m_inputstr);
-        cgef_writer.addLevel(allocat, topcellnum, ratio, canvas_size, limit_blk);
+        if(isplit == 1)
+        {
+            cgef_writer.addLevel_1();
+        }
+        else
+        {
+            cgef_writer.addLevel(allocat, topcellnum, ratio, canvas_size, limit_blk);
+        }
+        
         return 0;
     }
     //-------------------
