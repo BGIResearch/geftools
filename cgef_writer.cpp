@@ -73,13 +73,22 @@ void CgefWriter::openCellDataset()
     H5Dread(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_cdataPtr);
 
     unsigned int block_size[4];
-    hid_t attr = H5Aopen(cell_dataset_id, "blockSize", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT32, block_size);
+    if(H5Lexists(group_id_, "blockSize", H5P_DEFAULT))
+    {
+        hid_t d_id = H5Dopen(group_id_, "blockSize", H5P_DEFAULT);
+        H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_size);
+        H5Dclose(d_id);
+    }
+    else
+    {
+        hid_t attr = H5Aopen(cell_dataset_id, "blockSize", H5P_DEFAULT);
+        H5Aread(attr, H5T_NATIVE_UINT32, block_size);
+        H5Aclose(attr);
+    }
 
     m_x_len = block_size[0]*block_size[2];
     m_y_len = block_size[1]*block_size[3];
     
-    H5Aclose(attr);
     H5Sclose(cell_dataspace_id);
     H5Dclose(cell_dataset_id);
 
@@ -103,7 +112,7 @@ void CgefWriter::storeCellBorder(short* borderPath, unsigned int cell_num) const
 }
 
 
-void CgefWriter::storeCellBorderWithAttr(short *borderPath, unsigned int cell_num, unsigned int *effective_rect) const {
+void CgefWriter::storeCellBorderWithAttr(short *borderPath, unsigned int cell_num, int *effective_rect) const {
     unsigned long cprev=clock();
     storeCellBorder(borderPath, cell_num);
 
@@ -112,14 +121,14 @@ void CgefWriter::storeCellBorderWithAttr(short *borderPath, unsigned int cell_nu
     hsize_t dims_attr[1] = {1};
     hid_t attr;
     hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
-    attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, effective_rect);
-    attr = H5Acreate(dataset_id, "minY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[1]);
-    attr = H5Acreate(dataset_id, "maxX", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[2]);
-    attr = H5Acreate(dataset_id, "maxY", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &effective_rect[3]);
+    attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, effective_rect);
+    attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &effective_rect[1]);
+    attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &effective_rect[2]);
+    attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &effective_rect[3]);
 
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
@@ -310,7 +319,7 @@ void CgefWriter::storeBlkidx(unsigned int block_num, unsigned int * block_index,
 {
     hsize_t dims[1] = {block_num + 1};
     hid_t ds = H5Screate_simple(1, dims, nullptr);
-    hid_t dataset_id = H5Dcreate(group_id_, "blkidx", H5T_STD_U32LE, ds, H5P_DEFAULT,
+    hid_t dataset_id = H5Dcreate(group_id_, "blockIndex", H5T_STD_U32LE, ds, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_index);
 
@@ -331,7 +340,7 @@ void CgefWriter::storeCellLabel(vector<unsigned int> &vecdata)
 {
     hsize_t dims[1] = {vecdata.size()};
     hid_t ds = H5Screate_simple(1, dims, nullptr);
-    hid_t dataset_id = H5Dcreate(group_id_, "clabel", H5T_STD_U32LE, ds, H5P_DEFAULT,
+    hid_t dataset_id = H5Dcreate(group_id_, "label", H5T_STD_U32LE, ds, H5P_DEFAULT,
                                  H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(dataset_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, vecdata.data());
 
@@ -676,6 +685,8 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
     common_bin_gef.getBinGeneExpMap(bin_gene_exp_map, dnb_exp_info);
 
     const vector<Polygon>& polygons = mask.getPolygons();
+// FILE *f = fopen("mask_raw.txt","wb");
+// char pbuf[1024];
 
     unsigned long cprev=clock();
     for(unsigned int i = 0; i < mask.getCellNum(); i++){
@@ -696,8 +707,19 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
             dnb_exp_info,
             p.getCenter(),
             p.getAreaUshort());
+        
+        
+        // const vector<Point> &vp = p.getBorder();
+        // int l = 0;
+        // for(const Point &po : vp)
+        // {
+        //     l += sprintf(pbuf+l,"%d-%d ",po.x, po.y);
+        // }
+        // l += sprintf(pbuf+l, "%d %d %d %d %d\n", vp.size(), p.getMinX(), p.getMinY(), p.getMaxX(), p.getMaxY());
+        // fwrite(pbuf, 1, l, f);
     }
-    
+    //fclose(f);
+
     if(verbose_) printCpuTime(cprev, "addDnbExp");
 
     m_borderptr = static_cast<short *>(malloc(mask.getCellNum() * BORDERCNT * 2 * sizeof(short)));
@@ -713,7 +735,7 @@ int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
 
     storeAttr(cell_bin_attr);
 
-    unsigned int effective_rect[4];
+    int effective_rect[4];
     mask.getEffectiveRectangle(effective_rect);
     storeCellBorderWithAttr(m_borderptr, mask.getCellNum(), effective_rect);
     storeCell(mask.getBlockNum(), mask.getBlockIndex(), mask.getBlockSize());
@@ -822,7 +844,7 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
             vec_cellid.push_back(idx);
             m_hash_cellid.erase(idx); //记录被筛掉的cellid
         }
-        if(set_tmp.size() >= cnt)
+        if(set_tmp.size() >= cnt || m_hash_cellid.size() == 0)
         {
             break;
         }
@@ -836,6 +858,7 @@ void CgefWriter::getblkcelldata_top(int lev, int cnt)
 
 void CgefWriter::getblkcelldata_bottom(int lev)
 {
+    if(m_hash_cellid.empty()) return;
     int x_num = pow(m_allocat,lev);//1<<lev;
     int y_num = x_num;
     if(x_num > m_blknum[0]) x_num = m_blknum[0];
@@ -879,6 +902,7 @@ void CgefWriter::getblkcelldata_bottom(int lev)
 
 void CgefWriter::getblkcelldata(int lev, int cnt)
 {
+    if(m_hash_cellid.empty()) return;
     int x_num = pow(m_allocat,lev);
     int y_num = x_num;
     if(x_num > m_blknum[0]) x_num = m_blknum[0];
@@ -987,10 +1011,11 @@ void CgefWriter::writeCelldata(int lev, int *blknum, vector<block> &blk, vector<
 
     hsize_t bid_dims[1] = {vec_blk_idx.size()};
     hid_t bid_dspace_id = H5Screate_simple(1, bid_dims, nullptr);
-    hid_t bid_dset_id = H5Dcreate(level_gid, "noempty", H5T_NATIVE_UINT32, id_dspace_id, H5P_DEFAULT,
+    hid_t bid_dset_id = H5Dcreate(level_gid, "noempty", H5T_NATIVE_UINT32, bid_dspace_id, H5P_DEFAULT,
                                 H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(bid_dset_id, H5T_STD_U32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &vec_blk_idx[0]);
 
     H5Sclose(bid_dspace_id);
     H5Dclose(bid_dset_id);
+    H5Gclose(level_gid);
 }

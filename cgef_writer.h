@@ -55,7 +55,7 @@ class CgefWriter {
     void storeCell(unsigned int block_num, unsigned int *block_index, const unsigned int * block_size);
     void storeCellExp();
     void storeCellBorder(short* borderPath, unsigned int cell_num) const;
-    void storeCellBorderWithAttr(short* borderPath, unsigned int cell_num, unsigned int* effective_rect) const;
+    void storeCellBorderWithAttr(short* borderPath, unsigned int cell_num, int* effective_rect) const;
     void storeCellTypeList();
     void storeCellTypeList_N();
 

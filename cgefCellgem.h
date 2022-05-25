@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:25
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-13 14:12:31
+ * @LastEditTime: 2022-05-19 19:11:09
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFCELLGEM_H_
@@ -75,8 +75,11 @@ private:
     //map<uint32_t, bgef_cell *> m_mapcellexp;
     vector<bgef_cell *> m_vec_cellexp;
 
+    uint32_t m_genecnt = 0;
+    uint32_t m_geneExpcnt = 0;
     Gene *m_genePtr = nullptr;
     Expression *m_expPtr = nullptr;
+
 };
 
 #endif
