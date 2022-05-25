@@ -20,7 +20,7 @@ class GeneInfoQueue
     {
         std::lock_guard<std::mutex> tlock(m_mtx_queue);
         m_vec_geneinfo.emplace_back(ptr);
-        m_cv_queue.notify_all();
+        m_cv_queue.notify_one();
     }
     GeneInfo* getGeneInfo(unsigned int idx)
     {

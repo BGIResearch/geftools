@@ -48,6 +48,7 @@ public:
     bool addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border);
     void writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
     void writeGene();
+    void cgeftogem(const string &strbgef, const string &strcgef, const string &strout);
 private:
     uint32_t m_genencnt;
     uint32_t m_geneexpcnt;

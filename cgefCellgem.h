@@ -25,6 +25,7 @@ struct cellt
 {
     uint16_t expcnt;
     uint16_t dnbcnt;
+    uint16_t exoncnt;
 };
 
 
@@ -54,6 +55,7 @@ public:
     void readBgef(const string &strinput);
     void writeGene_bgef();
 private:
+    bool m_bexon = false;
     unsigned int m_maskcellnum = 0; //从mask文件获取的细胞个数
     unsigned int m_blocknum;
     unsigned int m_block_size[4] = {0};

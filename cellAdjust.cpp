@@ -7,6 +7,8 @@
  */
 #include "cellAdjust.h"
 #include "timer.h"
+#include <sstream>
+#include <fstream>
 
 
 cellAdjust::cellAdjust()
@@ -216,7 +218,6 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
     uint64_t l_id = 0;
     vector<Point> vecpoint;
     int x,y;
-    int t_f = 0, t_n = 0;
     auto itor = m_hash_cellrect.begin();
     for(;itor != m_hash_cellrect.end();itor++)
     {
@@ -233,7 +234,6 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
             auto dnb_itor = m_hash_vecdnb.find(l_id);
             if(dnb_itor!= m_hash_vecdnb.end())
             {
-                t_f++;
                 for(Dnbs &dnbs : dnb_itor->second)
                 {
                     vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, itor->first+1);
@@ -247,7 +247,6 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
     auto itor_s = m_hash_vecdnb.begin();
     for(;itor_s != m_hash_vecdnb.end();itor_s++)
     {
-        t_n++;
         x = (itor_s->first) >> 32;
         y = (itor_s->first) & 0xFFFFFFFF;
         for(Dnbs &dnbs : itor_s->second)
@@ -452,4 +451,48 @@ void cellAdjust::writeCellAdjust(const string &outpath, Cell *cellptr, int cellc
     writeCell(cellptr, cellcnt, dnbptr, dnbcnt);
     writeGene();
     delete m_cgefwPtr;
+}
+
+
+void cellAdjust::cgeftogem(const string &strbgef, const string &strcgef, const string &strout)
+{
+    timer st(__FUNCTION__);
+    readBgef(strbgef);
+    readCgef(strcgef);
+
+    fstream fout(strout.c_str(), ios_base::out);
+    stringstream sstrout;
+    sstrout<<"#geneName\tx\ty\tcount\tcellID"<<'\n';
+
+    uint64_t l_id = 0;
+    vector<Point> vecpoint;
+    int x,y;
+    auto itor = m_hash_cellrect.begin();
+    for(;itor != m_hash_cellrect.end();itor++)
+    {
+        vecpoint.clear();
+        Mat t = m_fill_points(itor->second);
+        findNonZero(t,vecpoint);
+
+        sstrout.clear();
+        sstrout.str("");
+        for(Point &pt : vecpoint)
+        {
+            x = pt.x+itor->second.x;
+            y = pt.y+itor->second.y;
+            l_id = x;
+            l_id = (l_id << 32) | y;
+            auto dnb_itor = m_hash_vecdnb.find(l_id);
+            if(dnb_itor!= m_hash_vecdnb.end())
+            {
+                for(Dnbs &dnbs : dnb_itor->second)
+                {
+                    sstrout<<m_vecgenename[dnbs.geneid]<<'\t'<<x<<'\t'<<y<<'\t'<<dnbs.midcnt<<'\t'<<itor->first<<'\n';
+                }
+                m_hash_vecdnb.erase(l_id);
+            }
+        }
+        fout<<sstrout.str();
+    }
+    fout.close();
 }

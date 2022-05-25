@@ -19,26 +19,21 @@ void BinTask::bin1task()
 
     auto *pgeneinfo = new GeneInfo(m_geneid);
     pgeneinfo->vecptr = &exp_vec;
-    opts_->gene_info_queue_.addqueue(pgeneinfo);
 
-    auto *pgenedata = new GeneInfo2(m_geneid);
-    pgenedata->vecdataptr = &exp_vec;
     for (auto& exp : exp_vec)
     {
         if (exp.count > m_maxexp)
+        {
             m_maxexp = exp.count;
+        }
+        if(exp.exon > m_maxexon)
+        {
+            m_maxexon = exp.exon;
+        }
     }
-    pgenedata->maxexp = m_maxexp;
-    // pgenedata->vecdataptr = new std::vector<int>;
-    // pgenedata->vecdataptr->reserve(vecgene.size()*3);
-    // for(auto gene : vecgene)
-    // {
-    //     pgenedata->vecdataptr->push_back(gene.x);
-    //     pgenedata->vecdataptr->push_back(gene.y);
-    //     pgenedata->vecdataptr->push_back(gene.cnt);
-    // }
-    opts_->gene_queue_.addqueue(pgenedata);
-//    printf("bin1task\n");
+    pgeneinfo->maxexp = m_maxexp;
+    pgeneinfo->maxexon = m_maxexon;
+    opts_->gene_info_queue_.addqueue(pgeneinfo);
 }
 
 void BinTask::bin100task()
@@ -50,7 +45,8 @@ void BinTask::bin100task()
         x = exp.x / m_bin;
         y = exp.y / m_bin;
         dnb = x<<32 | y;
-        map_dnb[dnb]+=exp.count;
+        map_dnb[dnb].total+=exp.count;
+        map_dnb[dnb].exon+=exp.exon;
         umicnt += exp.count;
     }
 
@@ -58,27 +54,26 @@ void BinTask::bin100task()
     pgeneinfo->vecptr = new std::vector<Expression>;
     pgeneinfo->vecptr->reserve(map_dnb.size());
 
-    auto *pgenedata = new GeneInfo2(m_geneid);
-    // pgenedata->vecdataptr = new std::vector<int>;
-    // pgenedata->vecdataptr->reserve(map_dnb.size()*3);
-    pgenedata->umicnt = umicnt;
+    pgeneinfo->umicnt = umicnt;
     auto itor_dnb = map_dnb.begin();
     Expression exp{0,0,0};
     for(;itor_dnb!=map_dnb.end();itor_dnb++)
     {
         exp.x = itor_dnb->first>>32;
         exp.y = itor_dnb->first & 0xFFFFFFFF;
-        exp.count = itor_dnb->second;
+        exp.count = itor_dnb->second.total;
+        exp.exon = itor_dnb->second.exon;
         pgeneinfo->vecptr->emplace_back(exp);
 
-        // pgenedata->vecdataptr->push_back(gene.x);
-        // pgenedata->vecdataptr->push_back(gene.y);
-        // pgenedata->vecdataptr->push_back(gene.cnt);
         if (exp.count > m_maxexp)
             m_maxexp = exp.count;
+        if(exp.exon > m_maxexon)
+        {
+            m_maxexon = exp.exon;
+        }
     }
-    pgenedata->maxexp = m_maxexp;
-    pgenedata->vecdataptr = pgeneinfo->vecptr;
+    pgeneinfo->maxexp = m_maxexp;
+    pgeneinfo->maxexon = m_maxexon;
 
     std::sort(pgeneinfo->vecptr->begin(), pgeneinfo->vecptr->end(), 
             [](const Expression &a, const Expression &b){return a.count > b.count;});
@@ -93,23 +88,22 @@ void BinTask::bin100task()
     }
     pgenedata->e10 = (midcnt*1.0/umicnt)*100;
 
-    itor = pgeneinfo->vecptr->begin();
-    midcnt = 0;
-    j = 0;
-    for(;itor != pgeneinfo->vecptr->end();itor++,j++)
-    {
-        midcnt += itor->count;
-        if(midcnt*1.0/umicnt > 0.5) 
-        {
-            break;
-        }
-    }
+    // itor = pgeneinfo->vecptr->begin();
+    // midcnt = 0;
+    // j = 0;
+    // for(;itor != pgeneinfo->vecptr->end();itor++,j++)
+    // {
+    //     midcnt += itor->count;
+    //     if(midcnt*1.0/umicnt > 0.5) 
+    //     {
+    //         break;
+    //     }
+    // }
 
-    sz = pgeneinfo->vecptr->size();
-    pgenedata->c50 = (j*1.0/sz)*100;
+    // sz = pgeneinfo->vecptr->size();
+    // pgenedata->c50 = (j*1.0/sz)*100;
 
     opts_->gene_info_queue_.addqueue(pgeneinfo);
-    opts_->gene_queue_.addqueue(pgenedata);
 }
 
 void BinTask::othertask()
@@ -120,36 +114,35 @@ void BinTask::othertask()
         x = exp.x / m_bin;
         y = exp.y / m_bin;
         dnb = x<<32 | y;
-        map_dnb[dnb]+=exp.count;
+        map_dnb[dnb].total+=exp.count;
+        map_dnb[dnb].exon+=exp.exon;
     }
 
     GeneInfo *pgeneinfo = new GeneInfo(m_geneid);
     pgeneinfo->vecptr = new std::vector<Expression>;
     pgeneinfo->vecptr->reserve(map_dnb.size());
 
-    GeneInfo2 *pgenedata = new GeneInfo2(m_geneid);
-    // pgenedata->vecdataptr = new std::vector<int>;
-    // pgenedata->vecdataptr->reserve(map_dnb.size()*3);
     auto itor_dnb = map_dnb.begin();
     Expression exp{0,0,0};
     for(;itor_dnb!=map_dnb.end();itor_dnb++)
     {
         exp.x = itor_dnb->first>>32;
         exp.y = itor_dnb->first & 0xFFFFFFFF;
-        exp.count = itor_dnb->second;
+        exp.count = itor_dnb->second.total;
+        exp.exon = itor_dnb->second.exon;
         pgeneinfo->vecptr->emplace_back(exp);
 
-        // pgenedata->vecdataptr->push_back(gene.x);
-        // pgenedata->vecdataptr->push_back(gene.y);
-        // pgenedata->vecdataptr->push_back(gene.cnt);
         if (exp.count > m_maxexp)
             m_maxexp = exp.count;
+        if(exp.exon > m_maxexon)
+        {
+            m_maxexon = exp.exon;
+        }
     }
-    pgenedata->maxexp = m_maxexp;
-    pgenedata->vecdataptr = pgeneinfo->vecptr;
+    pgeneinfo->maxexp = m_maxexp;
+    pgeneinfo->maxexon = m_maxexon;
 
     opts_->gene_info_queue_.addqueue(pgeneinfo);
-    opts_->gene_queue_.addqueue(pgenedata);
 }
 
 void BinTask::doTask()

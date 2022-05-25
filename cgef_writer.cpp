@@ -73,18 +73,12 @@ void CgefWriter::openCellDataset()
     H5Dread(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_cdataPtr);
 
     unsigned int block_size[4];
-    if(H5Lexists(group_id_, "blockSize", H5P_DEFAULT))
-    {
-        hid_t d_id = H5Dopen(group_id_, "blockSize", H5P_DEFAULT);
-        H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_size);
-        H5Dclose(d_id);
-    }
-    else
-    {
-        hid_t attr = H5Aopen(cell_dataset_id, "blockSize", H5P_DEFAULT);
-        H5Aread(attr, H5T_NATIVE_UINT32, block_size);
-        H5Aclose(attr);
-    }
+    // hid_t attr = H5Aopen(cell_dataset_id, "blockSize", H5P_DEFAULT);
+    // H5Aread(attr, H5T_NATIVE_UINT32, block_size);
+
+    hid_t d_id = H5Dopen(group_id_, "blockSize", H5P_DEFAULT);
+    H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_size);
+    H5Dclose(d_id);
 
     m_x_len = block_size[0]*block_size[2];
     m_y_len = block_size[1]*block_size[3];
@@ -1018,4 +1012,9 @@ void CgefWriter::writeCelldata(int lev, int *blknum, vector<block> &blk, vector<
     H5Sclose(bid_dspace_id);
     H5Dclose(bid_dset_id);
     H5Gclose(level_gid);
+}
+
+void CgefWriter::storeGeneExon(uint32_t genecnt, uint32_t *geneExonPtr, vector<uint16_t> vec_exonExp)
+{
+    
 }

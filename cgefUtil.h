@@ -225,20 +225,16 @@ public:
     m_cid(cid), m_cx(x), m_cy(y), m_area(area),m_clabel(label)
     {};
     ~bgef_cell(){};
-    // void add(uint16_t gid, Expression &exp)
-    // {
-    //     m_vecCexp.emplace_back(gid, exp.count);
-    //     m_vecpos.emplace_back(exp.x);
-    //     m_vecpos.emplace_back(exp.y);
-    //     m_expcnt += exp;
-    // }
-    void add(uint16_t gid, uint16_t expcnt, uint16_t dnbcnt)
+
+    void add(uint16_t gid, uint16_t expcnt, uint16_t dnbcnt, uint16_t exoncnt)
     {
         m_vecCexp.emplace_back(gid, expcnt);
         m_expcnt += expcnt;
         m_dnbcnt += dnbcnt;
+        m_exoncnt += exoncnt;
     }
 public:
+    uint16_t m_exoncnt = 0;
     uint16_t m_expcnt = 0;
     uint16_t m_dnbcnt = 0;
     uint16_t m_area = 0;
@@ -246,7 +242,6 @@ public:
     uint32_t m_cid;
     uint32_t m_clabel = 0;
     vector<CellExpData> m_vecCexp;
-    //vector<int> m_vecpos;
 };
 
 #endif

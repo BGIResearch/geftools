@@ -5,7 +5,7 @@
 #include <algorithm>
 
 
-BgefWriter::BgefWriter(const string &output_filename, bool verbose) {
+BgefWriter::BgefWriter(const string &output_filename, bool verbose, bool bexon) {
     str32_type_ = H5Tcopy(H5T_C_S1);
     H5Tset_size(str32_type_, 32);
 
@@ -16,6 +16,7 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose) {
     file_id_ = H5Fcreate(output_filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
 
     verbose_ = verbose;
+    m_bexon = bexon;
 
     hsize_t dimsAttr[1] = {1};
     hid_t attr;
@@ -34,11 +35,19 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose) {
 
     gene_exp_group_id_ = H5Gcreate(file_id_, "geneExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     whole_exp_group_id_ = H5Gcreate(file_id_, "wholeExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if(m_bexon)
+    {
+        m_wholeExpExon_id = H5Gcreate(file_id_, "wholeExpExon", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
 }
 
 BgefWriter::~BgefWriter(){
     H5Gclose(gene_exp_group_id_);
     H5Gclose(whole_exp_group_id_);
+    if(m_bexon)
+    {
+        H5Gclose(m_wholeExpExon_id);
+    }
     H5Tclose(str32_type_);
     H5Fclose(file_id_);
 }
@@ -137,6 +146,45 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
     return true;
 }
 
+bool BgefWriter::storeGeneExon(vector<Expression>& exps, unsigned int maxexon, int binsize)
+{
+    if(!m_bexon) return false;
+    char buf[32]={0};
+    sprintf(buf, "bin%d", binsize);
+    hid_t gene_exp_bin_group_id = H5Gopen(gene_exp_group_id_, buf, H5P_DEFAULT);
+
+    hsize_t dims[1] = {exps.size()};
+    hid_t dataspace_id = H5Screate_simple(1, dims, nullptr);
+    hid_t exon_did = 0;
+    if(maxexon > USHRT_MAX)
+    {
+        exon_did = H5Dcreate(gene_exp_bin_group_id, "exon", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT,
+            H5P_DEFAULT, H5P_DEFAULT);
+    }
+    else if(maxexon > UCHAR_MAX)
+    {
+        exon_did = H5Dcreate(gene_exp_bin_group_id, "exon", H5T_STD_U16LE, dataspace_id, H5P_DEFAULT,
+            H5P_DEFAULT, H5P_DEFAULT);
+    }
+    else
+    {
+        exon_did = H5Dcreate(gene_exp_bin_group_id, "exon", H5T_STD_U8LE, dataspace_id, H5P_DEFAULT,
+            H5P_DEFAULT, H5P_DEFAULT);
+    }
+    H5Dwrite(dataset_id, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &exps[0]);
+
+    hsize_t dimsAttr[1] = {1};
+    hid_t a_sid = H5Screate_simple(1, dimsAttr, nullptr);
+    hid_t attr = H5Acreate(exon_did, "maxExon", H5T_STD_I32LE, a_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &maxexon);
+
+    H5Aclose(attr);
+    H5Sclose(a_sid);
+    H5Sclose(dataspace_id);
+    H5Dclose(exon_did);
+    return true;
+}
+
 bool BgefWriter::storeDnb(DnbMatrix & dnb_matrix, int binsize){
     // Add compound dataset
     hid_t memtype, filetype;
@@ -224,6 +272,45 @@ bool BgefWriter::storeDnb(DnbMatrix & dnb_matrix, int binsize){
     H5Tclose(memtype);
     H5Tclose(filetype);
 
+    return true;
+}
+
+bool BgefWriter::storeWholeExon(DnbMatrix & dnb_matrix, int binsize)
+{
+    if(!m_bexon) return false;
+    char dataName[32]={0};
+    sprintf(dataName, "bin%d", binsize);
+    hsize_t dims[2] = {dnb_matrix.dnb_attr.len_x, dnb_matrix.dnb_attr.len_y};
+    hid_t dataspace_id = H5Screate_simple(2, dims, nullptr);
+    hid_t dataset_id = 0;
+    if(dnb_matrix.dnb_attr.max_exon > USHRT_MAX)
+    {
+        dataset_id= H5Dcreate(m_wholeExpExon_id, dataName, H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+    else if(dnb_matrix.dnb_attr.max_exon > UCHAR_MAX)
+    {
+        dataset_id= H5Dcreate(m_wholeExpExon_id, dataName, H5T_STD_U16LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+    else
+    {
+        dataset_id= H5Dcreate(m_wholeExpExon_id, dataName, H5T_STD_U8LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    }
+
+    if (binsize == 1)
+        H5Dwrite(dataset_id, H5T_NATIVE_USHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, dnb_matrix.pexon16);
+    else
+        H5Dwrite(dataset_id, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, dnb_matrix.pexon32);
+
+    // Create attribute
+    hsize_t dimsAttr[1] = {1};
+    hid_t attr_sid = H5Screate_simple(1, dimsAttr, nullptr);
+    hid_t attr = H5Acreate(dataset_id, "maxExtron", H5T_STD_U32LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT, &(dnb_matrix.dnb_attr.max_exon));
+    
+    H5Sclose(attr_sid);
+    H5Aclose(attr);
+    H5Sclose(dataspace_id);
+    H5Dclose(dataset_id);
     return true;
 }
 

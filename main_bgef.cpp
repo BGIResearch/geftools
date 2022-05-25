@@ -79,11 +79,6 @@ int bgef(int argc, char *argv[]) {
 
     BgefOptions *opts = BgefOptions::GetInstance();
 
-//    BgefOptions opts = {
-//            result["input-file"].as<string>(),
-//            result["output-file"].as<string>(),
-//    };
-
     opts->input_file_ = result["input-file"].as<string>();
     opts->output_file_ = result["output-file"].as<string>();
     bool bstat= result["stat"].as<bool>();
@@ -151,7 +146,6 @@ void gem2gef(BgefOptions *opts)
     unsigned long cprev0 =clock(), cprev;
 
     unsigned int resolution;
-//    if(decideSuffix(opts->input_file_, "gem") || decideSuffix(opts->input_file_, "gz")){
     if(!H5Fis_hdf5(opts->input_file_.c_str())){
         mRead(opts);
         resolution = parseResolutin(opts->input_file_);
@@ -161,11 +155,13 @@ void gem2gef(BgefOptions *opts)
 
         if(opts->region_.empty()){
             bgef_reader.getGeneExpression(opts->map_gene_exp_);
+            opts->m_bexon = bgef_reader.isExonExist();
             opts->range_ = {expression_attr.min_x, expression_attr.max_x, expression_attr.min_y, expression_attr.max_y};
             opts->offset_x_ = expression_attr.min_x;
             opts->offset_y_ = expression_attr.min_y;
         }else{
             bgef_reader.getGeneExpression(opts->map_gene_exp_, opts->region_);
+            opts->m_bexon = bgef_reader.isExonExist();
             int min_x = opts->region_[0];
             int max_x = opts->region_[1];
             int min_y = opts->region_[2];
@@ -192,6 +188,7 @@ void gem2gef(BgefOptions *opts)
 
     BgefWriter bgef_writer(opts->output_file_, opts->verbose_);
     bgef_writer.setResolution(resolution);
+    bgef_writer.setExon(opts->m_bexon);
 
     int genecnt = 0;
     for(unsigned int bin : opts->bin_sizes_)
@@ -215,11 +212,21 @@ void gem2gef(BgefOptions *opts)
         {
             dnb_matrix.pmatrix_us = (BinStatUS*)calloc(matrix_len, sizeof(BinStatUS));
             assert(dnb_matrix.pmatrix_us);
+            if(opts->m_bexon)
+            {
+                dnb_matrix.pexon16 = (unsigned short*)calloc(matrix_len, 2);
+                assert(dnb_matrix.pexon16);
+            }
         }
         else
         {
             dnb_matrix.pmatrix = (BinStat*)calloc(matrix_len, sizeof(BinStat));
             assert(dnb_matrix.pmatrix);
+            if(opts->m_bexon)
+            {
+                dnb_matrix.pexon32 = (unsigned int*)calloc(matrix_len, 4);
+                assert(dnb_matrix.pexon32);
+            }
         }
 
 
@@ -247,18 +254,19 @@ void gem2gef(BgefOptions *opts)
 
         unsigned int offset = 0;
         unsigned int maxexp = 0;
-        genecnt = 0;
-        while (true) //write gene
+        unsigned int maxexon = 0;
+        unsigned int idx = 0;
+        while (idx < opts->map_gene_exp_.size()) //write gene
         {
-            GeneInfo2 *pgenedata = opts->gene_queue_.getGeneInfo2();
+            GeneInfo *pgeneinfo = opts->gene_info_queue_.getGeneInfo(idx);
             if (bin == 1){
-                opts->expressions_.insert(opts->expressions_.end(), pgenedata->vecdataptr->begin(), pgenedata->vecdataptr->end());
+                opts->expressions_.insert(opts->expressions_.end(), pgeneinfo->vecdataptr->begin(), pgeneinfo->vecdataptr->end());
             }
             else
             {
                 if(bin != 100 || opts->m_stattype == 2)
                 {
-                    for (auto g : *pgenedata->vecdataptr)
+                    for (auto g : *pgeneinfo->vecdataptr)
                     {
                         g.x *= bin;
                         g.y *= bin;
@@ -269,34 +277,27 @@ void gem2gef(BgefOptions *opts)
 
             if(bin != 100 || opts->m_stattype == 2)
             {
-                opts->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
-                offset += pgenedata->vecdataptr->size();
-                maxexp = std::max(maxexp, pgenedata->maxexp);
+                opts->genes_.emplace_back(pgeneinfo->geneid, offset, static_cast<unsigned int>(pgeneinfo->vecdataptr->size()));
+                offset += pgeneinfo->vecdataptr->size();
+                maxexp = std::max(maxexp, pgeneinfo->maxexp);
+                maxexon = std::max(maxexon, pgeneinfo->maxexon);
             }
 
             if(bin == 100)
             {
-                GeneErank erank(pgenedata->geneid);
-                erank.umicnt = pgenedata->umicnt;
-                erank.e10 = pgenedata->e10;
-                erank.c50 = pgenedata->c50;
-                opts->total_umicnt_ += pgenedata->umicnt;
+                GeneErank erank(pgeneinfo->geneid);
+                erank.umicnt = pgeneinfo->umicnt;
+                erank.e10 = pgeneinfo->e10;
+                //erank.c50 = pgeneinfo->c50;
+                opts->total_umicnt_ += pgeneinfo->umicnt;
                 opts->vec_bin100_.emplace_back(erank);
-            }
-
-            // delete pgenedata->vecdataptr;
-            delete pgenedata;
-
-            genecnt++;
-            if(genecnt == opts->map_gene_exp_.size())
-            {
-                break;
             }
         }
 
         if(bin != 100 || opts->m_stattype == 2)
         {
             bgef_writer.storeGene(opts->expressions_, opts->genes_, dnb_matrix.dnb_attr, maxexp, bin);
+            bgef_writer.storeGeneExon(opts->expressions_, maxexon, bin);
             opts->expressions_.clear();
             opts->genes_.clear();
         }
@@ -306,12 +307,18 @@ void gem2gef(BgefOptions *opts)
         //write dnb
         writednb(opts, bgef_writer, bin);
 
+
         if (bin == 1)
         {
             if (dnb_matrix.pmatrix_us != nullptr)
             {
                 free(dnb_matrix.pmatrix_us);
                 dnb_matrix.pmatrix_us = nullptr;
+                if(opts->m_bexon)
+                {
+                    free(dnb_matrix.pexon16);
+                    dnb_matrix.pexon16 = nullptr;
+                }
             }
         }
         else
@@ -320,6 +327,11 @@ void gem2gef(BgefOptions *opts)
             {
                 free(dnb_matrix.pmatrix);
                 dnb_matrix.pmatrix = nullptr;
+                if(opts->m_bexon)
+                {
+                    free(dnb_matrix.pexon32);
+                    dnb_matrix.pexon32 = nullptr;
+                }
             }
         }
         if(opts->verbose_) printCpuTime(cprev, "bin process");
@@ -516,27 +528,8 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
     dnbM.dnb_attr.max_mid = Boxplot(vec_mid);
     dnbM.dnb_attr.number = number;
     bgef_writer.storeDnb(dnbM, bin);
+    bgef_writer.storeWholeExon(dnbM, bin);
 
-//    if(bin == 200)
-//    {
-//        special_bin sbin;
-//        std::vector<int> vecdnb;
-//        unsigned int x, y;
-//        unsigned int y_len = dnbM.dnb_attr.len_y;
-//        for(unsigned long i=0;i<matrix_len;i++)
-//        {
-//            if(dnbM.pmatrix[i].gene_count)
-//            {
-//                x = i/y_len;
-//                y = i%y_len;
-//
-//                vecdnb.push_back(x*bin);
-//                vecdnb.push_back(y*bin);
-//                vecdnb.push_back(dnbM.pmatrix[i].mid_count);
-//            }
-//        }
-//        sbin.createPNG_py(vecdnb);
-//    }
     if(opts->verbose_) printCpuTime(cprev, "writednb");
 }
 
