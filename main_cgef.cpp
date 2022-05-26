@@ -7,20 +7,23 @@
 #include "cgefCellgem.h"
 #include "cellAdjust.h"
 
-int ctest()
+int ctest(const char *path)
 {
-    cellAdjust ca;
-    ca.readBgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.bgef");
-    ca.readCgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.cgef");
-    vector<string> genename;
-    vector<cellgem_label> vecCellgem;
-    ca.getCellLabelgem(genename, vecCellgem);
+    // cellAdjust ca;
+    // ca.readBgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.bgef");
+    // ca.readCgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.cgef");
+    // vector<string> genename;
+    // vector<cellgem_label> vecCellgem;
+    // ca.getCellLabelgem(genename, vecCellgem);
+
+    cgefCellgem cgem;
+    cgem.readmask(path);
 
     return 0;
 }
 
 int cgef(int argc, char *argv[]) {
-    //return ctest();
+    return ctest(argv[2]);
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");

@@ -138,7 +138,6 @@ void cgefCellgem::readmask(const string &strmask)
     }
 
     int count = connectedComponentsWithStats(img, m_outimg, m_stats, m_centroids);
-    assert(count == scnt+1);
     m_vec_veccell.reserve(m_blocknum);
     for(int i=0;i<m_blocknum;i++)
     {

@@ -183,12 +183,12 @@ void gem2gef(BgefOptions *opts)
         return;
     }
 
-    opts->gene_info_queue_.init(opts->map_gene_exp_.size());
+    opts->m_genes_queue.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
 
     BgefWriter bgef_writer(opts->output_file_, opts->verbose_, opts->m_bexon);
     bgef_writer.setResolution(resolution);
-
+    
     int genecnt = 0;
     for(unsigned int bin : opts->bin_sizes_)
     {
@@ -254,10 +254,10 @@ void gem2gef(BgefOptions *opts)
         unsigned int offset = 0;
         unsigned int maxexp = 0;
         unsigned int maxexon = 0;
-        unsigned int idx = 0;
-        while (idx < opts->map_gene_exp_.size()) //write gene
+        genecnt = 0;
+        while (true) //write gene
         {
-            GeneInfo *pgeneinfo = opts->gene_info_queue_.getGeneInfo(idx);
+            GeneInfo *pgeneinfo = opts->m_geneinfo_queue.getGeneInfo();
             if (bin == 1){
                 opts->expressions_.insert(opts->expressions_.end(), pgeneinfo->vecptr->begin(), pgeneinfo->vecptr->end());
             }
@@ -291,6 +291,12 @@ void gem2gef(BgefOptions *opts)
                 opts->total_umicnt_ += pgeneinfo->umicnt;
                 opts->vec_bin100_.emplace_back(erank);
             }
+            delete pgeneinfo;
+            genecnt++;
+            if(genecnt == opts->map_gene_exp_.size())
+            {
+                break;
+            }
         }
 
         if(bin != 100 || opts->m_stattype == 2)
@@ -302,7 +308,7 @@ void gem2gef(BgefOptions *opts)
         }
 
         thpool.waitTaskDone();
-        opts->gene_info_queue_.clear(bin);
+        opts->m_genes_queue.clear(bin);
         //write dnb
         writednb(opts, bgef_writer, bin);
 

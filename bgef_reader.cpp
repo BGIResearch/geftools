@@ -890,9 +890,9 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
 
     unsigned int offset = 0;
     unsigned int maxexp = 0;
-    uint32_t idx = 0;
-    while (idx < opts_->map_gene_exp_.size()){
-        GeneInfo *pgenedata = opts_->gene_info_queue_.getGeneInfo(idx);
+    int genecnt = 0;
+    while (true){
+        GeneInfo *pgenedata = opts_->m_geneinfo_queue.getGeneInfo();
         for (auto g : *pgenedata->vecptr){
             g.x *= bin_size;
             g.y *= bin_size;
@@ -903,7 +903,10 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
         offset += pgenedata->vecptr->size();
         maxexp = std::max(maxexp, pgenedata->maxexp);
 
-        idx++;
+        genecnt++;
+        if(genecnt == opts_->map_gene_exp_.size()){
+            break;
+        }
     }
 
     thpool.waitTaskDone();

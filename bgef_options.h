@@ -13,7 +13,7 @@
 #include <zlib.h>
 #include "gef.h"
 #include "gene_info_queue.h"
-//#include "gene_queue.h"
+#include "gene_queue.h"
 
 
 class BgefOptions {
@@ -48,8 +48,8 @@ public:
     mutex dnbmtx_;
     DnbMatrix dnbmatrix_;
     std::vector<int> range_ = {INT_MAX, 0, INT_MAX, 0};
-    GeneInfoQueue gene_info_queue_;
-    //GeneQueue gene_info_queue_;
+    GeneInfoQueue m_genes_queue;
+    GeneQueue m_geneinfo_queue;
     std::vector<Expression> expressions_;
     std::vector<Gene> genes_;
     int offset_x_ = 0; // offset of coordinate

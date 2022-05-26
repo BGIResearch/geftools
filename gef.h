@@ -92,12 +92,13 @@ struct GeneStat
     float E10;
 };
 
-// struct GeneInfo
-// {
-//     GeneInfo(const char *ptr):geneid(ptr){};
-//     const char *geneid;
-//     std::vector<Expression> *vecptr;
-// };
+//simple gene data
+struct GeneS 
+{
+    GeneS(const char *ptr):geneid(ptr){};
+    const char *geneid;
+    std::vector<Expression> *vecptr;
+};
 
 struct GeneInfo
 {

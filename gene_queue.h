@@ -22,7 +22,7 @@ public:
         m_cv_queue.notify_one();
     }
 
-    GeneInfo* getGeneInfo2()
+    GeneInfo* getGeneInfo()
     {
         GeneInfo *ptr = nullptr;
         std::unique_lock<std::mutex> tlock(m_mtx_queue);

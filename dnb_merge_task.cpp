@@ -28,7 +28,7 @@ void DnbMergeTask::doTask_nor()
     unsigned int idx = 0;
     while (idx < m_genecnt)
     {
-        GeneInfo *pgeneinfo = opts_->gene_info_queue_.getGeneInfo(idx);
+        GeneS *pgeneinfo = opts_->m_genes_queue.getGeneInfo(idx);
         if(pgeneinfo == nullptr) 
         {
             printf("DnbMergeTask err\n");
@@ -87,7 +87,7 @@ void DnbMergeTask::doTask_Exon()
     unsigned int idx = 0;
     while (idx < m_genecnt)
     {
-        GeneInfo *pgeneinfo = opts_->gene_info_queue_.getGeneInfo(idx);
+        GeneS *pgeneinfo = opts_->m_genes_queue.getGeneInfo(idx);
         if(pgeneinfo == nullptr) 
         {
             printf("DnbMergeTask err\n");
@@ -114,9 +114,9 @@ void DnbMergeTask::doTask_Exon()
                     exonptr[col] += exp.exon;
                     if (pmatrix[col].gene_count > maxGene)
                         maxGene = pmatrix[col].gene_count;
-                    if(exp.exon > maxExon)
+                    if(exonptr[col] > maxExon)
                     {
-                        maxExon = exp.exon;
+                        maxExon = exonptr[col];
                     }
                 }
             }
@@ -137,9 +137,9 @@ void DnbMergeTask::doTask_Exon()
                     exonptr[col] += exp.exon;
                     if (pmatrix[col].gene_count > maxGene)
                         maxGene = pmatrix[col].gene_count;
-                    if(exp.exon > maxExon)
+                    if(exonptr[col] > maxExon)
                     {
-                        maxExon = exp.exon;
+                        maxExon = exonptr[col];
                     }
                 }
             }
