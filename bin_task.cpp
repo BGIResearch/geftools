@@ -86,7 +86,7 @@ void BinTask::bin100task()
     {
         midcnt += itor->count;
     }
-    pgenedata->e10 = (midcnt*1.0/umicnt)*100;
+    pgeneinfo->e10 = (midcnt*1.0/umicnt)*100;
 
     // itor = pgeneinfo->vecptr->begin();
     // midcnt = 0;

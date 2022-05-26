@@ -115,103 +115,103 @@ int SpecialBin::calcE10(vector<pair<string, unsigned int>>& geneCnts, std::vecto
     return 0;
 }
 
-int SpecialBin::calcE10(std::vector<float> &vec_e10_result)
-{
-    std::vector<float> vec_e10;
-    std::vector<float> vec_c50;
-    auto itor_rank = m_pcmd->vec_bin100_.begin();
-    for(;itor_rank != m_pcmd->vec_bin100_.end();itor_rank++)
-    {
-        if(itor_rank->umicnt > 300)
-        {
-            memcpy(itor_rank->attribute, "non", 3);
-            vec_e10.emplace_back(itor_rank->e10);
-            vec_c50.emplace_back(itor_rank->c50);
-            //printf("%d  ", itor_rank->umicnt);
-        }
-        else
-        {
-            memcpy(itor_rank->attribute, "low", 3);
-        }
-    }
+// int SpecialBin::calcE10(std::vector<float> &vec_e10_result)
+// {
+//     std::vector<float> vec_e10;
+//     std::vector<float> vec_c50;
+//     auto itor_rank = m_pcmd->vec_bin100_.begin();
+//     for(;itor_rank != m_pcmd->vec_bin100_.end();itor_rank++)
+//     {
+//         if(itor_rank->umicnt > 300)
+//         {
+//             memcpy(itor_rank->attribute, "non", 3);
+//             vec_e10.emplace_back(itor_rank->e10);
+//             vec_c50.emplace_back(itor_rank->c50);
+//             //printf("%d  ", itor_rank->umicnt);
+//         }
+//         else
+//         {
+//             memcpy(itor_rank->attribute, "low", 3);
+//         }
+//     }
 
-    std::vector<GeneErank*> vec_pattern;
-    std::vector<GeneErank*> vec_non;
-    std::vector<GeneErank*> vec_low;
-    double e10_ppf = findppf(vec_e10, 0.9);
-    double c50_ppf = findppf(vec_c50, 0.1);
-    //printf("e10:%7.5f c50:%7.5f\n", e10_ppf, c50_ppf);
-    for(int i=0;i<m_pcmd->vec_bin100_.size();i++)
-    {
-        GeneErank & grank = m_pcmd->vec_bin100_[i];
-        if(grank.umicnt > 300 && grank.e10 > e10_ppf && grank.c50 < c50_ppf)
-        {
-            memcpy(grank.attribute, "pattern", 7);
-        }
+//     std::vector<GeneErank*> vec_pattern;
+//     std::vector<GeneErank*> vec_non;
+//     std::vector<GeneErank*> vec_low;
+//     double e10_ppf = findppf(vec_e10, 0.9);
+//     double c50_ppf = findppf(vec_c50, 0.1);
+//     //printf("e10:%7.5f c50:%7.5f\n", e10_ppf, c50_ppf);
+//     for(int i=0;i<m_pcmd->vec_bin100_.size();i++)
+//     {
+//         GeneErank & grank = m_pcmd->vec_bin100_[i];
+//         if(grank.umicnt > 300 && grank.e10 > e10_ppf && grank.c50 < c50_ppf)
+//         {
+//             memcpy(grank.attribute, "pattern", 7);
+//         }
 
-        if(memcmp(grank.attribute, "pattern", 7) == 0)
-        {
-            vec_pattern.emplace_back(&grank);
-        }
-        else if (memcmp(grank.attribute, "non", 3) == 0)
-        {
-            vec_non.emplace_back(&grank);
-        }
-        else
-        {
-            vec_low.emplace_back(&grank);
-        }
-    }
+//         if(memcmp(grank.attribute, "pattern", 7) == 0)
+//         {
+//             vec_pattern.emplace_back(&grank);
+//         }
+//         else if (memcmp(grank.attribute, "non", 3) == 0)
+//         {
+//             vec_non.emplace_back(&grank);
+//         }
+//         else
+//         {
+//             vec_low.emplace_back(&grank);
+//         }
+//     }
 
-    std::sort(vec_pattern.begin(), vec_pattern.end(), [](const GeneErank *a, const GeneErank *b){
-        return a->e10 > b->e10;
-        });
-    std::sort(vec_non.begin(), vec_non.end(), [](const GeneErank *a, const GeneErank *b){
-        return a->e10 > b->e10;
-        });
-    std::sort(vec_low.begin(), vec_low.end(), [](const GeneErank *a, const GeneErank *b){
-        return a->e10 > b->e10;
-        });
+//     std::sort(vec_pattern.begin(), vec_pattern.end(), [](const GeneErank *a, const GeneErank *b){
+//         return a->e10 > b->e10;
+//         });
+//     std::sort(vec_non.begin(), vec_non.end(), [](const GeneErank *a, const GeneErank *b){
+//         return a->e10 > b->e10;
+//         });
+//     std::sort(vec_low.begin(), vec_low.end(), [](const GeneErank *a, const GeneErank *b){
+//         return a->e10 > b->e10;
+//         });
     
 
-    char buf[128]={0};
-    int len = 0;
-    string str_p, str_n, str_l;
-    vec_e10_result.reserve(m_pcmd->vec_bin100_.size());
-    for(GeneErank *ge : vec_pattern)
-    {
-        vec_e10_result.emplace_back(ge->e10);
-        // len = sprintf(buf, "%s\t%7.2f\t%7.2f\t pattern\n", ge->geneid, ge->e10, ge->c50);
-        // buf[len]='\0';
-        // str_p.append(buf);
-    }
+//     char buf[128]={0};
+//     int len = 0;
+//     string str_p, str_n, str_l;
+//     vec_e10_result.reserve(m_pcmd->vec_bin100_.size());
+//     for(GeneErank *ge : vec_pattern)
+//     {
+//         vec_e10_result.emplace_back(ge->e10);
+//         // len = sprintf(buf, "%s\t%7.2f\t%7.2f\t pattern\n", ge->geneid, ge->e10, ge->c50);
+//         // buf[len]='\0';
+//         // str_p.append(buf);
+//     }
 
-    for(GeneErank *ge : vec_non)
-    {
-        vec_e10_result.emplace_back(ge->e10);
-        // len = sprintf(buf, "%s\t%7.2f\t%7.2f\t non\n", ge->geneid, ge->e10, ge->c50);
-        // buf[len]='\0';
-        // str_n.append(buf);
-    }
+//     for(GeneErank *ge : vec_non)
+//     {
+//         vec_e10_result.emplace_back(ge->e10);
+//         // len = sprintf(buf, "%s\t%7.2f\t%7.2f\t non\n", ge->geneid, ge->e10, ge->c50);
+//         // buf[len]='\0';
+//         // str_n.append(buf);
+//     }
 
-    for(GeneErank *ge : vec_low)
-    {
-        vec_e10_result.emplace_back(ge->e10);
-        // len = sprintf(buf, "%s\t%7.2f\t%7.2f\t low\n", ge->geneid, ge->e10, ge->c50);
-        // buf[len]='\0';
-        // str_l.append(buf);
-    }
+//     for(GeneErank *ge : vec_low)
+//     {
+//         vec_e10_result.emplace_back(ge->e10);
+//         // len = sprintf(buf, "%s\t%7.2f\t%7.2f\t low\n", ge->geneid, ge->e10, ge->c50);
+//         // buf[len]='\0';
+//         // str_l.append(buf);
+//     }
 
-    // FILE *fout = fopen("erank.txt", "w");
-    // if(fout)
-    // {
-    //     fwrite(str_p.c_str(), 1, str_p.length(), fout);
-    //     fwrite(str_n.c_str(), 1, str_n.length(), fout);
-    //     fwrite(str_l.c_str(), 1, str_l.length(), fout);
-    //     fclose(fout);
-    // }
-    return 0;
-}
+//     // FILE *fout = fopen("erank.txt", "w");
+//     // if(fout)
+//     // {
+//     //     fwrite(str_p.c_str(), 1, str_p.length(), fout);
+//     //     fwrite(str_n.c_str(), 1, str_n.length(), fout);
+//     //     fwrite(str_l.c_str(), 1, str_l.length(), fout);
+//     //     fclose(fout);
+//     // }
+//     return 0;
+// }
 
 char * getDirectory( char * buf, int count)
 {

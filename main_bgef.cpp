@@ -186,9 +186,8 @@ void gem2gef(BgefOptions *opts)
     opts->gene_info_queue_.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
 
-    BgefWriter bgef_writer(opts->output_file_, opts->verbose_);
+    BgefWriter bgef_writer(opts->output_file_, opts->verbose_, opts->m_bexon);
     bgef_writer.setResolution(resolution);
-    bgef_writer.setExon(opts->m_bexon);
 
     int genecnt = 0;
     for(unsigned int bin : opts->bin_sizes_)
@@ -260,13 +259,13 @@ void gem2gef(BgefOptions *opts)
         {
             GeneInfo *pgeneinfo = opts->gene_info_queue_.getGeneInfo(idx);
             if (bin == 1){
-                opts->expressions_.insert(opts->expressions_.end(), pgeneinfo->vecdataptr->begin(), pgeneinfo->vecdataptr->end());
+                opts->expressions_.insert(opts->expressions_.end(), pgeneinfo->vecptr->begin(), pgeneinfo->vecptr->end());
             }
             else
             {
                 if(bin != 100 || opts->m_stattype == 2)
                 {
-                    for (auto g : *pgeneinfo->vecdataptr)
+                    for (auto g : *pgeneinfo->vecptr)
                     {
                         g.x *= bin;
                         g.y *= bin;
@@ -277,8 +276,8 @@ void gem2gef(BgefOptions *opts)
 
             if(bin != 100 || opts->m_stattype == 2)
             {
-                opts->genes_.emplace_back(pgeneinfo->geneid, offset, static_cast<unsigned int>(pgeneinfo->vecdataptr->size()));
-                offset += pgeneinfo->vecdataptr->size();
+                opts->genes_.emplace_back(pgeneinfo->geneid, offset, static_cast<unsigned int>(pgeneinfo->vecptr->size()));
+                offset += pgeneinfo->vecptr->size();
                 maxexp = std::max(maxexp, pgeneinfo->maxexp);
                 maxexon = std::max(maxexon, pgeneinfo->maxexon);
             }

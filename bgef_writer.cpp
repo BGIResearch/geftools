@@ -171,7 +171,7 @@ bool BgefWriter::storeGeneExon(vector<Expression>& exps, unsigned int maxexon, i
         exon_did = H5Dcreate(gene_exp_bin_group_id, "exon", H5T_STD_U8LE, dataspace_id, H5P_DEFAULT,
             H5P_DEFAULT, H5P_DEFAULT);
     }
-    H5Dwrite(dataset_id, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &exps[0]);
+    H5Dwrite(exon_did, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &exps[0]);
 
     hsize_t dimsAttr[1] = {1};
     hid_t a_sid = H5Screate_simple(1, dimsAttr, nullptr);

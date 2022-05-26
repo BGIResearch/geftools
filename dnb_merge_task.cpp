@@ -100,7 +100,7 @@ void DnbMergeTask::doTask_Exon()
         if (m_binsize == 1)
         {
             BinStatUS *pmatrix = opts_->dnbmatrix_.pmatrix_us;
-            unsigned short *exonptr = opts_->m_pexon16_ptr;
+            unsigned short *exonptr = opts_->dnbmatrix_.pexon16;
             for(auto exp : exp_vec)
             {
                 x = exp.x;
@@ -124,7 +124,7 @@ void DnbMergeTask::doTask_Exon()
         else
         {
             BinStat *pmatrix = opts_->dnbmatrix_.pmatrix;
-            unsigned int *exonptr = opts_->m_pexon32_ptr;
+            unsigned int *exonptr = opts_->dnbmatrix_.pexon32;
             for(auto exp : exp_vec)
             {
                 x = exp.x;
@@ -148,7 +148,7 @@ void DnbMergeTask::doTask_Exon()
     }
 
     lock_guard<mutex> lock(m_mutex);
-    opts_->dnbmatrix_.dnb_attr.max_exon = std::max(opts_->dnbmatrix_.dnb_attr.max_gene, maxExon);
+    opts_->dnbmatrix_.dnb_attr.max_exon = std::max(opts_->dnbmatrix_.dnb_attr.max_exon, maxExon);
     opts_->dnbmatrix_.dnb_attr.max_gene = std::max(opts_->dnbmatrix_.dnb_attr.max_gene, maxGene);
 }
 

@@ -1014,7 +1014,66 @@ void CgefWriter::writeCelldata(int lev, int *blknum, vector<block> &blk, vector<
     H5Gclose(level_gid);
 }
 
-void CgefWriter::storeGeneExon(uint32_t genecnt, uint32_t *geneExonPtr, vector<uint16_t> vec_exonExp)
+void CgefWriter::storeGeneExon(uint32_t minExon, uint32_t maxExon, uint32_t *geneExonPtr, uint16_t maxExpExon, vector<uint16_t> vec_exonExp)
 {
-    
+    hsize_t dims[1] = {gene_num_};
+    hid_t exon_sid = H5Screate_simple(1, dims, nullptr);
+    hid_t exon_did = H5Dcreate(group_id_, "geneExon", H5T_STD_U32LE, exon_sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(exon_did, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, geneExonPtr);
+
+    hsize_t dims_attr[1] = {1};
+    hid_t attr_sid = H5Screate_simple(1, dims_attr, nullptr);
+    hid_t attr = H5Acreate(exon_did, "minExon", H5T_STD_U32LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT32, &minExon);
+    attr = H5Acreate(exon_did, "maxExon", H5T_STD_U32LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_UINT32, &maxExon);
+
+    H5Aclose(attr);
+    H5Sclose(exon_sid);
+    H5Dclose(exon_did);
+
+    dims[0] = vec_exonExp.size();
+    hid_t exonExp_sid = H5Screate_simple(1, dims, nullptr);
+    hid_t exonExp_did = H5Dcreate(group_id_, "geneExpExon", H5T_STD_U16LE, exonExp_sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(exonExp_did, H5T_NATIVE_USHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vec_exonExp.data());
+
+    attr = H5Acreate(exon_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_USHORT, &maxExpExon);
+ 
+    H5Aclose(attr);
+    H5Sclose(attr_sid);
+    H5Sclose(exonExp_sid);
+    H5Dclose(exonExp_did);
+}
+
+void CgefWriter::storeCellExon(uint16_t minExon, uint16_t maxExon, vector<uint16_t> vec_cellexon, uint16_t maxExpExon, vector<uint16_t> vec_cellexon_exp)
+{
+    hsize_t dims[1] = {(hsize_t)cell_num_};
+    hid_t exon_sid = H5Screate_simple(1, dims, nullptr);
+    hid_t exon_did = H5Dcreate(group_id_, "cellExon", H5T_STD_U16LE, exon_sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(exon_did, H5T_NATIVE_USHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vec_cellexon.data());
+
+    hsize_t dims_attr[1] = {1};
+    hid_t attr_sid = H5Screate_simple(1, dims_attr, nullptr);
+    hid_t attr = H5Acreate(exon_did, "minExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_USHORT, &minExon);
+    attr = H5Acreate(exon_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_USHORT, &maxExon);
+
+    H5Aclose(attr);
+    H5Sclose(exon_sid);
+    H5Dclose(exon_did);
+
+    dims[0] = vec_cellexon_exp.size();
+    hid_t exonExp_sid = H5Screate_simple(1, dims, nullptr);
+    hid_t exonExp_did = H5Dcreate(group_id_, "cellExpExon", H5T_STD_U16LE, exonExp_sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(exonExp_did, H5T_NATIVE_USHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vec_cellexon_exp.data());
+
+    attr = H5Acreate(exon_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_USHORT, &maxExpExon);
+ 
+    H5Aclose(attr);
+    H5Sclose(attr_sid);
+    H5Sclose(exonExp_sid);
+    H5Dclose(exonExp_did);
 }

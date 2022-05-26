@@ -108,7 +108,7 @@ struct GeneInfo
     //float c50;
     unsigned int maxexp;
     unsigned int maxexon;
-    std::vector<Expression> *vecdataptr;
+    std::vector<Expression> *vecptr;
 };
 
 // wholeExp Matrix

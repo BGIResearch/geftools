@@ -726,11 +726,12 @@ unsigned int BgefReader::toGem(string &filename, string &sn) {
         }
     }
 
+    size_t pos = 0;
     if(m_exonPtr)
     {
         fprintf(outhandle, FILE_HEADER_EXON, 0, 1, bin_size_, sn.c_str(), expression_attr.min_x, expression_attr.min_y);
         // Write data line by line
-        size_t pos = 0;
+        
         for (int i = 0; i < gene_num_; ++i)
         {
             const char* gene = gene_data[i].gene;
@@ -746,7 +747,7 @@ unsigned int BgefReader::toGem(string &filename, string &sn) {
     {
         fprintf(outhandle, FILE_HEADER, 0, 1, bin_size_, sn.c_str(), expression_attr.min_x, expression_attr.min_y);
         // Write data line by line
-        size_t pos = 0;
+
         for (int i = 0; i < gene_num_; ++i)
         {
             const char* gene = gene_data[i].gene;
@@ -889,23 +890,20 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
 
     unsigned int offset = 0;
     unsigned int maxexp = 0;
-    int genecnt = 0;
-    while (true){
-        GeneInfo *pgenedata = opts_->gene_info_queue_.getGeneInfo2();
-        for (auto g : *pgenedata->vecdataptr){
+    uint32_t idx = 0;
+    while (idx < opts_->map_gene_exp_.size()){
+        GeneInfo *pgenedata = opts_->gene_info_queue_.getGeneInfo(idx);
+        for (auto g : *pgenedata->vecptr){
             g.x *= bin_size;
             g.y *= bin_size;
             opts_->expressions_.push_back(std::move(g));
         }
 
-        opts_->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
-        offset += pgenedata->vecdataptr->size();
+        opts_->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecptr->size()));
+        offset += pgenedata->vecptr->size();
         maxexp = std::max(maxexp, pgenedata->maxexp);
 
-        genecnt++;
-        if(genecnt == opts_->map_gene_exp_.size()){
-            break;
-        }
+        idx++;
     }
 
     thpool.waitTaskDone();

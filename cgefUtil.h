@@ -229,11 +229,14 @@ public:
     void add(uint16_t gid, uint16_t expcnt, uint16_t dnbcnt, uint16_t exoncnt)
     {
         m_vecCexp.emplace_back(gid, expcnt);
+        m_vecCExon.emplace_back(exoncnt);
         m_expcnt += expcnt;
         m_dnbcnt += dnbcnt;
         m_exoncnt += exoncnt;
+        m_maxexon = std::max(m_maxexon, exoncnt);
     }
 public:
+    uint16_t m_maxexon = 0;
     uint16_t m_exoncnt = 0;
     uint16_t m_expcnt = 0;
     uint16_t m_dnbcnt = 0;
@@ -242,6 +245,7 @@ public:
     uint32_t m_cid;
     uint32_t m_clabel = 0;
     vector<CellExpData> m_vecCexp;
+    vector<uint16_t> m_vecCExon;
 };
 
 #endif

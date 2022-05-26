@@ -338,7 +338,7 @@ void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, in
             vecPoint.emplace_back(dnb.x,dnb.y);
         }
 
-        bool ret = addborder(ce.cellid, vecPoint, border, vec_border);
+        bool ret = addborder(ce.cellid-1, vecPoint, border, vec_border);
         Moments mu = moments(border, true);
         area = mu.m00;
 
