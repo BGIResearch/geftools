@@ -771,7 +771,7 @@ int CgefWriter::addLevel_1()
 {
     createBlktype();
     m_level_gid = H5Gcreate(group_id_, "level", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    int lev = 1;
+    int lev = 0;
     vector<int> vec_cellid;
     vector<block> vec_blk;
     vec_blk.emplace_back(0, cell_num_);
@@ -785,7 +785,7 @@ int CgefWriter::addLevel_1()
     vec_blk_idx.emplace_back(0);
     int blknum[2]={1,1};
     writeCelldata(lev, blknum, vec_blk, vec_cellid, vec_blk_idx);
-
+    lev++;
     hsize_t dims_attr[1] = {1};
     hid_t attr_dataspace = H5Screate_simple(1, dims_attr, nullptr);
     hid_t attr = H5Acreate(m_level_gid, "levelnum", H5T_STD_U32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
