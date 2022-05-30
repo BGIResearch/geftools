@@ -437,8 +437,8 @@ void cellAdjust::writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *d
 void cellAdjust::writeGene()
 {
     timer st(__FUNCTION__);
-    printf("genecnt:%d geneexpcnt:%d\n", m_map_gene.size(), m_cgefwPtr->expression_num_);
-    m_cgefwPtr->gene_num_ = m_map_gene.size();
+    printf("genecnt:%d hashcnt:%d geneexpcnt:%d\n", m_genencnt, m_map_gene.size(), m_cgefwPtr->expression_num_);
+    m_cgefwPtr->gene_num_ = m_genencnt;
     GeneData *gene_data_list = static_cast<GeneData *>(calloc(m_cgefwPtr->gene_num_ , sizeof(GeneData)));
     
     unsigned int exp_count, min_exp_count = UINT32_MAX, max_exp_count = 0, offset = 0;
@@ -448,27 +448,40 @@ void cellAdjust::writeGene()
     gene_exp_list.reserve(m_cgefwPtr->expression_num_);
 
     m_cgefwPtr->max_mid_count_ = 0;
-    int i = 0;
-    auto itor = m_map_gene.begin();
-    for(;itor != m_map_gene.end();itor++,i++)
+    for(int i=0;i<m_genencnt;i++)
     {
-        for(GeneExpData &gexp : itor->second)
+        exp_count = 0;
+        max_MID_count = 0;
+        auto itor = m_map_gene.find(i);
+        string &strgene = m_vecgenename[i];
+        if(itor != m_map_gene.end())
         {
-            gene_exp_list.emplace_back(gexp);
-            max_MID_count = std::max(max_MID_count, gexp.count);
-            m_cgefwPtr->max_mid_count_ = std::max(m_cgefwPtr->max_mid_count_, gexp.count);
-            exp_count += gexp.count;
+            for(GeneExpData &gexp : itor->second)
+            {
+                gene_exp_list.emplace_back(gexp);
+                max_MID_count = std::max(max_MID_count, gexp.count);
+                m_cgefwPtr->max_mid_count_ = std::max(m_cgefwPtr->max_mid_count_, gexp.count);
+                exp_count += gexp.count;
+            }
+
+            cell_count = itor->second.size();
+            gene_data_list[i].cell_count = cell_count;
+            gene_data_list[i].exp_count = exp_count;
+            memcpy(gene_data_list[i].gene_name, strgene.c_str(), strgene.length());
+            gene_data_list[i].max_mid_count = max_MID_count;
+            gene_data_list[i].offset = offset;
+            offset += cell_count;
+        }
+        else
+        {
+            memcpy(gene_data_list[i].gene_name, strgene.c_str(), strgene.length());
+            gene_data_list[i].cell_count = 0;
+            gene_data_list[i].exp_count = 0;
+            gene_data_list[i].max_mid_count = 0; 
+            gene_data_list[i].offset = 0;
         }
 
-        cell_count = itor->second.size();
-        gene_data_list[i].cell_count = cell_count;
-        gene_data_list[i].exp_count = exp_count;
-        string &strgene = m_vecgenename[itor->first];
-        memcpy(gene_data_list[i].gene_name, strgene.c_str(), strgene.length());
-        gene_data_list[i].max_mid_count = max_MID_count;
-        gene_data_list[i].offset = offset;
-        offset += cell_count;
-
+        m_cgefwPtr->max_mid_count_ = std::max(m_cgefwPtr->max_mid_count_, max_MID_count);
         min_exp_count = std::min(min_exp_count, exp_count);
         max_exp_count = std::max(max_exp_count, exp_count);
         min_cell_count = std::min(min_cell_count, cell_count);

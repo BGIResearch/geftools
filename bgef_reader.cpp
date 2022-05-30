@@ -1079,3 +1079,41 @@ unsigned int *BgefReader::getGeneExon()
     printf("%s is not exist\n", dname);
     return nullptr;
 }
+
+Expression *BgefReader::getExpression_abs() {
+    if(expressions_ != nullptr)
+        return expressions_;
+
+    ExpressionAttr & expression_attr = getExpressionAttr();
+
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
+    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
+
+    expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
+    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expressions_);
+
+    H5Tclose(memtype);
+
+    getGeneExon();
+    if(m_exonPtr)
+    {
+        for(int i=0;i<expression_num_;i++)
+        {
+            expressions_[i].x += expression_attr.min_x;
+            expressions_[i].y += expression_attr.max_y;
+            expressions_[i].exon = m_exonPtr[i];
+        }
+    }
+    else
+    {
+        for(int i=0;i<expression_num_;i++)
+        {
+            expressions_[i].x += expression_attr.min_x;
+            expressions_[i].y += expression_attr.max_y;
+        }
+    }
+    return expressions_;
+}

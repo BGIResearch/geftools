@@ -1310,7 +1310,7 @@ void cgefCellgem::writeCell_new()
     }
     
     m_vec_blkidx.emplace_back(cid);
-
+    printf("cellcnt:%d maxmid:%d\n", cid, maxExpmid);
     m_cgefwPtr->cell_num_ = cid;
     m_cgefwPtr->max_mid_count_ = maxExpmid;
     int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
@@ -1337,33 +1337,45 @@ void cgefCellgem::writeGene_new()
     vector<uint16_t> vec_exonExp;
     vec_exonExp.reserve(m_geneExpcnt);
 
-    uint16_t i = 0, maxExpExon = 0;
+    uint16_t maxExpExon = 0;
     uint32_t offset = 0, expsum = 0, exonsum = 0, cellcnt = 0;
     uint32_t minExon = UINT_MAX, maxExon = 0;
-
-    auto itor = m_hash_geneunit.begin();
-    for(;itor != m_hash_geneunit.end();itor++,i++)
+    printf("genecnt:%d hashcnt:%d\n", m_genecnt, m_hash_geneunit.size());
+    for(int i=0;i<m_genecnt;i++)
     {
-        geneUnit *ptr = itor->second;
-        cellcnt = ptr->m_vec_cexp.size();
-        expsum = ptr->m_expcnt;
-        exonsum = ptr->m_exoncnt;
-        memcpy(gene_data_list[i].gene_name, m_genePtr[itor->first].gene, 32);
-        gene_data_list[i].cell_count = cellcnt;
-        gene_data_list[i].exp_count = expsum;
-        gene_data_list[i].max_mid_count = ptr->m_maxmid; 
-        gene_data_list[i].offset = offset;
-        offset += cellcnt;
-        gene_exon_ptr[i] = exonsum;
-
-        for(cexp &ce : ptr->m_vec_cexp)
+        auto itor = m_hash_geneunit.find(i);
+        if(itor != m_hash_geneunit.end()) 
         {
-            gene_exp_list.emplace_back(ce.cellid, ce.midcnt);
-            vec_exonExp.emplace_back(ce.exoncnt);
-            maxExpExon = std::max(maxExpExon, ce.exoncnt);
+            geneUnit *ptr = itor->second;
+            cellcnt = ptr->m_vec_cexp.size();
+            expsum = ptr->m_expcnt;
+            exonsum = ptr->m_exoncnt;
+            memcpy(gene_data_list[i].gene_name, m_genePtr[i].gene, 32);
+            gene_data_list[i].cell_count = cellcnt;
+            gene_data_list[i].exp_count = expsum;
+            gene_data_list[i].max_mid_count = ptr->m_maxmid; 
+            gene_data_list[i].offset = offset;
+            offset += cellcnt;
+            gene_exon_ptr[i] = exonsum;
+
+            for(cexp &ce : ptr->m_vec_cexp)
+            {
+                gene_exp_list.emplace_back(ce.cellid, ce.midcnt);
+                vec_exonExp.emplace_back(ce.exoncnt);
+                maxExpExon = std::max(maxExpExon, ce.exoncnt);
+            }
+            m_cgefwPtr->max_mid_count_ = std::max(m_cgefwPtr->max_mid_count_, ptr->m_maxmid);
+            delete ptr;
+        }
+        else
+        {
+            memcpy(gene_data_list[i].gene_name, m_genePtr[i].gene, 32);
+            gene_data_list[i].cell_count = 0;
+            gene_data_list[i].exp_count = 0;
+            gene_data_list[i].max_mid_count = 0; 
+            gene_data_list[i].offset = 0;
         }
 
-        cgefParam::GetInstance()->m_maxExp_gexp = std::max(cgefParam::GetInstance()->m_maxExp_gexp, ptr->m_maxmid);
         cgefParam::GetInstance()->m_minExp = std::min(cgefParam::GetInstance()->m_minExp, expsum);
         cgefParam::GetInstance()->m_maxExp = std::max(cgefParam::GetInstance()->m_maxExp, expsum);
         cgefParam::GetInstance()->m_minCell = std::min(cgefParam::GetInstance()->m_minCell, cellcnt);
@@ -1371,10 +1383,9 @@ void cgefCellgem::writeGene_new()
 
         minExon = std::min(minExon, exonsum);
         maxExon = std::max(maxExon, exonsum);
-        delete ptr;
     }
 
-    m_cgefwPtr->gene_num_ = i;
+    m_cgefwPtr->gene_num_ = m_genecnt;
     m_cgefwPtr->expression_num_ = gene_exp_list.size();
     m_cgefwPtr->max_mid_count_ = cgefParam::GetInstance()->m_maxExp_gexp;
     m_cgefwPtr->storeGeneAndGeneExp(cgefParam::GetInstance()->m_minExp, cgefParam::GetInstance()->m_maxExp,
