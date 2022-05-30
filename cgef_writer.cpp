@@ -1037,7 +1037,7 @@ void CgefWriter::storeGeneExon(uint32_t minExon, uint32_t maxExon, uint32_t *gen
     hid_t exonExp_did = H5Dcreate(group_id_, "geneExpExon", H5T_STD_U16LE, exonExp_sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(exonExp_did, H5T_NATIVE_USHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vec_exonExp.data());
 
-    attr = H5Acreate(exon_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(exonExp_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_USHORT, &maxExpExon);
  
     H5Aclose(attr);
@@ -1069,7 +1069,7 @@ void CgefWriter::storeCellExon(uint16_t minExon, uint16_t maxExon, vector<uint16
     hid_t exonExp_did = H5Dcreate(group_id_, "cellExpExon", H5T_STD_U16LE, exonExp_sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Dwrite(exonExp_did, H5T_NATIVE_USHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, vec_cellexon_exp.data());
 
-    attr = H5Acreate(exon_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate(exonExp_did, "maxExon", H5T_STD_U16LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_USHORT, &maxExpExon);
  
     H5Aclose(attr);

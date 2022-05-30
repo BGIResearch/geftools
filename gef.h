@@ -244,6 +244,15 @@ struct CellBinAttr
     int offsetY; ///< Minimum value of y-axis coordinate with offset
 };
 
+struct Dnbs_exon
+{
+    Dnbs_exon(uint16_t gid, uint16_t mid, uint16_t exon):
+    geneid(gid),midcnt(mid),exoncnt(exon){};
+    uint16_t geneid;
+    uint16_t midcnt;
+    uint16_t exoncnt;
+};
+
 hid_t getMemtypeOfGeneData();
 hid_t getMemtypeOfGeneExpData();
 hid_t getMemtypeOfCellData();

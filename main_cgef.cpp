@@ -23,7 +23,7 @@ int ctest(const char *path)
 }
 
 int cgef(int argc, char *argv[]) {
-    return ctest(argv[2]);
+    //return ctest(argv[2]);
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");

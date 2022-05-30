@@ -49,7 +49,7 @@ public:
     DnbMatrix dnbmatrix_;
     std::vector<int> range_ = {INT_MAX, 0, INT_MAX, 0};
     GeneInfoQueue m_genes_queue;
-    GeneQueue m_geneinfo_queue;
+    GefQueue<GeneInfo> m_geneinfo_queue;
     std::vector<Expression> expressions_;
     std::vector<Gene> genes_;
     int offset_x_ = 0; // offset of coordinate

@@ -892,7 +892,7 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
     unsigned int maxexp = 0;
     int genecnt = 0;
     while (true){
-        GeneInfo *pgenedata = opts_->m_geneinfo_queue.getGeneInfo();
+        GeneInfo *pgenedata = opts_->m_geneinfo_queue.getPtr();
         for (auto g : *pgenedata->vecptr){
             g.x *= bin_size;
             g.y *= bin_size;

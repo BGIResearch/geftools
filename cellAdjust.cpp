@@ -261,10 +261,14 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
 
 bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border)
 {
+    if(cid >= m_cellcnt)
+    {
+        printf("cid %d out of bounds %d\n", cid, m_cellcnt);
+    }
     convexHull(vecPoint, border, true);
     if(border.size() < 3)
     {
-        printf("err cid=%d\n", cid);
+        printf("err cid=%d pot=%d bor=%d\n", cid, vecPoint.size(), border.size());
         return false;
     }
 
@@ -302,7 +306,6 @@ bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Poi
     return true;
 }
 
-//void cellAdjust::writeCell(vector<Cell> &veccell, vector<DnbExpression> &vecDnb)
 void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt)
 {
     uint16_t gene_count, exp_count, dnb_count, area, cell_type_id;
@@ -315,10 +318,11 @@ void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, in
     vec_border.reserve(cellcnt*2*BORDERCNT);
 
     m_cgefwPtr->cell_num_ = cellcnt;
-    //for(Cell &ce : veccell)
+    uint32_t cid = 0;
     for(int ci=0;ci<cellcnt;ci++)
     {
         Cell &ce = cellptr[ci];
+        cid = ce.cellid-1;
         vecPoint.clear();
         border.clear();
         map_gene_cnt.clear();
@@ -338,7 +342,8 @@ void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, in
             vecPoint.emplace_back(dnb.x,dnb.y);
         }
 
-        bool ret = addborder(ce.cellid-1, vecPoint, border, vec_border);
+        bool ret = addborder(cid, vecPoint, border, vec_border);
+        if(!ret) continue;
         Moments mu = moments(border, true);
         area = mu.m00;
 
@@ -351,14 +356,14 @@ void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, in
                 vector<GeneExpData> tvec;
                 m_map_gene.emplace(itor->first, tvec);
             }
-            m_map_gene[itor->first].emplace_back(ce.cellid, itor->second);
+            m_map_gene[itor->first].emplace_back(cid, itor->second);
         }
 
         cell_type_id = m_cgefwPtr->random_cell_type_num_ == 0 ? 0 : rand()%(m_cgefwPtr->random_cell_type_num_ + 1);
         CellData cell = {
-                ce.cellid,
-                m_cell_arrayptr[ce.cellid].x,
-                m_cell_arrayptr[ce.cellid].y,
+                cid,
+                m_cell_arrayptr[cid].x,
+                m_cell_arrayptr[cid].y,
                 offset,
                 gene_count,
                 exp_count,
@@ -448,6 +453,13 @@ void cellAdjust::writeCellAdjust(const string &outpath, Cell *cellptr, int cellc
 {
     m_cgefwPtr = new CgefWriter();
     m_cgefwPtr->setOutput(outpath);
+    CellBinAttr cell_bin_attr = {
+            .version = 2,
+            .resolution = m_resolution,
+            .offsetX = m_min_x,
+            .offsetY = m_min_y
+    };
+    m_cgefwPtr->storeAttr(cell_bin_attr);
     writeCell(cellptr, cellcnt, dnbptr, dnbcnt);
     writeGene();
     delete m_cgefwPtr;

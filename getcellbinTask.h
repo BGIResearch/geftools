@@ -12,23 +12,61 @@
 #include "gef.h"
 #include "cgefUtil.h"
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 #include "cgefParam.h"
+#include "gene_queue.h"
 #include "opencv2/opencv.hpp"
 using namespace cv;
 
+class cellbin
+{
+public:
+    cellbin(int x, int y, uint16_t area, uint32_t label, unsigned int *block_size):
+    m_cx(x), m_cy(y), m_area(area), m_label(label)
+    {
+        m_blkid = cx/block_size[0] + (cy/block_size[1])*block_size[2];
+    }
+    ~cellbin(){};
+    void add(vector<Dnbs_exon> & vecdnb)
+    {
+        for(Dnbs_exon &dnb : vecdnb)
+        {
+            if(m_setgid.find(dnb.geneid)==m_setgid.end())
+            {
+                m_setgid.insert(dnb.geneid);
+                m_genecnt++;
+            }
+            m_dnbcnt++;
+            m_expcnt+=dnb.midcnt;
+            m_exoncnt+=dnb.exoncnt;
+            m_vecCexp.push_back(dnb.geneid, dnb.midcnt);
+            m_vecCExon.push_back(dnb.exoncnt);
+        }
+    }
+public:
+    uint16_t m_genecnt = 0;
+    uint16_t m_expcnt = 0;
+    uint16_t m_dnbcnt = 0;
+    uint16_t m_area = 0;
+    uint16_t m_exoncnt = 0;
+    int m_cx = 0;
+    int m_cy = 0;
+    uint32_t m_label = 0;
+    uint32_t m_blkid = 0;
+    vector<CellExpData> m_vecCexp;
+    vector<uint16_t> m_vecCExon;
+    vector<Point> m_vecborder;
+    set<uint16_t> m_setgid;
+};
+
+class cgefCellgem;
 class getcellbinTask:public ITask
 {
 public:
-    getcellbinTask(const std::string &gene, bgef_gene *ptr, 
-                GeneData* gdptr, vector<GeneExpData> &vecgexp, 
-                vector<bgef_cell *> &veccellexp,
-                unordered_map<uint32_t, uint32_t> &cl2cid,
-                Mat &outimg):
-                m_gene(gene), m_gptr(ptr),m_gdptr(gdptr),
-                m_vec_geneexp(vecgexp), m_vec_cellexp(veccellexp),
-                m_map_clabel2cid(cl2cid), m_outimg(outimg)
+    getcellbinTask(cgefCellgem *ptr, uint32_t label, Rect &rect, vector<Point> &vecpoint):
+    m_cgefPtr(ptr),m_label(label),m_rect(rect),m_vecpoint(vecpoint)
     {
     }
     ~getcellbinTask()
@@ -37,64 +75,75 @@ public:
     }
     void doTask()
     {
-        uint32_t cid = 0, cell_label = 0;
-        std::map<uint32_t, std::vector<Expression*>> map_cell;
-        for(Expression &exp : m_gptr->m_vecExp)
-        {
-            cell_label = m_outimg.at<uint32_t>(exp.x-cgefParam::GetInstance()->m_min_x, exp.y-cgefParam::GetInstance()->m_min_y);
-            if(cell_label)
-            {
-                cid = m_map_clabel2cid[cell_label];
-                map_cell[cid].emplace_back(&exp);
+        int cx = m_cgefPtr->m_centroids.at<double>(m_label,0);
+        int cy = m_cgefPtr->m_centroids.at<double>(m_label,1);
+        int area = m_cgefPtr->m_stats.at<int>(m_label, CC_STAT_AREA);
 
-                m_expsum += exp.count;
-                m_maxExp = std::max(m_maxExp, exp.count);
+        cellbin *cptr = new cellbin(cx, cy, area, m_label, m_cgefPtr->m_block_size);
+        uint64_t l_id = 0;
+        for(int i=m_rect.x;i<m_rect.width;i++)
+        {
+            for(int j=m_rect.y;j<m_rect.height;j++)
+            {
+                if(m_cgefPtr->m_outimg.at<int>(j,i) == m_label)
+                {
+                    l_id = i;
+                    l_id = (l_id<<32) | j;
+                    auto itor = m_cgefPtr->m_hash_vecdnb.find(l_id);
+                    if(itor != m_cgefPtr->m_hash_vecdnb.end())
+                    {
+                        cptr->add(itor->second);
+                    }
+                }
             }
         }
 
-        addGeneArry(map_cell);
+        if(cptr->m_genecnt)
+        {
+            getborder(cptr);
+        }
+
+        m_cgefPtr->m_cellqueuePtr->addqueue(cptr);
     }
 
-    void addGeneArry(std::map<uint32_t, std::vector<Expression*>> &map_cell)
+    void getborder(cellbin *cptr)
     {
-        lock_guard<mutex> lock(m_mutex_gene);
-        memcpy(m_gdptr[m_gid].gene_name, m_gene.c_str(), m_gene.length());
-        m_gdptr[m_gid].cell_count = map_cell.size();
-        m_gdptr[m_gid].exp_count = m_expsum;
-        m_gdptr[m_gid].max_mid_count = m_maxExp;
-        m_gdptr[m_gid].offset = m_offset;
-        m_offset += map_cell.size();
-        m_gid++;
-
-        auto itor = map_cell.begin();
-        for(;itor != map_cell.end();itor++)
+        int i=0;
+        int sz = m_vecpoint.size();
+        if(sz > BORDERCNT)
         {
-            m_vec_geneexp.emplace_back(itor->first, map_cell.size());
+            vector<Point> tmpborder;
+            double epsilon = 0.01 * arcLength(m_vecpoint, true);
+            approxPolyDP(m_vecpoint, tmpborder, epsilon, true);
 
-            m_vec_cellexp[itor->first]->add(m_gid, itor->second.expcnt, itor->second.dnbcnt);
+            sz = tmpborder.size();
+            for(;i<sz;i++)
+            {
+                cptr->m_vecborder.emplace_back(tmpborder[i].x - cx);
+                cptr->m_vecborder.emplace_back(tmpborder[i].y - cy);
+            }
+        }
+        else
+        {
+            for(;i<sz;i++)
+            {
+                cptr->m_vecborder.emplace_back(vborder[i].x - cx);
+                cptr->m_vecborder.emplace_back(vborder[i].y - cy);
+            }
         }
         
-        cgefParam::GetInstance()->m_maxExp_gexp = std::max(cgefParam::GetInstance()->m_maxExp_gexp, m_maxExp);
-        cgefParam::GetInstance()->m_minExp = std::min(cgefParam::GetInstance()->m_minExp, m_expsum);
-        cgefParam::GetInstance()->m_maxExp = std::max(cgefParam::GetInstance()->m_maxExp, m_expsum);
-        cgefParam::GetInstance()->m_minCell = std::min(cgefParam::GetInstance()->m_minCell, m_gdptr[m_gid].cell_count);
-        cgefParam::GetInstance()->m_maxCell = std::max(cgefParam::GetInstance()->m_maxCell, m_gdptr[m_gid].cell_count);
+        for(;i<BORDERCNT;i++) //不足补0
+        {
+            cptr->m_vecborder.emplace_back(SHRT_MAX);
+            cptr->m_vecborder.emplace_back(SHRT_MAX);
+        }
     }
 
 private:
-    static uint16_t m_gid ;
-    static uint32_t m_offset;
-    static mutex m_mutex_gene;
-    
-    uint32_t m_maxExp = 0; //max MID count of current gene
-    uint32_t m_expsum = 0; 
-    bgef_gene *m_gptr = nullptr;
-    GeneData *m_gdptr = nullptr;
-    Mat &m_outimg;
-    const std::string &m_gene;
-    vector<GeneExpData> &m_vec_geneexp;
-    vector<bgef_cell *> &m_vec_cellexp;
-    unordered_map<uint32_t, uint32_t> &m_map_clabel2cid;
+    uint32_t m_label = 0;
+    Rect &m_rect;
+    vector<Point> &m_vecpoint;
+    cgefCellgem *m_cgefPtr = nullptr;
 };
 
 #endif

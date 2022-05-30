@@ -257,7 +257,7 @@ void gem2gef(BgefOptions *opts)
         genecnt = 0;
         while (true) //write gene
         {
-            GeneInfo *pgeneinfo = opts->m_geneinfo_queue.getGeneInfo();
+            GeneInfo *pgeneinfo = opts->m_geneinfo_queue.getPtr();
             if (bin == 1){
                 opts->expressions_.insert(opts->expressions_.end(), pgeneinfo->vecptr->begin(), pgeneinfo->vecptr->end());
             }
