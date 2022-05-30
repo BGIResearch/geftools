@@ -12,7 +12,6 @@
 #include "thread_pool.h"
 #include "opencv2/opencv.hpp"
 #include "cgefUtil.h"
-#include "getcellbinTask.h"
 using namespace cv;
 
 struct celldata
@@ -65,8 +64,8 @@ public:
 public:
     unsigned int m_block_size[4] = {0};
     Mat m_stats, m_outimg, m_centroids;
-    unordered_map<uint64_t, vector<Dnbs_exon>> m_hash_vecdnb;
-    GefQueue<cellbin> *m_cellqueuePtr = nullptr;
+    unordered_map<uint64_t, vector<cellExp_Exon>> m_hash_vecdnb;
+    GefQueue<cellUnit> *m_cellqueuePtr = nullptr;
 private:
     bool m_bexon = false;
     unsigned int m_maskcellnum = 0; //从mask文件获取的细胞个数
@@ -95,7 +94,8 @@ private:
     Gene *m_genePtr = nullptr;
     Expression *m_expPtr = nullptr;
     
-    vector<vector<cellbin*>> m_vec_vec_cellbin;
+    vector<vector<cellUnit*>> m_vec_vec_cellunit;
+    unordered_map<uint16_t, geneUnit*> m_hash_geneunit; //key:gid 
 };
 
 #endif

@@ -17,8 +17,7 @@ cellAdjust::cellAdjust()
 
 cellAdjust::~cellAdjust()
 {
-    delete []m_cell_arrayptr;
-    free(m_blkidxPtr);
+    delete [] m_cell_arrayptr;
 }
 
 void cellAdjust::readBgef(const string &strinput)
@@ -122,16 +121,16 @@ void cellAdjust::readCgef(const string &strinput)
     H5Sclose(cell_sid);
     H5Dclose(cell_did);
 
-    hid_t d_id = H5Dopen(file_id, "/cellBin/blockIndex", H5P_DEFAULT);
-    hid_t s_id = H5Dget_space(d_id);
-    H5Sget_simple_extent_dims(s_id, dims, nullptr);
-    m_blkidxPtr = static_cast<unsigned int *>(calloc(dims[0], sizeof(unsigned int)));
-    H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_blkidxPtr);
+    // hid_t d_id = H5Dopen(file_id, "/cellBin/blockIndex", H5P_DEFAULT);
+    // hid_t s_id = H5Dget_space(d_id);
+    // H5Sget_simple_extent_dims(s_id, dims, nullptr);
+    // m_blkidxPtr = static_cast<unsigned int *>(calloc(dims[0], sizeof(unsigned int)));
+    // H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_blkidxPtr);
 
-    H5Sclose(s_id);
-    H5Dclose(d_id);
+    // H5Sclose(s_id);
+    // H5Dclose(d_id);
 
-    d_id = H5Dopen(file_id, "/cellBin/blockSize", H5P_DEFAULT);
+    hid_t d_id = H5Dopen(file_id, "/cellBin/blockSize", H5P_DEFAULT);
     H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_block_size);
     H5Dclose(d_id);
 
@@ -147,7 +146,6 @@ void cellAdjust::readCgef(const string &strinput)
     int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
     vector<Point> vecborder;
     m_fill_points = Mat::zeros(m_max_y-m_min_y+1, m_max_x-m_min_x+1, CV_8UC1);
-    //m_fill_points = Mat::zeros(20501, 21801, CV_8UC1);
     short *ptmp = borderdataPtr;
     for(int i=0;i<bdims[0];i++)
     {
@@ -178,9 +176,9 @@ void cellAdjust::readCgef(const string &strinput)
         }
         else
         {
-            printf("cid %d\n",i);
+            printf("empty cid %d\n",i);
         }
-        ptmp += 64;
+        ptmp += BORDERCNT*2;
     }
 
     free(borderdataPtr);
@@ -212,6 +210,7 @@ void cellAdjust::readCgef(const string &strinput)
 
 uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem)
 {
+    timer st(__FUNCTION__);
     genename.reserve(m_vecgenename.size());
     vecCellgem.reserve(m_geneexpcnt);
 
@@ -261,20 +260,16 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
 
 bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border)
 {
-    if(cid >= m_cellcnt)
-    {
-        printf("cid %d out of bounds %d\n", cid, m_cellcnt);
-    }
     convexHull(vecPoint, border, true);
     if(border.size() < 3)
     {
-        printf("err cid=%d pot=%d bor=%d\n", cid, vecPoint.size(), border.size());
+        printf("borderwarn cid=%d pot=%d bor=%d dnb=%d\n", cid, vecPoint.size(), border.size(), m_cell_arrayptr[cid].dnb_count);
         return false;
     }
 
     int bsz = border.size();
     int i=0;
-
+    
     if(bsz > BORDERCNT)
     {
         vector<Point> tmpborder;
@@ -306,102 +301,135 @@ bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Poi
     return true;
 }
 
-void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt)
+void cellAdjust::writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *dnbptr, unsigned int dnbcnt)
 {
-    uint16_t gene_count, exp_count, dnb_count, area, cell_type_id;
+    timer st(__FUNCTION__);
+    uint16_t gene_count, exp_count, dnb_count, area, cell_type_id, maxExpmid = 0;
     map<uint16_t, uint16_t> map_gene_cnt; //gid midcnt
     uint32_t offset = 0;
     vector<Point> vecPoint;
     vector<Point> border;
+    printf("rawcellcnt:%d newcellcnt:%d dnbcnt:%d\n", m_cellcnt, cellcnt, dnbcnt);
 
+    unsigned int blocknum = m_block_size[2] * m_block_size[3];
+    vector<vector<Cell>> vec_vec_cell;
+    for(int i=0;i<blocknum;i++)
+    {
+        vector<Cell> vectmp;
+        vec_vec_cell.emplace_back(std::move(vectmp));
+    }
+    unsigned int blkid = 0, cid=0;
+    for(unsigned int ci=0;ci<cellcnt;ci++)
+    {
+        cid = cellptr[ci].cellid-1;
+        CellData &cd = m_cell_arrayptr[cid];
+        blkid = cd.x/m_block_size[0] + (cd.y/m_block_size[1])*m_block_size[2];
+        vec_vec_cell[blkid].emplace_back(cellptr[ci]);
+    }
+
+    vector<uint32_t> vec_blkidx;
+    vec_blkidx.reserve(blocknum+1);
     vector<short> vec_border;
     vec_border.reserve(cellcnt*2*BORDERCNT);
 
-    m_cgefwPtr->cell_num_ = cellcnt;
-    uint32_t cid = 0;
-    for(int ci=0;ci<cellcnt;ci++)
+    uint32_t newcid = 0, offcnt = 0, blkcnt = 0;
+    for(vector<Cell> &vecC : vec_vec_cell)
     {
-        Cell &ce = cellptr[ci];
-        cid = ce.cellid-1;
-        vecPoint.clear();
-        border.clear();
-        map_gene_cnt.clear();
-        for(int i=0;i<ce.count;i++)
+        blkcnt = 0;
+        for(Cell &ce : vecC)
         {
-            DnbExpression &dnb = dnbptr[ce.offset+i];
-            if(map_gene_cnt.find(dnb.gene_id) != map_gene_cnt.end())
+            cid = ce.cellid-1;
+            vecPoint.clear();
+            border.clear();
+            gene_count = 0;
+            exp_count = 0;
+            map_gene_cnt.clear();
+
+            for(int i=0;i<ce.count;i++)
             {
-                map_gene_cnt[dnb.gene_id] += dnb.count;
+                DnbExpression &dnb = dnbptr[ce.offset+i];
+                if(map_gene_cnt.find(dnb.gene_id) != map_gene_cnt.end())
+                {
+                    map_gene_cnt[dnb.gene_id] += dnb.count;
+                }
+                else
+                {
+                    gene_count++;
+                    map_gene_cnt.emplace(dnb.gene_id, dnb.count);
+                }
+                exp_count += dnb.count;
+                vecPoint.emplace_back(dnb.x,dnb.y);
             }
-            else
+
+            bool ret = addborder(cid, vecPoint, border, vec_border);
+            if(!ret) continue;
+            
+            Moments mu = moments(border, true);
+            area = mu.m00;
+            auto itor = map_gene_cnt.begin();
+            for(;itor != map_gene_cnt.end();itor++)
             {
-                gene_count++;
-                map_gene_cnt.emplace(dnb.gene_id, dnb.count);
+                m_cgefwPtr->cell_exp_list_.emplace_back(itor->first, itor->second);
+                maxExpmid = std::max(maxExpmid, itor->second);
+                if(m_map_gene.find(itor->first) == m_map_gene.end())
+                {
+                    vector<GeneExpData> tvec;
+                    m_map_gene.emplace(itor->first, tvec);
+                }
+                m_map_gene[itor->first].emplace_back(newcid, itor->second);
             }
-            exp_count += dnb.count;
-            vecPoint.emplace_back(dnb.x,dnb.y);
+
+            cell_type_id = m_cgefwPtr->random_cell_type_num_ == 0 ? 0 : rand()%(m_cgefwPtr->random_cell_type_num_ + 1);
+            CellData cell = {
+                    newcid++,
+                    m_cell_arrayptr[cid].x,
+                    m_cell_arrayptr[cid].y,
+                    offset,
+                    gene_count,
+                    exp_count,
+                    ce.count,
+                    area,
+                    cell_type_id
+            };
+            offset += gene_count;
+
+            m_cgefwPtr->cell_attr_.min_x = std::min(m_cgefwPtr->cell_attr_.min_x, cell.x);
+            m_cgefwPtr->cell_attr_.max_x = std::max(m_cgefwPtr->cell_attr_.max_x, cell.x);
+
+            m_cgefwPtr->cell_attr_.min_y = std::min(m_cgefwPtr->cell_attr_.min_y, cell.y);
+            m_cgefwPtr->cell_attr_.max_y = std::max(m_cgefwPtr->cell_attr_.max_y, cell.y);
+
+            m_cgefwPtr->cell_attr_.min_area = std::min(m_cgefwPtr->cell_attr_.min_area, area);
+            m_cgefwPtr->cell_attr_.max_area = std::max(m_cgefwPtr->cell_attr_.max_area, area);
+
+            m_cgefwPtr->cell_attr_.min_gene_count = std::min(m_cgefwPtr->cell_attr_.min_gene_count, gene_count);
+            m_cgefwPtr->cell_attr_.max_gene_count = std::max(m_cgefwPtr->cell_attr_.max_gene_count, gene_count);
+
+            m_cgefwPtr->cell_attr_.min_exp_count = std::min(m_cgefwPtr->cell_attr_.min_exp_count, exp_count);
+            m_cgefwPtr->cell_attr_.max_exp_count = std::max(m_cgefwPtr->cell_attr_.max_exp_count, exp_count);
+
+            m_cgefwPtr->cell_attr_.min_dnb_count = std::min(m_cgefwPtr->cell_attr_.min_dnb_count, cell.dnb_count);
+            m_cgefwPtr->cell_attr_.max_dnb_count = std::max(m_cgefwPtr->cell_attr_.max_dnb_count, cell.dnb_count);
+
+            m_cgefwPtr->expression_num_ += gene_count;
+            m_cgefwPtr->exp_count_sum_ += exp_count;
+            m_cgefwPtr->dnb_count_sum_ += cell.dnb_count;
+            m_cgefwPtr->area_sum_ += area;
+            m_cgefwPtr->cell_list_.emplace_back(std::move(cell));
+            blkcnt++;
         }
 
-        bool ret = addborder(cid, vecPoint, border, vec_border);
-        if(!ret) continue;
-        Moments mu = moments(border, true);
-        area = mu.m00;
-
-        auto itor = map_gene_cnt.begin();
-        for(;itor != map_gene_cnt.end();itor++)
-        {
-            m_cgefwPtr->cell_exp_list_.emplace_back(itor->first, itor->second);
-            if(m_map_gene.find(itor->first) == m_map_gene.end())
-            {
-                vector<GeneExpData> tvec;
-                m_map_gene.emplace(itor->first, tvec);
-            }
-            m_map_gene[itor->first].emplace_back(cid, itor->second);
-        }
-
-        cell_type_id = m_cgefwPtr->random_cell_type_num_ == 0 ? 0 : rand()%(m_cgefwPtr->random_cell_type_num_ + 1);
-        CellData cell = {
-                cid,
-                m_cell_arrayptr[cid].x,
-                m_cell_arrayptr[cid].y,
-                offset,
-                gene_count,
-                exp_count,
-                ce.count,
-                area,
-                cell_type_id
-        };
-        offset += gene_count;
-
-        m_cgefwPtr->cell_attr_.min_x = std::min(m_cgefwPtr->cell_attr_.min_x, cell.x);
-        m_cgefwPtr->cell_attr_.max_x = std::max(m_cgefwPtr->cell_attr_.max_x, cell.x);
-
-        m_cgefwPtr->cell_attr_.min_y = std::min(m_cgefwPtr->cell_attr_.min_y, cell.y);
-        m_cgefwPtr->cell_attr_.max_y = std::max(m_cgefwPtr->cell_attr_.max_y, cell.y);
-
-        m_cgefwPtr->cell_attr_.min_area = std::min(m_cgefwPtr->cell_attr_.min_area, area);
-        m_cgefwPtr->cell_attr_.max_area = std::max(m_cgefwPtr->cell_attr_.max_area, area);
-
-        m_cgefwPtr->cell_attr_.min_gene_count = std::min(m_cgefwPtr->cell_attr_.min_gene_count, gene_count);
-        m_cgefwPtr->cell_attr_.max_gene_count = std::max(m_cgefwPtr->cell_attr_.max_gene_count, gene_count);
-
-        m_cgefwPtr->cell_attr_.min_exp_count = std::min(m_cgefwPtr->cell_attr_.min_exp_count, exp_count);
-        m_cgefwPtr->cell_attr_.max_exp_count = std::max(m_cgefwPtr->cell_attr_.max_exp_count, exp_count);
-
-        m_cgefwPtr->cell_attr_.min_dnb_count = std::min(m_cgefwPtr->cell_attr_.min_dnb_count, dnb_count);
-        m_cgefwPtr->cell_attr_.max_dnb_count = std::max(m_cgefwPtr->cell_attr_.max_dnb_count, dnb_count);
-
-        m_cgefwPtr->expression_num_ += gene_count;
-        m_cgefwPtr->exp_count_sum_ += exp_count;
-        m_cgefwPtr->dnb_count_sum_ += dnb_count;
-        m_cgefwPtr->area_sum_ += area;
-
-        m_cgefwPtr->cell_list_.emplace_back(std::move(cell));
+        vec_blkidx.emplace_back(offcnt);
+        offcnt += blkcnt;
     }
+
+    vec_blkidx.emplace_back(newcid);
+    m_cgefwPtr->cell_num_ = newcid;
+    m_cgefwPtr->max_mid_count_ = maxExpmid;
 
     int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), m_cgefwPtr->cell_num_, effective_rect);
-    m_cgefwPtr->storeCell(m_block_size[2]*m_block_size[3], m_blkidxPtr, m_block_size);
+    m_cgefwPtr->storeCell(m_block_size[2]*m_block_size[3], vec_blkidx.data(), m_block_size);
     m_cgefwPtr->storeCellExp();
     m_cgefwPtr->storeCellTypeList();
 }
@@ -409,6 +437,7 @@ void cellAdjust::writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, in
 void cellAdjust::writeGene()
 {
     timer st(__FUNCTION__);
+    printf("genecnt:%d geneexpcnt:%d\n", m_map_gene.size(), m_cgefwPtr->expression_num_);
     m_cgefwPtr->gene_num_ = m_map_gene.size();
     GeneData *gene_data_list = static_cast<GeneData *>(calloc(m_cgefwPtr->gene_num_ , sizeof(GeneData)));
     
@@ -416,7 +445,9 @@ void cellAdjust::writeGene()
     unsigned int cell_count, min_cell_count = UINT32_MAX, max_cell_count = 0;
     unsigned short max_MID_count = 0;
     vector<GeneExpData> gene_exp_list;
+    gene_exp_list.reserve(m_cgefwPtr->expression_num_);
 
+    m_cgefwPtr->max_mid_count_ = 0;
     int i = 0;
     auto itor = m_map_gene.begin();
     for(;itor != m_map_gene.end();itor++,i++)
@@ -444,6 +475,7 @@ void cellAdjust::writeGene()
         max_cell_count = std::max(max_cell_count, cell_count);
     }
 
+    m_cgefwPtr->expression_num_ = gene_exp_list.size();
     m_cgefwPtr->storeGeneAndGeneExp(min_exp_count, max_exp_count, min_cell_count, max_cell_count,
                                     gene_data_list, gene_exp_list);
     free(gene_data_list);

@@ -46,7 +46,7 @@ public:
     uint32_t getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem);
     void writeCellAdjust(const string &outpath, Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
     bool addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border);
-    void writeCell(Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
+    void writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *dnbptr, unsigned int dnbcnt);
     void writeGene();
     void cgeftogem(const string &strbgef, const string &strcgef, const string &strout);
 private:
@@ -55,11 +55,11 @@ private:
     uint32_t m_cellcnt;
     int m_offsetX, m_offsetY;
     vector<string> m_vecgenename;
-    int m_min_x, m_min_y, m_max_x, m_max_y, m_resolution;
+    int m_min_x, m_min_y, m_max_x, m_max_y;
+    uint32_t m_resolution;
     unordered_map<uint64_t, vector<Dnbs>> m_hash_vecdnb;
     unordered_map<uint32_t, Rect> m_hash_cellrect;
     Mat m_fill_points;
-    unsigned int *m_blkidxPtr = nullptr;
     unsigned int m_block_size[4];
     CellData *m_cell_arrayptr = nullptr;
     CgefWriter *m_cgefwPtr = nullptr;

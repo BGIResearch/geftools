@@ -248,4 +248,91 @@ public:
     vector<uint16_t> m_vecCExon;
 };
 
+////////////////////////////////////////////////////////////////
+
+struct gExp
+{
+    // gExp(uint16_t mid, uint16_t exon):
+    // midcnt(mid),exoncnt(exon){};
+    uint16_t midcnt;
+    uint16_t exoncnt;
+};
+
+struct cellExp_Exon
+{
+    cellExp_Exon(uint16_t gid, uint16_t mid, uint16_t exon):
+    geneid(gid),midcnt(mid),exoncnt(exon){};
+    uint16_t geneid;
+    uint16_t midcnt;
+    uint16_t exoncnt;
+};
+
+class cellUnit
+{
+public:
+    cellUnit(int x, int y, uint16_t area, uint32_t label, unsigned int *block_size):
+    m_cx(x), m_cy(y), m_area(area), m_label(label)
+    {
+        m_blkid = x/block_size[0] + (y/block_size[1])*block_size[2];
+    }
+    ~cellUnit(){};
+    void add(vector<cellExp_Exon> &vecdnb)
+    {
+        for(cellExp_Exon &dnb : vecdnb)
+        {
+            if(m_map_gExp.find(dnb.geneid) == m_map_gExp.end())
+            {
+                gExp tg{0,0};
+                m_map_gExp.emplace(dnb.geneid, tg);
+            }
+            m_map_gExp[dnb.geneid].midcnt += dnb.midcnt;
+            m_map_gExp[dnb.geneid].exoncnt += dnb.exoncnt;
+            
+            m_dnbcnt++;
+            m_expcnt+=dnb.midcnt;
+            m_exoncnt+=dnb.exoncnt;
+        }
+    }
+public:
+    uint16_t m_expcnt = 0;
+    uint16_t m_dnbcnt = 0;
+    uint16_t m_area = 0;
+    uint16_t m_exoncnt = 0;
+    int m_cx = 0;
+    int m_cy = 0;
+    uint32_t m_label = 0;
+    uint32_t m_blkid = 0;
+    std::map<uint16_t, gExp> m_map_gExp; //gid gExp
+    vector<short> m_vecborder;
+};
+
+struct cexp
+{
+    cexp(uint32_t cid, uint16_t mid, uint16_t exon):
+    cellid(cid), midcnt(mid),exoncnt(exon){}
+    uint16_t midcnt;
+    uint16_t exoncnt;
+    uint32_t cellid;
+};
+
+class geneUnit
+{
+public:
+    geneUnit(){};
+    ~geneUnit(){};
+    void add(uint32_t cid, uint16_t mid, uint16_t exon)
+    {
+        m_vec_cexp.emplace_back(cid, mid, exon);
+        m_expcnt += mid;
+        m_exoncnt += exon;
+        m_maxmid = std::max(m_maxmid, mid);
+    }
+public:
+    vector<cexp> m_vec_cexp;
+    uint16_t m_expcnt = 0;
+    uint16_t m_exoncnt = 0;
+    uint16_t m_maxmid = 0;
+};
+
+
 #endif

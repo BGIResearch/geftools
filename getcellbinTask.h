@@ -10,58 +10,14 @@
 
 #include "thread_pool.h"
 #include "gef.h"
-#include "cgefUtil.h"
 #include <map>
-#include <set>
 #include <vector>
-#include <string>
-#include "cgefParam.h"
+#include "cgefCellgem.h"
 #include "gene_queue.h"
 #include "opencv2/opencv.hpp"
 using namespace cv;
 
-class cellbin
-{
-public:
-    cellbin(int x, int y, uint16_t area, uint32_t label, unsigned int *block_size):
-    m_cx(x), m_cy(y), m_area(area), m_label(label)
-    {
-        m_blkid = cx/block_size[0] + (cy/block_size[1])*block_size[2];
-    }
-    ~cellbin(){};
-    void add(vector<Dnbs_exon> & vecdnb)
-    {
-        for(Dnbs_exon &dnb : vecdnb)
-        {
-            if(m_setgid.find(dnb.geneid)==m_setgid.end())
-            {
-                m_setgid.insert(dnb.geneid);
-                m_genecnt++;
-            }
-            m_dnbcnt++;
-            m_expcnt+=dnb.midcnt;
-            m_exoncnt+=dnb.exoncnt;
-            m_vecCexp.push_back(dnb.geneid, dnb.midcnt);
-            m_vecCExon.push_back(dnb.exoncnt);
-        }
-    }
-public:
-    uint16_t m_genecnt = 0;
-    uint16_t m_expcnt = 0;
-    uint16_t m_dnbcnt = 0;
-    uint16_t m_area = 0;
-    uint16_t m_exoncnt = 0;
-    int m_cx = 0;
-    int m_cy = 0;
-    uint32_t m_label = 0;
-    uint32_t m_blkid = 0;
-    vector<CellExpData> m_vecCexp;
-    vector<uint16_t> m_vecCExon;
-    vector<Point> m_vecborder;
-    set<uint16_t> m_setgid;
-};
 
-class cgefCellgem;
 class getcellbinTask:public ITask
 {
 public:
@@ -79,26 +35,45 @@ public:
         int cy = m_cgefPtr->m_centroids.at<double>(m_label,1);
         int area = m_cgefPtr->m_stats.at<int>(m_label, CC_STAT_AREA);
 
-        cellbin *cptr = new cellbin(cx, cy, area, m_label, m_cgefPtr->m_block_size);
+        cellUnit *cptr = new cellUnit(cx, cy, area, m_label, m_cgefPtr->m_block_size);
         uint64_t l_id = 0;
-        for(int i=m_rect.x;i<m_rect.width;i++)
+
+        vector<Point> vecpoint;
+        Mat t = m_cgefPtr->m_outimg(m_rect);
+        findNonZero(t,vecpoint);
+        int x,y;
+        for(Point &pt : vecpoint)
         {
-            for(int j=m_rect.y;j<m_rect.height;j++)
+            x = pt.x+m_rect.x;
+            y = pt.y+m_rect.y;
+            l_id = x;
+            l_id = (l_id << 32) | y;
+            auto itor = m_cgefPtr->m_hash_vecdnb.find(l_id);
+            if(itor != m_cgefPtr->m_hash_vecdnb.end())
             {
-                if(m_cgefPtr->m_outimg.at<int>(j,i) == m_label)
-                {
-                    l_id = i;
-                    l_id = (l_id<<32) | j;
-                    auto itor = m_cgefPtr->m_hash_vecdnb.find(l_id);
-                    if(itor != m_cgefPtr->m_hash_vecdnb.end())
-                    {
-                        cptr->add(itor->second);
-                    }
-                }
+                cptr->add(itor->second);
             }
         }
 
-        if(cptr->m_genecnt)
+        // for(int i=m_rect.x;i<m_rect.x+m_rect.width;i++)
+        // {
+        //     for(int j=m_rect.y;j<m_rect.y+m_rect.height;j++)
+        //     {
+        //         if(m_cgefPtr->m_outimg.at<unsigned int>(j,i) == m_label)
+        //         {
+        //             l_id = i;
+        //             l_id = (l_id<<32) | j;
+        //             auto itor = m_cgefPtr->m_hash_vecdnb.find(l_id);
+        //             if(itor != m_cgefPtr->m_hash_vecdnb.end())
+        //             {
+        //                 //cptr->add(itor->second);
+        //                 int a = 1;
+        //             }
+        //         }
+        //     }
+        // }
+
+        if(cptr->m_dnbcnt)
         {
             getborder(cptr);
         }
@@ -106,8 +81,9 @@ public:
         m_cgefPtr->m_cellqueuePtr->addqueue(cptr);
     }
 
-    void getborder(cellbin *cptr)
+    void getborder(cellUnit *cptr)
     {
+        cptr->m_vecborder.reserve(BORDERCNT*2);
         int i=0;
         int sz = m_vecpoint.size();
         if(sz > BORDERCNT)
@@ -119,16 +95,16 @@ public:
             sz = tmpborder.size();
             for(;i<sz;i++)
             {
-                cptr->m_vecborder.emplace_back(tmpborder[i].x - cx);
-                cptr->m_vecborder.emplace_back(tmpborder[i].y - cy);
+                cptr->m_vecborder.emplace_back(tmpborder[i].x - cptr->m_cx);
+                cptr->m_vecborder.emplace_back(tmpborder[i].y - cptr->m_cy);
             }
         }
         else
         {
             for(;i<sz;i++)
             {
-                cptr->m_vecborder.emplace_back(vborder[i].x - cx);
-                cptr->m_vecborder.emplace_back(vborder[i].y - cy);
+                cptr->m_vecborder.emplace_back(m_vecpoint[i].x - cptr->m_cx);
+                cptr->m_vecborder.emplace_back(m_vecpoint[i].y - cptr->m_cy);
             }
         }
         
@@ -141,7 +117,7 @@ public:
 
 private:
     uint32_t m_label = 0;
-    Rect &m_rect;
+    Rect m_rect;
     vector<Point> &m_vecpoint;
     cgefCellgem *m_cgefPtr = nullptr;
 };

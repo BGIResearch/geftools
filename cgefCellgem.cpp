@@ -9,14 +9,10 @@
 #include "cgefCellgem.h"
 #include "cgefParam.h"
 #include "readCellgemTask.h"
+#include "getcellbinTask.h"
 #include "timer.h"
 #include <functional>
 #include <set>
-
-
-// uint16_t getcellbinTask::m_gid = 0 ;
-// uint32_t getcellbinTask::m_offset = 0;
-// mutex getcellbinTask::m_mutex_gene;
 
 
 cgefCellgem::cgefCellgem()
@@ -1114,17 +1110,17 @@ void cgefCellgem::readBgef_new(const string &strinput)
         Expression *ptr = m_expPtr + m_genePtr[i].offset;
         for(int j=0;j<m_genePtr[i].count;j++)
         {
-            l_id = ptr[i].x;
-            l_id = (l_id << 32) | ptr[i].y;
+            l_id = ptr[j].x;
+            l_id = (l_id << 32) | ptr[j].y;
             if(m_hash_vecdnb.find(l_id) == m_hash_vecdnb.end())
             {
-                vector<Dnbs_exon> tvec;
+                vector<cellExp_Exon> tvec;
                 m_hash_vecdnb.emplace(l_id, tvec);
             }
             m_hash_vecdnb[l_id].emplace_back(i, ptr[j].count, ptr[j].exon);
         }
     }
-
+    free(m_expPtr);
     hid_t attr = H5Aopen(exp_did, "minX", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_min_x));
     attr = H5Aopen(exp_did, "minY", H5P_DEFAULT);
@@ -1172,11 +1168,11 @@ void cgefCellgem::readmask_new(const string &strmask)
 void cgefCellgem::getCell()
 {
     timer st(__FUNCTION__);
-    m_vec_vec_cellbin.reserve(m_blocknum);
+    m_vec_vec_cellunit.reserve(m_blocknum);
     for(int i=0;i<m_blocknum;i++)
     {
-        vector<cellbin*> vectmp;
-        m_vec_vec_cellbin.emplace_back(std::move(vectmp));
+        vector<cellUnit*> vectmp;
+        m_vec_vec_cellunit.emplace_back(std::move(vectmp));
     }
 
     int scnt = m_contours.size();
@@ -1190,7 +1186,9 @@ void cgefCellgem::getCell()
         }
     }
 
-    int x, y, w, h, c_idx, ;
+    m_cellqueuePtr = new GefQueue<cellUnit>;
+    int x, y, w, h, c_idx;
+    int cnt = 0;
     for(int i=1;i<m_labelcnt;i++)
     {
         x = m_stats.at<int>(i, CC_STAT_LEFT);
@@ -1209,16 +1207,16 @@ void cgefCellgem::getCell()
             c_idx = map_cidx.at(r1);
             getcellbinTask *rtask = new getcellbinTask(this, i, r1, m_contours[c_idx]);
             m_thpoolPtr->addTask(rtask);
+            cnt++;
         }
     }
 
-    int cnt = m_labelcnt-1;
     while (cnt--)
     {
-        cellbin *cptr = m_cellqueuePtr->getPtr();
-        if(cptr->m_genecnt)
+        cellUnit *cptr = m_cellqueuePtr->getPtr();
+        if(cptr->m_dnbcnt)
         {
-            m_vec_vec_cellbin[cptr->m_blkid].emplace_back(cptr);
+            m_vec_vec_cellunit[cptr->m_blkid].emplace_back(cptr);
             m_maskcellnum++;
         }
         else
@@ -1226,32 +1224,46 @@ void cgefCellgem::getCell()
             delete cptr;
         }
     }
+    printf("maskcell %d\n", m_maskcellnum);
 }
 
 void cgefCellgem::writeCell_new()
 {
     timer st(__FUNCTION__);
-    unsigned int gid = 0, offcnt = 0, cid = 0; 
+    unsigned int offcnt = 0, cid = 0; 
     unsigned short cell_type_id;
     uint32_t offset = 0;
     vector<uint16_t> vec_cellexon;
     vector<uint16_t> vec_cellexon_exp;
-    uint16_t minExon = USHRT_MAX, maxExon = 0, maxExpExon = 0;
+    uint16_t minExon = USHRT_MAX, maxExon = 0, maxExpExon = 0, maxExpmid = 0;
 
     vector<short> vec_border;
     vec_border.reserve(m_maskcellnum*2*BORDERCNT);
     m_vec_blkidx.reserve(m_blocknum+1);
 
-    for(vector<cellbin*> &vec : m_vec_vec_cellbin)
+    for(vector<cellUnit*> &vec : m_vec_vec_cellunit)
     {
-        for(cellbin* ptr : vec)
+        for(cellUnit* ptr : vec)
         {
-            m_cgefwPtr->cell_exp_list_.insert(m_cgefwPtr->cell_exp_list_.end(), ptr->m_vecCexp.begin(), ptr->m_vecCexp.end());
-            vec_cellexon_exp.insert(vec_cellexon_exp.end(), ptr->m_vecCExon.begin(), ptr->m_vecCExon.end());
             vec_cellexon.emplace_back(ptr->m_exoncnt);
             minExon = std::min(minExon, ptr->m_exoncnt);
             maxExon = std::max(maxExon, ptr->m_exoncnt);
-            maxExpExon = std::max(maxExpExon, ptr->m_maxexon);
+            
+            auto itor = ptr->m_map_gExp.begin();
+            for(;itor != ptr->m_map_gExp.end();itor++)
+            {
+                m_cgefwPtr->cell_exp_list_.emplace_back(itor->first, itor->second.midcnt);
+                vec_cellexon_exp.emplace_back(itor->second.exoncnt);
+                maxExpmid = std::max(maxExpmid, itor->second.midcnt);
+                maxExpExon = std::max(maxExpExon, itor->second.exoncnt);
+                if(m_hash_geneunit.find(itor->first) == m_hash_geneunit.end())
+                {
+                    geneUnit * guptr = new geneUnit();
+                    m_hash_geneunit.emplace(itor->first, guptr);
+                }
+                m_hash_geneunit[itor->first]->add(cid, itor->second.midcnt, itor->second.exoncnt);
+            }
+
             vec_border.insert(vec_border.end(), ptr->m_vecborder.begin(), ptr->m_vecborder.end());
             cell_type_id = m_cgefwPtr->random_cell_type_num_ == 0 ? 0 : rand()%(m_cgefwPtr->random_cell_type_num_ + 1);
             CellData cell = {
@@ -1259,7 +1271,7 @@ void cgefCellgem::writeCell_new()
                     ptr->m_cx,
                     ptr->m_cy,
                     offset,
-                    ptr->m_vecCexp.size(),
+                    ptr->m_map_gExp.size(),
                     ptr->m_expcnt,
                     ptr->m_dnbcnt,
                     ptr->m_area,
@@ -1267,7 +1279,7 @@ void cgefCellgem::writeCell_new()
             };
             delete ptr;
 
-            offset += ptr->m_vecCexp.size();
+            offset += ptr->m_map_gExp.size();
             m_cgefwPtr->cell_attr_.min_x = std::min(m_cgefwPtr->cell_attr_.min_x, cell.x);
             m_cgefwPtr->cell_attr_.max_x = std::max(m_cgefwPtr->cell_attr_.max_x, cell.x);
 
@@ -1300,6 +1312,7 @@ void cgefCellgem::writeCell_new()
     m_vec_blkidx.emplace_back(cid);
 
     m_cgefwPtr->cell_num_ = cid;
+    m_cgefwPtr->max_mid_count_ = maxExpmid;
     int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
 
@@ -1324,59 +1337,33 @@ void cgefCellgem::writeGene_new()
     vector<uint16_t> vec_exonExp;
     vec_exonExp.reserve(m_geneExpcnt);
 
-    uint16_t maxMID = 0, maxExpExon = 0;
-    uint32_t cid = 0, cell_label = 0, offset = 0, expsum = 0, exonsum = 0;
+    uint16_t i = 0, maxExpExon = 0;
+    uint32_t offset = 0, expsum = 0, exonsum = 0, cellcnt = 0;
     uint32_t minExon = UINT_MAX, maxExon = 0;
-    map<uint32_t, cellt> map_cell;
-    for(int i=0;i<m_genecnt;i++)
+
+    auto itor = m_hash_geneunit.begin();
+    for(;itor != m_hash_geneunit.end();itor++,i++)
     {
-        maxMID = 0;
-        expsum = 0;
-        exonsum = 0;
-        map_cell.clear();
-        Expression *expPtr = m_expPtr+m_genePtr[i].offset;
-        for(int j=0;j<m_genePtr[i].count;j++)
-        {
-            cell_label = m_outimg.at<unsigned int>(expPtr[j].y, expPtr[j].x);
-            if(cell_label)
-            {
-                cid = m_hash_clabel2cid[cell_label];
-                if(map_cell.find(cid) != map_cell.end())
-                {
-                    map_cell[cid].dnbcnt++;
-                    map_cell[cid].expcnt+=expPtr[j].count;
-                    map_cell[cid].exoncnt+=expPtr[j].exon;
-                }
-                else
-                {
-                    cellt ct{expPtr[j].count, 1, expPtr[j].exon};
-                    map_cell.emplace(cid, ct);
-                }
-
-                expsum += expPtr[j].count;
-                exonsum += expPtr[j].exon;
-            }
-        }
-
-        auto itor = map_cell.begin();
-        for(;itor !=map_cell.end();itor++)
-        {
-            gene_exp_list.emplace_back(itor->first, itor->second.expcnt);
-            vec_exonExp.emplace_back(itor->second.exoncnt);
-            maxMID = std::max(maxMID, itor->second.expcnt);
-            maxExpExon = std::max(maxExpExon, itor->second.exoncnt);
-        }
-
-        uint32_t cellcnt = map_cell.size();
-        memcpy(gene_data_list[i].gene_name, m_genePtr[i].gene, 32);
+        geneUnit *ptr = itor->second;
+        cellcnt = ptr->m_vec_cexp.size();
+        expsum = ptr->m_expcnt;
+        exonsum = ptr->m_exoncnt;
+        memcpy(gene_data_list[i].gene_name, m_genePtr[itor->first].gene, 32);
         gene_data_list[i].cell_count = cellcnt;
         gene_data_list[i].exp_count = expsum;
-        gene_data_list[i].max_mid_count = maxMID; 
+        gene_data_list[i].max_mid_count = ptr->m_maxmid; 
         gene_data_list[i].offset = offset;
         offset += cellcnt;
         gene_exon_ptr[i] = exonsum;
 
-        cgefParam::GetInstance()->m_maxExp_gexp = std::max(cgefParam::GetInstance()->m_maxExp_gexp, maxMID);
+        for(cexp &ce : ptr->m_vec_cexp)
+        {
+            gene_exp_list.emplace_back(ce.cellid, ce.midcnt);
+            vec_exonExp.emplace_back(ce.exoncnt);
+            maxExpExon = std::max(maxExpExon, ce.exoncnt);
+        }
+
+        cgefParam::GetInstance()->m_maxExp_gexp = std::max(cgefParam::GetInstance()->m_maxExp_gexp, ptr->m_maxmid);
         cgefParam::GetInstance()->m_minExp = std::min(cgefParam::GetInstance()->m_minExp, expsum);
         cgefParam::GetInstance()->m_maxExp = std::max(cgefParam::GetInstance()->m_maxExp, expsum);
         cgefParam::GetInstance()->m_minCell = std::min(cgefParam::GetInstance()->m_minCell, cellcnt);
@@ -1384,12 +1371,10 @@ void cgefCellgem::writeGene_new()
 
         minExon = std::min(minExon, exonsum);
         maxExon = std::max(maxExon, exonsum);
+        delete ptr;
     }
 
-    free(m_genePtr);
-    free(m_expPtr);
-
-    m_cgefwPtr->gene_num_ = m_genecnt;
+    m_cgefwPtr->gene_num_ = i;
     m_cgefwPtr->expression_num_ = gene_exp_list.size();
     m_cgefwPtr->max_mid_count_ = cgefParam::GetInstance()->m_maxExp_gexp;
     m_cgefwPtr->storeGeneAndGeneExp(cgefParam::GetInstance()->m_minExp, cgefParam::GetInstance()->m_maxExp,
