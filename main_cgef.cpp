@@ -5,9 +5,56 @@
 #include "opencv2/opencv.hpp"
 #include "cgefParam.h"
 #include "cgefCellgem.h"
+#include "cellAdjust.h"
+
+int ctest(const char *path)
+{
+    cellAdjust ca;
+    ca.readBgef("/ldfssz1/ST_BI/USER/stereopy/test/tanliwei/test/test_data/FP200000443TL_E2.bgef");
+    ca.readCgef("/ldfssz1/ST_BI/USER/stereopy/test/tanliwei/test/test_data/FP200000443TL_E2.cgef");
+    vector<string> genename;
+    vector<cellgem_label> vecCellgem;
+    ca.getCellLabelgem(genename, vecCellgem);
+
+    unordered_map<uint32_t, vector<DnbExpression>> map_dnb;
+    DnbExpression tdnb;
+    for(cellgem_label &cl : vecCellgem)
+    {
+        if(map_dnb.find(cl.cellid) == map_dnb.end())
+        {
+            vector<DnbExpression> tvec;
+            map_dnb.emplace(cl.cellid, tvec);
+        }
+        tdnb.gene_id = cl.geneid;
+        tdnb.count = cl.midcnt;
+        tdnb.x = cl.x;
+        tdnb.y = cl.y;
+        map_dnb[cl.cellid].push_back(tdnb);
+    }
+
+    vector<Cell> veccell;
+    vector<DnbExpression> vecdnb;
+    auto itor = map_dnb.begin();
+    uint32_t offset = 0;
+    for(;itor != map_dnb.end();itor++)
+    {
+        Cell ce;
+        ce.cellid = itor->first+1;
+        ce.count = itor->second.size();
+        ce.offset = offset;
+        offset += ce.count;
+        veccell.emplace_back(std::move(ce));
+        vecdnb.insert(vecdnb.end(), itor->second.begin(), itor->second.end());
+    }
+    map_dnb.clear();
+
+    ca.writeCellAdjust("jdkjsfl", (Cell*)veccell.data(), veccell.size(),
+        (DnbExpression*)vecdnb.data(), vecdnb.size());
+    return 0;
+}
 
 int cgef(int argc, char *argv[]) {
-
+    //return ctest(argv[2]);
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");
@@ -28,7 +75,7 @@ int cgef(int argc, char *argv[]) {
     ("g,raw-gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
     ("c,canvas", "set canvas size", cxxopts::value<std::string>()->default_value("90000,90000"), "FILE")
     ("l,limit", "set blk limit", cxxopts::value<std::string>()->default_value("16,16"), "FILE")
-    ("S,split", "split cellid to layers and blks", cxxopts::value<bool>()->default_value("false"))
+    ("S,split", "split cellid to layers and blks", cxxopts::value<int>()->default_value("0"))
     ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -91,8 +138,8 @@ int cgef(int argc, char *argv[]) {
     float ratio = 0.2;
     int canvas_size[2]={0,0}; //全局画布大小
     int limit_blk[2] = {0,0};//分块限制
-    bool bsplit = result["split"].as<bool>();
-    if(bsplit)
+    int isplit = result["split"].as<int>();
+    if(isplit > 0)
     {
         int tmpr = result["ratio"].as<int>();
         ratio = tmpr*1.0/100;
@@ -108,7 +155,15 @@ int cgef(int argc, char *argv[]) {
 
         CgefWriter cgef_writer(true);
         cgef_writer.setInput(cgefParam::GetInstance()->m_inputstr);
-        cgef_writer.addLevel(allocat, topcellnum, ratio, canvas_size, limit_blk);
+        if(isplit == 1)
+        {
+            cgef_writer.addLevel_1();
+        }
+        else
+        {
+            cgef_writer.addLevel(allocat, topcellnum, ratio, canvas_size, limit_blk);
+        }
+        
         return 0;
     }
     //-------------------
@@ -132,20 +187,21 @@ int generateCgef(const string &cgef_file,
     unsigned long cprev=clock();
     // if(!cgef_file.empty()) //从bgef生成cgef
     // {
-        BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
-        ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
+        // BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
+        // ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
 
-        unsigned int mask_size[2]; // rows, cols
-        mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
-        mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
+        // unsigned int mask_size[2]; // rows, cols
+        // mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
+        // mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
 
-        Mask mask = Mask(mask_file, block_size, mask_size);
-        if(verbose) cprev = printCpuTime(cprev, "Mask init");
-        cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
-        CgefWriter cgef_writer = CgefWriter(true);
-        cgef_writer.setOutput(cgef_file);
-        cgef_writer.setRandomCellTypeNum(rand_celltype_num);
-        cgef_writer.write(common_bin_gef, mask);
+        // Mask mask(mask_file, block_size, mask_size);
+        // if(verbose) cprev = printCpuTime(cprev, "Mask init");
+        // cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
+        // CgefWriter cgef_writer1;
+        // cgef_writer1.setOutput(cgef_file);
+        // cgef_writer1.setRandomCellTypeNum(rand_celltype_num);
+        // cgef_writer1.write(common_bin_gef, mask);
+        // return 0;
     //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     // }
     // else //为cgef 添加level层次
@@ -155,13 +211,14 @@ int generateCgef(const string &cgef_file,
     //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
     // }
 
+// string str(cgef_file);
+// str.append("_tk");
+    CgefWriter cgef_writer(verbose);
+    cgef_writer.setOutput(cgef_file);
+    cgef_writer.setRandomCellTypeNum(rand_celltype_num);
 
-    // CgefWriter cgef_writer(verbose);
-    // cgef_writer.setOutput(cgef_file);
-    // cgef_writer.setRandomCellTypeNum(rand_celltype_num);
-
-    // cgefCellgem cgem;
-    // cgem.writeFile(&cgef_writer, mask_file, bgef_file, raw_gem);
+    cgefCellgem cgem;
+    cgem.writeFile(&cgef_writer, mask_file, bgef_file, raw_gem);
 
     if(verbose) printCpuTime(cprev, "generateCgef");
     return 0;

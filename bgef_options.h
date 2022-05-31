@@ -31,6 +31,7 @@ public:
 //    int m_thread_dnb = 8; //设置dnbmerge线程数
     bool reverse_ = false; // true: gef to gem, false: gem to gef
     bool verbose_ = false;
+    bool m_bexon = false;
     int m_stattype = 0; //0:不生成stat 1:只生成stat 2:生成stat和对应bin数据 
 
     string input_file_;
@@ -47,8 +48,8 @@ public:
     mutex dnbmtx_;
     DnbMatrix dnbmatrix_;
     std::vector<int> range_ = {INT_MAX, 0, INT_MAX, 0};
-    GeneInfoQueue gene_info_queue_;
-    GeneQueue gene_queue_;
+    GeneInfoQueue m_genes_queue;
+    GefQueue<GeneInfo> m_geneinfo_queue;
     std::vector<Expression> expressions_;
     std::vector<Gene> genes_;
     int offset_x_ = 0; // offset of coordinate

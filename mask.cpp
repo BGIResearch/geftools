@@ -84,15 +84,15 @@ void Mask::getBorders(short * border_array) {
         Polygon polygon = polygons_[i];
         vector<Point> border = polygon.getBorder();
         const Point& center = polygon.getCenter();
-        unsigned int index1 = i * 32;
+        unsigned int index1 = i * 64;
 
         auto border_size = static_cast<short>(border.size());
 
         for (short j = 0; j < BORDERCNT; ++j) {
             unsigned int index2 = index1 + (j << 1);
             if(j >= border_size){
-                border_array[index2] = 0;
-                border_array[index2+1] = 0;
+                border_array[index2] = SHRT_MAX;
+                border_array[index2+1] = SHRT_MAX;
             }else{
                 Point p = border[j];
                 border_array[index2] = static_cast<short>(p.x - center.x);
@@ -106,7 +106,7 @@ void Mask::getBorders(short * border_array) {
  * @brief Gets the coordinates of effective rectangle region.
  * @param effective_rect  Should be a int array with 4 size. They represent min_x, min_y, max_x, max_y in turn.
  */
-void Mask::getEffectiveRectangle(unsigned int* effective_rect) const {
+void Mask::getEffectiveRectangle(int* effective_rect) const {
     effective_rect[0] = min_x_;
     effective_rect[1] = min_y_;
     effective_rect[2] = max_x_;

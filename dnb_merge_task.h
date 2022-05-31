@@ -13,6 +13,9 @@ public:
     DnbMergeTask(int cnt, int tid, int binsize);
     ~DnbMergeTask();
     void doTask();
+private:
+    void doTask_nor();
+    void doTask_Exon();
 
 private:
     BgefOptions * opts_ = nullptr ;

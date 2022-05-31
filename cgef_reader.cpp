@@ -808,7 +808,7 @@ char* CgefReader::getCellBorders_char(bool ball, unsigned int cell_id)
         H5Sget_simple_extent_dims(dataspace_id, dims, nullptr);
 
         m_borderdataPtr = (char*)calloc(dims[0]*dims[1]*dims[2], 1);
-        H5Dread(dataset_id, H5T_STD_I8LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_borderdataPtr);
+        H5Dread(dataset_id, H5T_STD_I16LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_borderdataPtr);
 
         H5Sclose(dataspace_id);
         H5Dclose(dataset_id);

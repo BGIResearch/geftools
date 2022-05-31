@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-03-25 14:15:25
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-13 14:12:31
+ * @LastEditTime: 2022-05-19 19:11:09
  * @Description: file content
  */
 #ifndef GEFTOOLS_CGEFCELLGEM_H_
@@ -25,6 +25,7 @@ struct cellt
 {
     uint16_t expcnt;
     uint16_t dnbcnt;
+    uint16_t exoncnt;
 };
 
 
@@ -53,13 +54,26 @@ public:
 
     void readBgef(const string &strinput);
     void writeGene_bgef();
+
+
+    void readBgef_new(const string &strinput);
+    void readmask_new(const string &strmask);
+    void getCell();
+    void writeCell_new();
+    void writeGene_new();
+public:
+    unsigned int m_block_size[4] = {0};
+    Mat m_stats, m_outimg, m_centroids;
+    unordered_map<uint64_t, vector<cellExp_Exon>> m_hash_vecdnb;
+    GefQueue<cellUnit> *m_cellqueuePtr = nullptr;
 private:
+    bool m_bexon = false;
     unsigned int m_maskcellnum = 0; //从mask文件获取的细胞个数
     unsigned int m_blocknum;
-    unsigned int m_block_size[4] = {0};
+    uint32_t m_labelcnt = 0;
 
     int m_min_x{INT_MAX}, m_max_x{0}, m_min_y{INT_MAX}, m_max_y{0}, m_rows{0}, m_cols{0};
-    Mat m_stats, m_outimg, m_centroids;
+    
     vector<vector<Point>> m_contours;
     vector<vector<celldata>> m_vec_veccell;
 
@@ -79,6 +93,9 @@ private:
     uint32_t m_geneExpcnt = 0;
     Gene *m_genePtr = nullptr;
     Expression *m_expPtr = nullptr;
+    
+    vector<vector<cellUnit*>> m_vec_vec_cellunit;
+    unordered_map<uint16_t, geneUnit*> m_hash_geneunit; //key:gid 
 };
 
 #endif

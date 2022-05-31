@@ -34,6 +34,7 @@ class BgefReader {
     int verbose_ = true;
     int n_thread_ = 1;
     BgefOptions *opts_ = nullptr;
+    unsigned int *m_exonPtr = nullptr;
 
     hid_t file_id_;
     hid_t exp_dataspace_id_{};
@@ -196,6 +197,14 @@ class BgefReader {
 
     void getOffset(int *data);
     void getExpAttr(int *data);
+
+    bool isExonExist()
+    {
+        return m_exonPtr != nullptr;
+    }
+    unsigned int *getGeneExon();
+
+    Expression *getExpression_abs();
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

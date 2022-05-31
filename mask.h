@@ -2,7 +2,7 @@
  * @Author: zhaozijian
  * @Date: 2022-02-10 14:53:03
  * @LastEditors: zhaozijian
- * @LastEditTime: 2022-05-12 15:04:09
+ * @LastEditTime: 2022-05-21 10:07:31
  * @Description: file content
  */
 /** @file mask.h
@@ -66,7 +66,7 @@ class Mask {
      */
     void getBorders(short * border_array);
 
-    void getEffectiveRectangle(unsigned int* effective_rect) const;
+    void getEffectiveRectangle(int* effective_rect) const;
 
     unsigned int getBlockNum() const;
 
