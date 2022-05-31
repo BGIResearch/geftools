@@ -31,6 +31,7 @@ struct Expression {
     int x; ///< dnb coordinates x
     int y; ///< dnb coordinates x
     unsigned int count; ///< expression count (MIDcount)
+    unsigned int exon; //exon cnt
 };
 
 
@@ -91,35 +92,35 @@ struct GeneStat
     float E10;
 };
 
-struct GeneInfo
+//simple gene data
+struct GeneS 
 {
-    GeneInfo(const char *ptr):geneid(ptr){};
+    GeneS(const char *ptr):geneid(ptr){};
     const char *geneid;
     std::vector<Expression> *vecptr;
 };
 
-struct GeneInfo2
+struct GeneInfo
 {
-    GeneInfo2(const char *ptr):geneid(ptr),umicnt(0){};
+    GeneInfo(const char *ptr):geneid(ptr),umicnt(0){};
     const char *geneid;
     unsigned long umicnt;
     float e10;
-    float c50;
+    //float c50;
     unsigned int maxexp;
-    std::vector<Expression> *vecdataptr;
+    unsigned int maxexon;
+    std::vector<Expression> *vecptr;
 };
 
 // wholeExp Matrix
 struct BinStat {
     unsigned int mid_count;
     unsigned short gene_count;
-    //unsigned short incnt;
 };
 
 struct BinStatUS {
     unsigned short mid_count;
     unsigned short gene_count;
-    //unsigned short incnt;
 };
 
 struct DnbAttr {
@@ -129,6 +130,7 @@ struct DnbAttr {
     unsigned int len_y;
     unsigned int max_mid;
     unsigned int max_gene;
+    unsigned int max_exon;
     unsigned long number;
 };
 
@@ -136,6 +138,8 @@ struct DnbMatrix {
     DnbAttr dnb_attr;
     BinStatUS *pmatrix_us;
     BinStat *pmatrix;
+    unsigned short *pexon16;
+    unsigned int *pexon32;
 };
 
 struct GeneErank
@@ -144,7 +148,7 @@ struct GeneErank
     const char *geneid;
     unsigned long umicnt;
     float e10;
-    float c50;
+    //float c50;
     char attribute[10];
 };
 
@@ -239,6 +243,7 @@ struct CellBinAttr
     int offsetX; ///< Minimum value of x-axis coordinate with offset
     int offsetY; ///< Minimum value of y-axis coordinate with offset
 };
+
 
 hid_t getMemtypeOfGeneData();
 hid_t getMemtypeOfGeneExpData();

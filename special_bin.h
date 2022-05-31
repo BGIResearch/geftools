@@ -12,7 +12,7 @@ class SpecialBin
 public:
     SpecialBin();
     ~SpecialBin();
-    int calcE10(std::vector<float> &vec_e10_result);
+    //int calcE10(std::vector<float> &vec_e10_result);
     int calcE10(vector<pair<string, unsigned int>>& geneCnts, std::vector<float> &vec_e10_result);
     int createPNG_py(std::vector<int> &vecdnb);
 private:

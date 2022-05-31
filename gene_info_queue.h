@@ -16,15 +16,15 @@ class GeneInfoQueue
   public:
     GeneInfoQueue(){};
     ~GeneInfoQueue(){};
-    void addqueue(GeneInfo* ptr)
+    void addqueue(GeneS* ptr)
     {
         std::lock_guard<std::mutex> tlock(m_mtx_queue);
         m_vec_geneinfo.emplace_back(ptr);
         m_cv_queue.notify_all();
     }
-    GeneInfo* getGeneInfo(unsigned int idx)
+    GeneS* getGeneInfo(unsigned int idx)
     {
-        GeneInfo* ptr = nullptr;
+        GeneS* ptr = nullptr;
         std::unique_lock<std::mutex> tlock(m_mtx_queue);
 
         m_cv_queue.wait(tlock, [idx,this] {return !m_vec_geneinfo.empty() && idx <= (m_vec_geneinfo.size()-1);});
@@ -46,14 +46,14 @@ class GeneInfoQueue
     {
         if(bin == 1)
         {
-            for(GeneInfo* ptr : m_vec_geneinfo)
+            for(GeneS* ptr : m_vec_geneinfo)
             {
                 delete ptr;
             }
         }
         else
         {
-            for(GeneInfo* ptr : m_vec_geneinfo)
+            for(GeneS* ptr : m_vec_geneinfo)
             {
                 delete ptr->vecptr;
                 delete ptr;
@@ -64,7 +64,7 @@ class GeneInfoQueue
   private:
     std::mutex m_mtx_queue; //队列锁
     std::condition_variable m_cv_queue;
-    std::vector<GeneInfo*> m_vec_geneinfo;
+    std::vector<GeneS*> m_vec_geneinfo;
 };
 
 #endif

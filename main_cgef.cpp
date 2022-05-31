@@ -7,20 +7,54 @@
 #include "cgefCellgem.h"
 #include "cellAdjust.h"
 
-int ctest()
+int ctest(const char *path)
 {
     cellAdjust ca;
-    ca.readBgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.bgef");
-    ca.readCgef("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000443TL_E2.cgef");
+    ca.readBgef("/ldfssz1/ST_BI/USER/stereopy/test/tanliwei/test/test_data/FP200000443TL_E2.bgef");
+    ca.readCgef("/ldfssz1/ST_BI/USER/stereopy/test/tanliwei/test/test_data/FP200000443TL_E2.cgef");
     vector<string> genename;
     vector<cellgem_label> vecCellgem;
     ca.getCellLabelgem(genename, vecCellgem);
 
+    unordered_map<uint32_t, vector<DnbExpression>> map_dnb;
+    DnbExpression tdnb;
+    for(cellgem_label &cl : vecCellgem)
+    {
+        if(map_dnb.find(cl.cellid) == map_dnb.end())
+        {
+            vector<DnbExpression> tvec;
+            map_dnb.emplace(cl.cellid, tvec);
+        }
+        tdnb.gene_id = cl.geneid;
+        tdnb.count = cl.midcnt;
+        tdnb.x = cl.x;
+        tdnb.y = cl.y;
+        map_dnb[cl.cellid].push_back(tdnb);
+    }
+
+    vector<Cell> veccell;
+    vector<DnbExpression> vecdnb;
+    auto itor = map_dnb.begin();
+    uint32_t offset = 0;
+    for(;itor != map_dnb.end();itor++)
+    {
+        Cell ce;
+        ce.cellid = itor->first+1;
+        ce.count = itor->second.size();
+        ce.offset = offset;
+        offset += ce.count;
+        veccell.emplace_back(std::move(ce));
+        vecdnb.insert(vecdnb.end(), itor->second.begin(), itor->second.end());
+    }
+    map_dnb.clear();
+
+    ca.writeCellAdjust("jdkjsfl", (Cell*)veccell.data(), veccell.size(),
+        (DnbExpression*)vecdnb.data(), vecdnb.size());
     return 0;
 }
 
 int cgef(int argc, char *argv[]) {
-    //return ctest();
+    //return ctest(argv[2]);
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");

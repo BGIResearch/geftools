@@ -20,12 +20,13 @@ class BgefWriter {
     hid_t file_id_;
     hid_t gene_exp_group_id_;
     hid_t whole_exp_group_id_;
+    hid_t m_wholeExpExon_id;
 
     unsigned int resolution_;
     bool verbose_ = false;
-
+    bool m_bexon = false;
   public:
-    BgefWriter(const string& output_filename, bool verbose);
+    BgefWriter(const string& output_filename, bool verbose, bool bexon);
     ~BgefWriter();
 
     bool storeGene(vector<Expression> &exps, vector<Gene> &genes, DnbAttr &dnbAttr, unsigned int maxexp, int binsize);
@@ -35,6 +36,8 @@ class BgefWriter {
     unsigned int getResolution() const;
 
     void setResolution(unsigned int resolution);
+    bool storeGeneExon(vector<Expression>& exps, unsigned int maxexon, int binsize);
+    bool storeWholeExon(DnbMatrix & dnb_matrix, int binsize);
 };
 
 #endif

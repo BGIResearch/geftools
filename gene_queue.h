@@ -10,21 +10,22 @@
 #include <condition_variable>
 #include "gef.h"
 
-class GeneQueue
+template<typename T>
+class GefQueue
 {
 public:
-    GeneQueue(){};
-    ~GeneQueue(){};
-    void addqueue(GeneInfo2 *ptr)
+    GefQueue(){};
+    ~GefQueue(){};
+    void addqueue(T *ptr)
     {
         std::lock_guard<std::mutex> tlock(m_mtx_queue);
         m_qgeneptr.emplace(ptr);
         m_cv_queue.notify_one();
     }
 
-    GeneInfo2* getGeneInfo2()
+    T* getPtr()
     {
-        GeneInfo2 *ptr = nullptr;
+        T *ptr = nullptr;
         std::unique_lock<std::mutex> tlock(m_mtx_queue);
 
         m_cv_queue.wait(tlock, [this] {return !m_qgeneptr.empty();});
@@ -35,7 +36,7 @@ public:
 private:
     std::mutex m_mtx_queue; //队列锁
     std::condition_variable m_cv_queue;
-    std::queue<GeneInfo2 *> m_qgeneptr;
+    std::queue<T *> m_qgeneptr;
 };
 
 

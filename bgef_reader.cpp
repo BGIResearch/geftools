@@ -17,6 +17,14 @@
 "#OffsetY=%d\n" \
 "geneID\tx\ty\tMIDCount\n"
 
+#define FILE_HEADER_EXON "#FileFormat=GEMv%d.%d\n" \
+"#SortedBy=None\n" \
+"#BinSize=%d\n" \
+"#STOmicsChip=%s\n" \
+"#OffsetX=%d\n" \
+"#OffsetY=%d\n" \
+"geneID\tx\ty\tMIDCount\texon\n"
+
 KHASH_MAP_INIT_INT64(m64, unsigned int)
 
 std::mutex getdataTask::m_mtx;
@@ -435,6 +443,15 @@ Expression *BgefReader::getExpression() {
     H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expressions_);
 
     H5Tclose(memtype);
+
+    getGeneExon();
+    if(m_exonPtr)
+    {
+        for(int i=0;i<expression_num_;i++)
+        {
+            expressions_[i].exon = m_exonPtr[i];
+        }
+    }
     return expressions_;
 }
 
@@ -708,19 +725,41 @@ unsigned int BgefReader::toGem(string &filename, string &sn) {
             exit(4);
         }
     }
-    fprintf(outhandle, FILE_HEADER, 0, 1, bin_size_, sn.c_str(), expression_attr.min_x, expression_attr.min_y);
-    // Write data line by line
+
     size_t pos = 0;
-    for (int i = 0; i < gene_num_; ++i)
+    if(m_exonPtr)
     {
-        const char* gene = gene_data[i].gene;
-        size_t end = gene_data[i].offset + gene_data[i].count;
-        while (pos < end){
-            Expression& exp = expression[pos];
-            fprintf(outhandle, "%s\t%d\t%d\t%d\n", gene, exp.x, exp.y, exp.count);
-            ++pos;
+        fprintf(outhandle, FILE_HEADER_EXON, 0, 1, bin_size_, sn.c_str(), expression_attr.min_x, expression_attr.min_y);
+        // Write data line by line
+        
+        for (int i = 0; i < gene_num_; ++i)
+        {
+            const char* gene = gene_data[i].gene;
+            size_t end = gene_data[i].offset + gene_data[i].count;
+            while (pos < end){
+                Expression& exp = expression[pos];
+                fprintf(outhandle, "%s\t%d\t%d\t%d\t%d\n", gene, exp.x, exp.y, exp.count, exp.exon);
+                ++pos;
+            }
         }
     }
+    else
+    {
+        fprintf(outhandle, FILE_HEADER, 0, 1, bin_size_, sn.c_str(), expression_attr.min_x, expression_attr.min_y);
+        // Write data line by line
+
+        for (int i = 0; i < gene_num_; ++i)
+        {
+            const char* gene = gene_data[i].gene;
+            size_t end = gene_data[i].offset + gene_data[i].count;
+            while (pos < end){
+                Expression& exp = expression[pos];
+                fprintf(outhandle, "%s\t%d\t%d\t%d\n", gene, exp.x, exp.y, exp.count);
+                ++pos;
+            }
+        }
+    }
+
     fclose(outhandle);
 
     if(verbose_) printCpuTime(cprev, "toGem");
@@ -853,15 +892,15 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
     unsigned int maxexp = 0;
     int genecnt = 0;
     while (true){
-        GeneInfo2 *pgenedata = opts_->gene_queue_.getGeneInfo2();
-        for (auto g : *pgenedata->vecdataptr){
+        GeneInfo *pgenedata = opts_->m_geneinfo_queue.getPtr();
+        for (auto g : *pgenedata->vecptr){
             g.x *= bin_size;
             g.y *= bin_size;
             opts_->expressions_.push_back(std::move(g));
         }
 
-        opts_->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecdataptr->size()));
-        offset += pgenedata->vecdataptr->size();
+        opts_->genes_.emplace_back(pgenedata->geneid, offset, static_cast<unsigned int>(pgenedata->vecptr->size()));
+        offset += pgenedata->vecptr->size();
         maxexp = std::max(maxexp, pgenedata->maxexp);
 
         genecnt++;
@@ -1030,7 +1069,7 @@ unsigned int *BgefReader::getGeneExon()
         hid_t did = H5Dopen(file_id_, dname, H5P_DEFAULT);
         hid_t sid = H5Dget_space(did);
         H5Sget_simple_extent_dims(sid, dims, nullptr);
-
+        assert(dims[0] == expression_num_);
         m_exonPtr = new unsigned int[dims[0]];
         H5Dread(did, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_exonPtr);
         H5Sclose(sid);
@@ -1039,4 +1078,42 @@ unsigned int *BgefReader::getGeneExon()
     }
     printf("%s is not exist\n", dname);
     return nullptr;
+}
+
+Expression *BgefReader::getExpression_abs() {
+    if(expressions_ != nullptr)
+        return expressions_;
+
+    ExpressionAttr & expression_attr = getExpressionAttr();
+
+    hid_t memtype;
+    memtype = H5Tcreate(H5T_COMPOUND, sizeof(Expression));
+    H5Tinsert(memtype, "x", HOFFSET(Expression, x), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "y", HOFFSET(Expression, y), H5T_NATIVE_INT);
+    H5Tinsert(memtype, "count", HOFFSET(Expression, count), H5T_NATIVE_UINT);
+
+    expressions_ = (Expression *) malloc(expression_num_ * sizeof(Expression));
+    H5Dread(exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expressions_);
+
+    H5Tclose(memtype);
+
+    getGeneExon();
+    if(m_exonPtr)
+    {
+        for(int i=0;i<expression_num_;i++)
+        {
+            expressions_[i].x += expression_attr.min_x;
+            expressions_[i].y += expression_attr.max_y;
+            expressions_[i].exon = m_exonPtr[i];
+        }
+    }
+    else
+    {
+        for(int i=0;i<expression_num_;i++)
+        {
+            expressions_[i].x += expression_attr.min_x;
+            expressions_[i].y += expression_attr.max_y;
+        }
+    }
+    return expressions_;
 }

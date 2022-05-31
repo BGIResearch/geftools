@@ -198,7 +198,13 @@ class BgefReader {
     void getOffset(int *data);
     void getExpAttr(int *data);
 
+    bool isExonExist()
+    {
+        return m_exonPtr != nullptr;
+    }
     unsigned int *getGeneExon();
+
+    Expression *getExpression_abs();
 };
 
 #endif //GEFTOOLS__COMMON_BIN_H_

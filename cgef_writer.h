@@ -93,6 +93,9 @@ class CgefWriter {
     void storeBlkidx(unsigned int block_num, unsigned int * block_index, const unsigned int *block_size);
     void storeCellLabel(vector<unsigned int> &vecdata);
     int addLevel_1();
+    
+    void storeGeneExon(uint32_t minExon, uint32_t maxExon, uint32_t *geneExonPtr, uint16_t maxExpExon, vector<uint16_t> vec_exonExp);
+    void storeCellExon(uint16_t minExon, uint16_t maxExon, vector<uint16_t> vec_cellexon, uint16_t maxExpExon, vector<uint16_t> vec_cellexon_exp);
   public:
     hid_t file_id_;
     hid_t group_id_;
