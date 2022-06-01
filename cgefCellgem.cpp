@@ -42,6 +42,7 @@ void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const stri
         // writeCell_raw();
         readBgef_new(strinput);
         readmask_new(strmask);
+        writeAttr();
         getCell();
         writeCell_new();
         writeGene_new();
