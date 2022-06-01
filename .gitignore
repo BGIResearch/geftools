@@ -4,3 +4,5 @@ build/
 test_data/
 docs/html
 .DS_Store
+.vscode/settings.json
+.vscode/sftp.json
