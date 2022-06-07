@@ -196,11 +196,12 @@ void cellAdjust::readCgef(const string &strinput)
     H5Aread(attr, H5T_NATIVE_INT, &max_y);
     printf("minx:%d miny:%d maxx:%d maxy:%d\n", min_x, min_y, max_x, max_y);
 
-    // attr = H5Aopen(file_id, "offsetX", H5P_DEFAULT);
-    // H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
+    attr = H5Aopen(file_id, "offsetX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
 
-    // attr = H5Aopen(file_id, "offsetY", H5P_DEFAULT);
-    // H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
+    attr = H5Aopen(file_id, "offsetY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
+    printf("offsetx:%d offsety:%d\n", m_offsetX, m_offsetY);
     H5Aclose(attr);
     H5Sclose(border_sid);
     H5Dclose(border_id);
