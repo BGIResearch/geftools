@@ -910,3 +910,62 @@ short* CgefReader::getCellBorders_short(bool ball, unsigned int cell_id)
         return m_borderdataPtr_s;
     }
 }
+
+
+short* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
+{
+    unsigned long cprev = clock();
+    if(m_borderdataPtr == nullptr)
+    {
+        hsize_t dims[3];
+        hid_t dataset_id = H5Dopen(group_id_, "cellBorder", H5P_DEFAULT);
+        hid_t dataspace_id = H5Dget_space(dataset_id);
+        H5Sget_simple_extent_dims(dataspace_id, dims, nullptr);
+
+        m_borderdataPtr_s = (short*)calloc(dims[0]*dims[1]*dims[2], 2);
+        H5Dread(dataset_id, H5T_NATIVE_SHORT, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_borderdataPtr_s);
+
+        H5Sclose(dataspace_id);
+        H5Dclose(dataset_id);
+        m_bordercnt = dims[1];
+    }
+
+    int cnt = 2*m_bordercnt;
+    if(!ball)
+    {
+        if(m_borderdata_currentPtr_s)
+        {
+            free(m_borderdata_currentPtr_s);
+            m_borderdata_currentPtr_s = nullptr;
+        }
+        m_borderdata_currentPtr_s = (short*)calloc(cnt,2);
+        short *psrc = m_borderdataPtr_s + cell_id*cnt;
+        memcpy(m_borderdata_currentPtr_s, psrc, cnt*2);
+        return m_borderdata_currentPtr_s;
+    }
+
+    if(restrict_region_)
+    {
+        if(m_borderdata_currentPtr_s)
+        {
+            free(m_borderdata_currentPtr_s);
+            m_borderdata_currentPtr_s = nullptr;
+        }
+        m_borderdata_currentPtr_s = (short*)calloc(cell_num_current_*cnt,2);
+        short *psrc = nullptr;
+        short *pdest = m_borderdata_currentPtr_s;
+        for(unsigned int i=0;i<cell_num_current_;i++)
+        {
+            psrc = m_borderdataPtr_s + cell_id_array_current_[i]*cnt;
+            memcpy(pdest, psrc, cnt*2);
+            pdest += cnt;
+        }
+        printf("%d \n", cell_num_current_);
+        printCpuTime(cprev, "getCellBorders");
+        return m_borderdata_currentPtr_s;
+    }
+    else
+    {
+        return m_borderdataPtr_s;
+    }
+}

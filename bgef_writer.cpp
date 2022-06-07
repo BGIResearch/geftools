@@ -96,19 +96,18 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &exps[0]);
 
     // Create expression attribute
-    ExpressionAttr expAttr{dnbAttr.min_x, dnbAttr.min_y, dnbAttr.min_x+(dnbAttr.len_x-1)*binsize,
-        dnbAttr.min_y+(dnbAttr.len_y-1)*binsize, maxexp};
+    ExpressionAttr expAttr{dnbAttr.min_x, dnbAttr.min_y, dnbAttr.min_x+(dnbAttr.len_x-1)*binsize, dnbAttr.min_y+(dnbAttr.len_y-1)*binsize, maxexp};
     hsize_t dimsAttr[1] = {1};
     hid_t attr;
     dataspace_id = H5Screate_simple(1, dimsAttr, nullptr);
     attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.min_x);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.min_x);
     attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.min_y);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.min_y);
     attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_x);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.max_x);
     attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_y);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.max_y);
     attr = H5Acreate(dataset_id, "maxExp", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_exp);
     attr = H5Acreate(dataset_id, "resolution", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);

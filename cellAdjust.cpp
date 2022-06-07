@@ -263,7 +263,7 @@ bool cellAdjust::addborder(unsigned int cid, vector<Point> &vecPoint, vector<Poi
     convexHull(vecPoint, border, true);
     if(border.size() < 3)
     {
-        printf("borderwarn cid=%d pot=%d bor=%d dnb=%d\n", cid, vecPoint.size(), border.size(), m_cell_arrayptr[cid].dnb_count);
+        //printf("borderwarn cid=%d pot=%d bor=%d dnb=%d\n", cid, vecPoint.size(), border.size(), m_cell_arrayptr[cid].dnb_count);
         return false;
     }
 

@@ -4,6 +4,7 @@
 
 #include "main_view.h"
 #include "cxxopts.h"
+#include "cellAdjust.h"
 int test1()
 {
     CgefReader cgef_reader = CgefReader("/jdfssz2/ST_BIGDATA/Stomics/auto_analysis/tmppath/users/st_stomics_uat/P20Z10200N0039/S2022042010007/FP200000364TL_D1/FP200000364TL_D1_result/FP200000364TL_D1.cellbin.gef", true);
@@ -52,8 +53,8 @@ int view(int argc, char *argv[]) {
             ("i,input-file", "Input bGEF/cGEF file [request]", cxxopts::value<std::string>(), "FILE")
             ("o,output-gem", "Output gem file",
                     cxxopts::value<std::string>()->default_value("stdout"), "FILE")
-//            ("m,output-mask", "Output border of polygons to mask format file",
-//                    cxxopts::value<std::string>()->default_value(""), "FILE")
+           ("d,data", "get gene exp data",
+                   cxxopts::value<std::string>()->default_value(""), "FILE")
             ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
                          "of two vertex coordinates (minX,maxX,minY,maxY). just support cGEF.",
                          cxxopts::value<std::string>()->default_value(""), "STR")
@@ -96,6 +97,7 @@ int view(int argc, char *argv[]) {
     viewopts.verbose = result["verbose"].as<bool>();
     viewopts.force_genes = result["force-genes"].as<bool>();
     viewopts.bin_size = result["bin-size"].as<int>();
+    string strdata = result["data"].as<string>();
 
     if (result.count("region") == 1){
         string region_tmp = result["region"].as<string>();
@@ -147,16 +149,19 @@ int view(int argc, char *argv[]) {
         bgef_reader.toGem(viewopts.output_gem, snstr);
     }else{
 
-        CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
+        // CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
 
-        if(viewopts.restrict_region){
-            cgef_reader.restrictRegion(viewopts.region[0],
-                                       viewopts.region[1],
-                                       viewopts.region[2],
-                                       viewopts.region[3]);
-        }
+        // if(viewopts.restrict_region){
+        //     cgef_reader.restrictRegion(viewopts.region[0],
+        //                                viewopts.region[1],
+        //                                viewopts.region[2],
+        //                                viewopts.region[3]);
+        // }
 
-        cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
+        // cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
+        
+        cellAdjust ca;
+        ca.cgeftogem(strdata, viewopts.input_file, viewopts.output_gem);
     }
 
     if(viewopts.verbose){

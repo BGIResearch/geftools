@@ -125,9 +125,9 @@ struct BinStatUS {
 
 struct DnbAttr {
     int min_x;
-    unsigned int len_x;
+    int len_x;
     int min_y;
-    unsigned int len_y;
+    int len_y;
     unsigned int max_mid;
     unsigned int max_gene;
     unsigned int max_exon;

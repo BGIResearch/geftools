@@ -266,10 +266,16 @@ int readCellgemTask_tag::getInfo()
                 ptr = &m_pbuf[i+1];
                 break;
             case 1:
+                x = atoi(ptr);
+                m_min_x = std::min(m_min_x, x);
+                m_max_x = std::max(m_max_x, x);
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
             case 2:
+                y = atoi(ptr);
+                m_min_y = std::min(m_min_y, y);
+                m_max_y = std::max(m_max_y, y);
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
@@ -290,7 +296,7 @@ int readCellgemTask_tag::getInfo()
                     cgef_cell *cptr = new cgef_cell(celllabel);
                     m_map_cell.emplace(celllabel, cptr);
                 }
-                m_map_cell[celllabel]->add(gname,umi);
+                m_map_cell[celllabel]->add(gname,umi,x,y);
 
                 if(m_map_gene.find(gname) == m_map_gene.end())
                 {

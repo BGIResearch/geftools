@@ -11,34 +11,47 @@
 #include "bin_task.h"
 #include "special_bin.h"
 #include "utils.h"
+#include "timer.h"
 
-int ftoi(float n)
+int test(const char *path)
 {
-    int i = n*10;
-    return i;
-}
+    timer st1("");
+    BgefReader bgef_reader(path, 20, 1);
+    Expression *ptr = bgef_reader.getExpression();
+    long num = bgef_reader.getExpressionNum();
+    st1.showgap("read expression ");
+    vector<Expression> vecexp;
+    vecexp.reserve(100000);
+    for(long i=0;i<num;i++)
+    {
+        if(ptr[i].x > 1000 && ptr[i].y<5000)
+        {
+            vecexp.push_back(ptr[i]);
+        }
+    }
+    st1.showgap("select x>1000 & y<5000 ");
+    printf("find cnt %d\n", vecexp.size());
+    
 
-int test()
-{
-    BgefReader bgef_reader("/ldfssz1/ST_BI/USER/zhaozijian/celldata/SS200000144TR_C1E4_new.gef", 1, 20);
-    int exp_num = bgef_reader.getExpressionNum();
-    uint32_t *cell_ind = new uint32_t[exp_num];
-    uint32_t *count = new uint32_t[exp_num];
-    vector<unsigned long long> ret;
-    ret.reserve(exp_num/2);
-    bgef_reader.getSparseMatrixIndicesOfExp(ret, cell_ind, count);
-    // unsigned int * cellid = new unsigned int[exp_num];
-    // unsigned int * gene_ind = new unsigned int[exp_num];
-    // unsigned int * count = new unsigned int[exp_num];
-    // bgef_reader.getSparseMatrixIndices2(cellid, gene_ind, count);
-    //bgef_reader.getExpression();
+    int gnum = bgef_reader.getGeneNum();
+    Gene *gptr = bgef_reader.getGene();
+    st1.showgap("read gene ");
+    for(int i=0;i<gnum;i++)
+    {
+        if(memcmp(gptr[i].gene, "Ttr", 3) == 0)
+        {
+            break;
+        }
+    }
+    st1.showgap("find Ttr");
+
     printf("end\n");
 
     return 0;
 }
 
 int bgef(int argc, char *argv[]) {
-    //return test();
+    return test(argv[1]);
     cxxopts::Options options("geftools bgef",
                        "About:  Generate common bin GEF(.bgef) according to gem file or bin1 GEF\n");
     options

@@ -58,14 +58,21 @@ void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const stri
         writeCell_raw();
         break;
     case INPUTTYPE_GEM_TAGMASK:
-        readxy(strrawgem);
-        readmask(strmask);
-        m_cgefwPtr->m_x_len = m_cols;
-        m_cgefwPtr->m_y_len = m_rows;
+        // readxy(strrawgem);
+        // readmask(strmask);
+        // m_cgefwPtr->m_x_len = m_cols;
+        // m_cgefwPtr->m_y_len = m_rows;
+        // readcellgem(strinput);
+        // writeAttr();
+        // writeCell();
+        // writeGene();
+
         readcellgem(strinput);
         writeAttr();
-        writeCell();
+        getCelldata();
+        writeCell_celltype();
         writeGene();
+        
         break;
     case INPUTTYPE_GEM_LABELMASK:
         readxy(strrawgem);

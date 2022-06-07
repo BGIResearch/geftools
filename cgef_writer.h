@@ -96,6 +96,7 @@ class CgefWriter {
     
     void storeGeneExon(uint32_t minExon, uint32_t maxExon, uint32_t *geneExonPtr, uint16_t maxExpExon, vector<uint16_t> vec_exonExp);
     void storeCellExon(uint16_t minExon, uint16_t maxExon, vector<uint16_t> vec_cellexon, uint16_t maxExpExon, vector<uint16_t> vec_cellexon_exp);
+    void getAttr();
   public:
     hid_t file_id_;
     hid_t group_id_;
@@ -147,7 +148,8 @@ class CgefWriter {
     unsigned short max_mid_count_ = 0;
     unsigned short random_cell_type_num_ = 0;
     bool verbose_ = false;
-
+    int m_offsetX = 0;
+    int m_offsetY = 0;
 };
 
 #endif //GEFTOOLS_CGEF_WRITER_H

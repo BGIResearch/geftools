@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 project(geftools)
 
 set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fPIC -Wno-c++11-narrowing")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fPIC")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 

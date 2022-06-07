@@ -39,6 +39,7 @@ void CgefWriter::setInput(const string& input_cell_gef)
 
     H5Pclose(fapl_id);
     openCellDataset();
+    getAttr();
 }
 
 CgefWriter::~CgefWriter() {
@@ -87,6 +88,17 @@ void CgefWriter::openCellDataset()
     H5Dclose(cell_dataset_id);
 
     if (verbose_) printCpuTime(cprev, "openCellDataset");
+}
+
+void CgefWriter::getAttr()
+{
+    hid_t attr = H5Aopen(file_id_, "offsetX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
+
+    attr = H5Aopen(file_id_, "offsetY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
+
+    H5Aclose(attr);
 }
 
 void CgefWriter::storeCellBorder(short* borderPath, unsigned int cell_num) const {
@@ -794,15 +806,9 @@ int CgefWriter::addLevel_1()
 
 int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *blknum)
 {
-    if(cansize[0]>m_x_len && cansize[1]>m_y_len)
-    {
-        m_x_len = cansize[0];
-        m_y_len = cansize[1];
-    }
-    else{
-        printf("err: raw blk size:%d %d\n", m_x_len, m_y_len);
-        exit(1);
-    }
+    m_x_len = cansize[2]-cansize[0];
+    m_y_len = cansize[3]-cansize[1];
+    
     m_blknum[0] = blknum[0];
     m_blknum[1] = blknum[1];
 
@@ -901,7 +907,7 @@ void CgefWriter::getblkcelldata_bottom(int lev)
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
         CellData &cdata = m_cdataPtr[*itor];
-        id = (cdata.x / x_size) + (cdata.y / y_size) *y_num;
+        id = ((cdata.x+m_offsetX) / x_size) + ((cdata.y+m_offsetY) / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
 
@@ -945,7 +951,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
         CellData &cdata = m_cdataPtr[*itor];
-        id = (cdata.x / x_size) + (cdata.y / y_size) *y_num;
+        id = ((cdata.x+m_offsetX) / x_size) + ((cdata.y+m_offsetY) / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
 

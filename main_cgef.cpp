@@ -73,7 +73,7 @@ int cgef(int argc, char *argv[]) {
     ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
     ("a,allocat", "allocation strategy ", cxxopts::value<int>()->default_value("2"), "INT")
     ("g,raw-gem", "raw gem file", cxxopts::value<std::string>(), "FILE")
-    ("c,canvas", "set canvas size", cxxopts::value<std::string>()->default_value("90000,90000"), "FILE")
+    ("c,canvas", "set canvas size, minx,miny,maxx,maxy", cxxopts::value<std::string>()->default_value("0,0,90000,90000"), "FILE")
     ("l,limit", "set blk limit", cxxopts::value<std::string>()->default_value("16,16"), "FILE")
     ("S,split", "split cellid to layers and blks", cxxopts::value<int>()->default_value("0"))
     ("help", "Print help");
@@ -136,7 +136,7 @@ int cgef(int argc, char *argv[]) {
     int allocat = 2;
     int topcellnum = 5000;
     float ratio = 0.2;
-    int canvas_size[2]={0,0}; //全局画布大小
+    int canvas_size[4]={0,0,0,0}; //全局画布大小
     int limit_blk[2] = {0,0};//分块限制
     int isplit = result["split"].as<int>();
     if(isplit > 0)
@@ -150,6 +150,9 @@ int cgef(int argc, char *argv[]) {
 
         canvas_size[0] = static_cast<int>(strtol(canvas_size_tmp[0].c_str(), nullptr, 10));
         canvas_size[1] = static_cast<int>(strtol(canvas_size_tmp[1].c_str(), nullptr, 10));
+        canvas_size[2] = static_cast<int>(strtol(canvas_size_tmp[2].c_str(), nullptr, 10));
+        canvas_size[3] = static_cast<int>(strtol(canvas_size_tmp[3].c_str(), nullptr, 10));
+
         limit_blk[0] = static_cast<int>(strtol(limit_tmp[0].c_str(), nullptr, 10));
         limit_blk[1] = static_cast<int>(strtol(limit_tmp[1].c_str(), nullptr, 10));
 
