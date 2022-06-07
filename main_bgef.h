@@ -60,7 +60,8 @@ int generateBgef(const string &input_file,
                  int n_thread = 8,
                  vector<unsigned int> bin_sizes = vector<unsigned int>(),
                  vector<int> region = vector<int>(),
-                 bool verbose = false);
+                 bool verbose = false,
+                 bool bstat = true);
 
 void gem2gef(BgefOptions *opts);
 

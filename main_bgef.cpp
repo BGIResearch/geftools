@@ -127,7 +127,8 @@ int generateBgef(const string &input_file,
                  int n_thread,
                  vector<unsigned int> bin_sizes,
                  vector<int> region,
-                 bool verbose) {
+                 bool verbose,
+                 bool bstat) {
     unsigned long cprev=clock();
     BgefOptions *opts = BgefOptions::GetInstance();
     opts->input_file_ = input_file;
@@ -136,6 +137,23 @@ int generateBgef(const string &input_file,
     opts->region_ = std::move(region);
     opts->thread_ = n_thread;
     opts->verbose_ = verbose;
+
+    bool b100 = false;
+    for(int bin : opts->bin_sizes_)
+    {
+        if(bin == 100)
+        {
+            b100 = true; //用户指定了bin100
+            opts->m_stattype = 2;
+            break;
+        }
+    }
+    if(!b100 && bstat) //用户没有指定bin100，但是需要生成stat
+    {
+        opts->bin_sizes_.emplace_back(100);
+        opts->m_stattype = 1;
+    }
+    
     gem2gef(opts);
     if(verbose) printCpuTime(cprev, "generateBgef");
     return 0;
