@@ -412,14 +412,14 @@ int readCellgemTask_cell::getInfo()
                 break;
             case 1:
                 x = atoi(ptr);
-                // m_min_x = std::min(m_min_x, x);
+                m_min_x = std::min(m_min_x, x);
                 m_max_x = std::max(m_max_x, x);
                 k++;
                 ptr = &m_pbuf[i+1];
                 break;
             case 2:
                 y = atoi(ptr);
-                // m_min_y = std::min(m_min_y, y);
+                m_min_y = std::min(m_min_y, y);
                 m_max_y = std::max(m_max_y, y);
                 k++;
                 ptr = &m_pbuf[i+1];
@@ -434,19 +434,23 @@ int readCellgemTask_cell::getInfo()
                 celllabel = atoi(ptr);
                 ptr = &m_pbuf[i+1];
 
-                if(m_map_cell.find(celllabel) == m_map_cell.end())
+                if(celllabel > 0)
                 {
-                    cgef_cell *cptr = new cgef_cell(celllabel);
-                    m_map_cell.emplace(celllabel, cptr);
-                }
-                m_map_cell[celllabel]->add(gname,umi, x, y);
+                    if(m_map_cell.find(celllabel) == m_map_cell.end())
+                    {
+                        cgef_cell *cptr = new cgef_cell(celllabel);
+                        m_map_cell.emplace(celllabel, cptr);
+                    }
+                    m_map_cell[celllabel]->add(gname,umi, x, y);
 
-                if(m_map_gene.find(gname) == m_map_gene.end())
-                {
-                    cgef_gene *gptr = new cgef_gene();
-                    m_map_gene.emplace(gname, gptr);
+                    if(m_map_gene.find(gname) == m_map_gene.end())
+                    {
+                        cgef_gene *gptr = new cgef_gene();
+                        m_map_gene.emplace(gname, gptr);
+                    }
+                    m_map_gene[gname]->add(celllabel, umi);
                 }
-                m_map_gene[gname]->add(celllabel, umi);
+
                 break;
             default:
                 break;

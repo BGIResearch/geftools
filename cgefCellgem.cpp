@@ -265,6 +265,10 @@ void cgefCellgem::readcellgem(const string &strinput)
     printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
                                         cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
 
+m_min_x = cgefParam::GetInstance()->m_min_x;
+m_min_y = cgefParam::GetInstance()->m_min_y;
+m_max_x = cgefParam::GetInstance()->m_max_x;
+m_max_y = cgefParam::GetInstance()->m_max_y;
 
     if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_MASK)
     {
@@ -295,8 +299,8 @@ void cgefCellgem::writeAttr()
     CellBinAttr cell_bin_attr = {
             .version = 2,
             .resolution = cgefParam::GetInstance()->m_resolution,
-            .offsetX = cgefParam::GetInstance()->m_min_x,
-            .offsetY = cgefParam::GetInstance()->m_min_y
+            .offsetX = 0,
+            .offsetY = 0
     };
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
