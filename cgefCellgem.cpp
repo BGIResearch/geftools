@@ -32,14 +32,6 @@ void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const stri
     switch (cgefParam::GetInstance()->m_intype)
     {
     case INPUTTYPE_BGEF_MASK:
-        // readBgef(strinput);
-        // readmask(strmask);
-        // m_cgefwPtr->m_x_len = m_cols;
-        // m_cgefwPtr->m_y_len = m_rows;
-        // writeAttr();
-        // clabeltocid();
-        // writeGene_bgef();
-        // writeCell_raw();
         readBgef_new(strinput);
         readmask_new(strmask);
         writeAttr();
@@ -50,51 +42,45 @@ void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const stri
     case INPUTTYPE_GEM_MASK:
         readcellgem(strinput);
         readmask(strmask);
-        m_cgefwPtr->m_x_len = m_cols;
-        m_cgefwPtr->m_y_len = m_rows;
         writeAttr();
         clabeltocid();
         writeGene_raw();
         writeCell_raw();
         break;
-    case INPUTTYPE_GEM_TAGMASK:
-        // readxy(strrawgem);
-        // readmask(strmask);
-        // m_cgefwPtr->m_x_len = m_cols;
-        // m_cgefwPtr->m_y_len = m_rows;
-        // readcellgem(strinput);
-        // writeAttr();
-        // writeCell();
-        // writeGene();
-
-        readcellgem(strinput);
-        writeAttr();
-        getCelldata();
-        writeCell_celltype();
-        writeGene();
-        
-        break;
-    case INPUTTYPE_GEM_LABELMASK:
+    case INPUTTYPE_GEM_5MASK:
         readxy(strrawgem);
         readmask(strmask);
-        m_cgefwPtr->m_x_len = m_cols;
-        m_cgefwPtr->m_y_len = m_rows;
         readcellgem(strinput);
         writeAttr();
         writeCell();
         writeGene();
         break;
-    case INPUTTYPE_GEM_AREAID:
+    case INPUTTYPE_GEM_6MASK:
+        readxy(strrawgem);
+        readmask(strmask);
         readcellgem(strinput);
         writeAttr();
-        getCelldata_celltype();
-        writeCell_celltype();
+        writeCell();
         writeGene();
         break;
-    case INPUTTYPE_GEM_CELL:
+    case INPUTTYPE_GEM_5:
         readcellgem(strinput);
         writeAttr();
         getCelldata();
+        writeCell_celltype();
+        writeGene();
+        break;
+    case INPUTTYPE_GEM_6:
+        readcellgem(strinput);
+        writeAttr();
+        getCelldata();
+        writeCell_celltype();
+        writeGene();
+        break;
+    case INPUTTYPE_GEM_6TYPE:
+        readcellgem(strinput);
+        writeAttr();
+        getCelldata_celltype();
         writeCell_celltype();
         writeGene();
         break;
@@ -227,31 +213,38 @@ void cgefCellgem::readcellgem(const string &strinput)
             m_thpoolPtr->addTask(rtask);
         }
         break;
-    case INPUTTYPE_GEM_TAGMASK:
+    case INPUTTYPE_GEM_5MASK:
         for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
         {
-            readCellgemTask *rtask = new readCellgemTask_tag();
+            readCellgemTask *rtask = new readCellgemTask_5_mask();
             m_thpoolPtr->addTask(rtask);
         }
         break;
-    case INPUTTYPE_GEM_LABELMASK:
+    case INPUTTYPE_GEM_6MASK:
         for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
         {
-            readCellgemTask *rtask = new readCellgemTask_labelmask();
+            readCellgemTask *rtask = new readCellgemTask_6_mask();
             m_thpoolPtr->addTask(rtask);
         }
         break;
-    case INPUTTYPE_GEM_AREAID:
+    case INPUTTYPE_GEM_5:
         for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
         {
-            readCellgemTask *rtask = new readCellgemTask_areaID();
+            readCellgemTask *rtask = new readCellgemTask_5();
             m_thpoolPtr->addTask(rtask);
         }
         break;
-    case INPUTTYPE_GEM_CELL:
+    case INPUTTYPE_GEM_6:
         for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
         {
-            readCellgemTask *rtask = new readCellgemTask_cell();
+            readCellgemTask *rtask = new readCellgemTask_6();
+            m_thpoolPtr->addTask(rtask);
+        }
+        break;
+    case INPUTTYPE_GEM_6TYPE:
+        for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+        {
+            readCellgemTask *rtask = new readCellgemTask_6_type();
             m_thpoolPtr->addTask(rtask);
         }
         break;
