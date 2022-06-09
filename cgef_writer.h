@@ -150,6 +150,7 @@ class CgefWriter {
     bool verbose_ = false;
     int m_offsetX = 0;
     int m_offsetY = 0;
+    int m_canvas[4] = {0,0,0,0};
 };
 
 #endif //GEFTOOLS_CGEF_WRITER_H

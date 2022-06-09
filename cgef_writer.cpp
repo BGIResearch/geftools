@@ -72,7 +72,22 @@ void CgefWriter::openCellDataset()
     hid_t memtype = getMemtypeOfCellData();
     m_cdataPtr = (CellData *) malloc(cell_num_ * sizeof(CellData));
     H5Dread(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_cdataPtr);
-    
+
+
+    hid_t attr = H5Aopen(cell_dataset_id, "minX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[0]);
+
+    attr = H5Aopen(cell_dataset_id, "minY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[1]);
+
+    attr = H5Aopen(cell_dataset_id, "maxX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[2]);
+
+    attr = H5Aopen(cell_dataset_id, "maxY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[3]);
+
+    H5Aclose(attr);
+
     H5Sclose(cell_dataspace_id);
     H5Dclose(cell_dataset_id);
 
@@ -793,6 +808,19 @@ int CgefWriter::addLevel_1()
 
 int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *blknum)
 {
+    if(cansize[0] <= (m_canvas[0]+m_offsetX) &&
+      cansize[2] >= (m_canvas[2]+m_offsetX) &&
+      cansize[1] <= (m_canvas[1] + m_offsetY) && 
+      cansize[3] >= (m_canvas[3] + m_offsetY))
+    {
+        printf("canvas ok\n");
+    }
+    else
+    {
+        printf("canvas too small\n");
+        return 0;
+    }
+
     m_x_len = cansize[2]-cansize[0];
     m_y_len = cansize[3]-cansize[1];
     
@@ -839,6 +867,14 @@ int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *
     H5Awrite(attr, H5T_NATIVE_UINT, &lev);
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
+
+    dims_attr[0] = 4;
+    hid_t attr_ds = H5Screate_simple(1, dims_attr, nullptr);
+    hid_t attr_di = H5Acreate(m_level_gid, "canvas", H5T_STD_I32LE, attr_ds, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr_di, H5T_NATIVE_INT, cansize);
+    H5Sclose(attr_ds);
+    H5Aclose(attr_di);
+    
     
     H5Tclose(m_blk_memtype);
     H5Tclose(m_blk_filetype);

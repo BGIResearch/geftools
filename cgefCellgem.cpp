@@ -39,6 +39,7 @@ void cgefCellgem::gemPreAnalysis(const string &strmask, const string &strinput)
             break;
         }
     }
+    
     int col = 1;
     int i = 0;
     while (buf[i] != 0)
@@ -48,7 +49,7 @@ void cgefCellgem::gemPreAnalysis(const string &strmask, const string &strinput)
             col++;
         }
     }
-
+    printf("%s %d\n", buf, col);
     if(col == 4)
     {
         cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_MASK;
@@ -110,31 +111,31 @@ void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const stri
     case INPUTTYPE_GEM_5MASK:
         readxy(strrawgem);
         readmask(strmask);
-        readgem_5mask(strinput);
+        readgem_5mask();
         writeCell();
         writeGene();
         break;
     case INPUTTYPE_GEM_6MASK:
         readxy(strrawgem);
         readmask(strmask);
-        readgem_6mask(strinput);
+        readgem_6mask();
         writeCell();
         writeGene();
         break;
     case INPUTTYPE_GEM_5:
-        readgem_5(strinput);
+        readgem_5();
         getCelldata();
         writeCell_celltype();
         writeGene();
         break;
     case INPUTTYPE_GEM_6:
-        readgem_6(strinput);
+        readgem_6();
         getCelldata();
         writeCell_celltype();
         writeGene();
         break;
     case INPUTTYPE_GEM_6TYPE:
-        readgem_6type(strinput);
+        readgem_6type();
         getCelldata_celltype();
         writeCell_celltype();
         writeGene();
@@ -350,12 +351,9 @@ void cgefCellgem::readgem_6mask()
     {
         m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
     }
-    m_min_x = cgefParam::GetInstance()->m_min_x;
-    m_min_y = cgefParam::GetInstance()->m_min_y;
-    m_max_x = cgefParam::GetInstance()->m_max_x;
-    m_max_y = cgefParam::GetInstance()->m_max_y;
 
-    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0};
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,
+            cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -418,8 +416,12 @@ void cgefCellgem::readgem_6type()
         m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
     }
 
-    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,
-                cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y};
+    m_min_x = cgefParam::GetInstance()->m_min_x;
+    m_min_y = cgefParam::GetInstance()->m_min_y;
+    m_max_x = cgefParam::GetInstance()->m_max_x;
+    m_max_y = cgefParam::GetInstance()->m_max_y;
+
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -796,7 +798,7 @@ void cgefCellgem::writeCell_celltype()
 
     m_cgefwPtr->storeCell(m_blocknum, vec_blkidx.data(), m_block_size);
     m_cgefwPtr->storeCellExp();
-    if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_AREAID)
+    if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_6TYPE)
     {
         m_cgefwPtr->storeCellTypeList_N();
     }

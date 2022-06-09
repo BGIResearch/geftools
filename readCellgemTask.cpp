@@ -523,7 +523,7 @@ int readCellgemTask_labelmask::getInfo()
 
 
 //----------------------------------------------------------
-readCellgemTask_5_mask::getInfo()
+int readCellgemTask_5_mask::getInfo()
 {
     int i = 0, k = 0, celllabel=0;
     char *ptr = m_pbuf;
@@ -587,7 +587,7 @@ readCellgemTask_5_mask::getInfo()
     return m_map_cell.size();
 }
 
-readCellgemTask_6_mask::getInfo()
+int readCellgemTask_6_mask::getInfo()
 {
     int i = 0, k = 0, celllabel=0;
     char *ptr = m_pbuf;
@@ -631,7 +631,7 @@ readCellgemTask_6_mask::getInfo()
                 {
                     if(m_map_cell.find(celllabel) == m_map_cell.end())
                     {
-                        cgef_cell *cptr = new cgef_cell(celllabel, ptr, &m_pbuf[i]-ptr);
+                        cgef_cell *cptr = new cgef_cell(celllabel);
                         m_map_cell.emplace(celllabel, cptr);
                     }
                     m_map_cell[celllabel]->add(gname,umi);
@@ -654,7 +654,7 @@ readCellgemTask_6_mask::getInfo()
     return m_map_cell.size();
 }
 
-readCellgemTask_5::getInfo()
+int readCellgemTask_5::getInfo()
 {
     int i = 0, k = 0, celllabel=0;
     char *ptr = m_pbuf;
@@ -724,7 +724,7 @@ readCellgemTask_5::getInfo()
     return m_map_cell.size();
 }
 
-readCellgemTask_6::getInfo()
+int readCellgemTask_6::getInfo()
 {
     int i = 0, k = 0, celllabel=0;
     char *ptr = m_pbuf;
@@ -774,7 +774,7 @@ readCellgemTask_6::getInfo()
                 {
                     if(m_map_cell.find(celllabel) == m_map_cell.end())
                     {
-                        cgef_cell *cptr = new cgef_cell(celllabel, ptr, &m_pbuf[i]-ptr);
+                        cgef_cell *cptr = new cgef_cell(celllabel);
                         m_map_cell.emplace(celllabel, cptr);
                     }
                     m_map_cell[celllabel]->add(gname,umi, x, y);
@@ -797,7 +797,7 @@ readCellgemTask_6::getInfo()
     return m_map_cell.size();
 }
 
-readCellgemTask_6_type::getInfo()
+int readCellgemTask_6_type::getInfo()
 {
     int i = 0, k = 0, celllabel=0;
     char *ptr = m_pbuf;
