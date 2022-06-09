@@ -85,7 +85,7 @@ class CgefReader {
     int offsetX = 0;
     int offsetY = 0;
     unsigned int m_ver_tool[3] ={0};
-
+    int m_bordercnt = 0;
   public:
     explicit CgefReader(const string &filename, bool verbose = false);
     ~CgefReader();
@@ -246,7 +246,7 @@ class CgefReader {
 
     char* getCellBorders_char(bool ball, unsigned int cell_id);
     short* getCellBorders_short(bool ball, unsigned int cell_id);
-
+    short* getCellBorders(bool ball, unsigned int cell_id);
     void getAttr();
     uint32_t* getGefVer()
     {

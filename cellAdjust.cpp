@@ -333,6 +333,7 @@ void cellAdjust::writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *d
     vec_border.reserve(cellcnt*2*BORDERCNT);
 
     uint32_t newcid = 0, offcnt = 0, blkcnt = 0;
+    int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
     for(vector<Cell> &vecC : vec_vec_cell)
     {
         blkcnt = 0;
@@ -365,6 +366,13 @@ void cellAdjust::writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *d
             if(!ret) continue;
             
             Moments mu = moments(border, true);
+            Rect trect = boundingRect(border);
+
+            minx = std::min(minx, trect.x);
+            maxx = std::max(maxx, trect.x+trect.width);
+            miny = std::min(miny, trect.y);
+            maxy = std::max(maxy, trect.y+trect.height);
+
             area = mu.m00;
             auto itor = map_gene_cnt.begin();
             for(;itor != map_gene_cnt.end();itor++)
@@ -427,7 +435,7 @@ void cellAdjust::writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *d
     m_cgefwPtr->cell_num_ = newcid;
     m_cgefwPtr->max_mid_count_ = maxExpmid;
 
-    int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
+    int effective_rect[4] ={minx, miny, maxx, maxy};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), m_cgefwPtr->cell_num_, effective_rect);
     m_cgefwPtr->storeCell(m_block_size[2]*m_block_size[3], vec_blkidx.data(), m_block_size);
     m_cgefwPtr->storeCellExp();
