@@ -813,6 +813,8 @@ int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *
       cansize[1] <= (m_canvas[1] + m_offsetY) && 
       cansize[3] >= (m_canvas[3] + m_offsetY))
     {
+        m_canvas[0] = cansize[0];
+        m_canvas[2] = cansize[2];
         printf("canvas ok\n");
     }
     else
@@ -930,7 +932,7 @@ void CgefWriter::getblkcelldata_bottom(int lev)
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
         CellData &cdata = m_cdataPtr[*itor];
-        id = ((cdata.x+m_offsetX) / x_size) + ((cdata.y+m_offsetY) / y_size) *y_num;
+        id = ((cdata.x+m_offsetX-m_canvas[0]) / x_size) + ((cdata.y+m_offsetY-m_canvas[2]) / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
 
@@ -974,7 +976,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
         CellData &cdata = m_cdataPtr[*itor];
-        id = ((cdata.x+m_offsetX) / x_size) + ((cdata.y+m_offsetY) / y_size) *y_num;
+        id = ((cdata.x+m_offsetX-m_canvas[0]) / x_size) + ((cdata.y+m_offsetY-m_canvas[2]) / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
 
