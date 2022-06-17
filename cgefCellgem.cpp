@@ -1313,6 +1313,7 @@ void cgefCellgem::writeCell_new()
     m_vec_blkidx.emplace_back(cid);
     printf("cellcnt:%d maxmid:%d\n", cid, maxExpmid);
     m_cgefwPtr->cell_num_ = cid;
+    m_cgefwPtr->expression_num_ = offset;
     m_cgefwPtr->max_mid_count_ = maxExpmid;
     int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
