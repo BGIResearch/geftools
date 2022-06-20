@@ -51,7 +51,7 @@ int test(const char *path)
 }
 
 int bgef(int argc, char *argv[]) {
-    return test(argv[1]);
+    //return test(argv[1]);
     cxxopts::Options options("geftools bgef",
                        "About:  Generate common bin GEF(.bgef) according to gem file or bin1 GEF\n");
     options

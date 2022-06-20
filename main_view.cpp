@@ -5,21 +5,22 @@
 #include "main_view.h"
 #include "cxxopts.h"
 #include "cellAdjust.h"
-int test1()
+int test1(const char *path)
 {
-    CgefReader cgef_reader = CgefReader("/jdfssz2/ST_BIGDATA/Stomics/auto_analysis/tmppath/users/st_stomics_uat/P20Z10200N0039/S2022042010007/FP200000364TL_D1/FP200000364TL_D1_result/FP200000364TL_D1.cellbin.gef", true);
-    // cgef_reader.restrictRegion(7680, 9728, 8704, 10752);
-    // cgef_reader.getCellBorders(true, 0);
-    
-    CellData *arryptr = cgef_reader.getCell();
+    CgefReader cgef_reader = CgefReader(path, true);
     int cellnum = cgef_reader.getCellNum();
-    for(int i=0;i<cellnum;i++)
-    {
-        if(arryptr[i].gene_count == 0)
-        {
-            printf("%d\n", i);
-        }
-    }
+    short *ptr = cgef_reader.getCellBorders(true, 0);
+
+    
+    // CellData *arryptr = cgef_reader.getCell();
+    // int cellnum = cgef_reader.getCellNum();
+    // for(int i=0;i<cellnum;i++)
+    // {
+    //     if(arryptr[i].gene_count == 0)
+    //     {
+    //         printf("%d\n", i);
+    //     }
+    // }
 
     printf("end\n");
     return 0;

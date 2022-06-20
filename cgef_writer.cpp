@@ -73,17 +73,21 @@ void CgefWriter::openCellDataset()
     m_cdataPtr = (CellData *) malloc(cell_num_ * sizeof(CellData));
     H5Dread(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_cdataPtr);
 
-    unsigned int block_size[4];
-    // hid_t attr = H5Aopen(cell_dataset_id, "blockSize", H5P_DEFAULT);
-    // H5Aread(attr, H5T_NATIVE_UINT32, block_size);
 
-    hid_t d_id = H5Dopen(group_id_, "blockSize", H5P_DEFAULT);
-    H5Dread(d_id, H5T_NATIVE_UINT32, H5S_ALL, H5S_ALL, H5P_DEFAULT, block_size);
-    H5Dclose(d_id);
+    hid_t attr = H5Aopen(cell_dataset_id, "minX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[0]);
 
-    m_x_len = block_size[0]*block_size[2];
-    m_y_len = block_size[1]*block_size[3];
-    
+    attr = H5Aopen(cell_dataset_id, "minY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[1]);
+
+    attr = H5Aopen(cell_dataset_id, "maxX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[2]);
+
+    attr = H5Aopen(cell_dataset_id, "maxY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_canvas[3]);
+
+    H5Aclose(attr);
+
     H5Sclose(cell_dataspace_id);
     H5Dclose(cell_dataset_id);
 
@@ -684,8 +688,6 @@ unsigned short CgefWriter::calcMaxCountOfGeneExp(vector<GeneExpData> &gene_exps)
 }
 
 int CgefWriter::write(BgefReader &common_bin_gef, Mask &mask) {
-    m_x_len = mask.cols_;
-    m_y_len = mask.rows_;
     map<unsigned long long int, pair<unsigned int, unsigned short>> bin_gene_exp_map;
     auto * dnb_exp_info = (DnbExpression *) malloc(common_bin_gef.getExpressionNum()  * sizeof(DnbExpression));
     common_bin_gef.getBinGeneExpMap(bin_gene_exp_map, dnb_exp_info);
@@ -806,6 +808,21 @@ int CgefWriter::addLevel_1()
 
 int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *blknum)
 {
+    if(cansize[0] <= (m_canvas[0]+m_offsetX) &&
+      cansize[2] >= (m_canvas[2]+m_offsetX) &&
+      cansize[1] <= (m_canvas[1] + m_offsetY) && 
+      cansize[3] >= (m_canvas[3] + m_offsetY))
+    {
+        m_canvas[0] = cansize[0];
+        m_canvas[2] = cansize[2];
+        printf("canvas ok\n");
+    }
+    else
+    {
+        printf("canvas too small\n");
+        return 0;
+    }
+
     m_x_len = cansize[2]-cansize[0];
     m_y_len = cansize[3]-cansize[1];
     
@@ -852,6 +869,14 @@ int CgefWriter::addLevel(int allocat, int cnum, float ratio, int *cansize, int *
     H5Awrite(attr, H5T_NATIVE_UINT, &lev);
     H5Aclose(attr);
     H5Sclose(attr_dataspace);
+
+    dims_attr[0] = 4;
+    hid_t attr_ds = H5Screate_simple(1, dims_attr, nullptr);
+    hid_t attr_di = H5Acreate(m_level_gid, "canvas", H5T_STD_I32LE, attr_ds, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr_di, H5T_NATIVE_INT, cansize);
+    H5Sclose(attr_ds);
+    H5Aclose(attr_di);
+    
     
     H5Tclose(m_blk_memtype);
     H5Tclose(m_blk_filetype);
@@ -907,7 +932,7 @@ void CgefWriter::getblkcelldata_bottom(int lev)
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
         CellData &cdata = m_cdataPtr[*itor];
-        id = ((cdata.x+m_offsetX) / x_size) + ((cdata.y+m_offsetY) / y_size) *y_num;
+        id = ((cdata.x+m_offsetX-m_canvas[0]) / x_size) + ((cdata.y+m_offsetY-m_canvas[2]) / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
 
@@ -951,7 +976,7 @@ void CgefWriter::getblkcelldata(int lev, int cnt)
     for(auto itor = m_hash_cellid.begin();itor != m_hash_cellid.end();itor++)
     {
         CellData &cdata = m_cdataPtr[*itor];
-        id = ((cdata.x+m_offsetX) / x_size) + ((cdata.y+m_offsetY) / y_size) *y_num;
+        id = ((cdata.x+m_offsetX-m_canvas[0]) / x_size) + ((cdata.y+m_offsetY-m_canvas[2]) / y_size) *y_num;
         vec_vec_cellid[id].emplace_back(*itor);
     }
 

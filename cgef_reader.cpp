@@ -96,7 +96,7 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
         exit(2);
     }
 
-    if(m_ver_tool[1] == 6 && m_ver_tool[2] < 3)
+    if(H5Aexists(cell_dataset_id_, "blockIndex"))
     {
         hsize_t dims_attr[1];
         hid_t attr, attr_dataspace;
@@ -104,8 +104,7 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
         attr_dataspace = H5Aget_space(attr);
         H5Sget_simple_extent_dims(attr_dataspace, dims_attr, nullptr);
 
-        block_index_ = static_cast<unsigned int *>(
-                malloc(dims_attr[0] * sizeof(unsigned int)));
+        block_index_ = static_cast<unsigned int *>(malloc(dims_attr[0] * sizeof(unsigned int)));
 
         H5Aread(attr, H5T_NATIVE_UINT32, block_index_);
 
@@ -117,7 +116,16 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
     }
     else
     {
-        hid_t d_id = H5Dopen(group_id, "blockIndex", H5P_DEFAULT);
+        hid_t d_id = 0;
+        if(H5Lexists(group_id, "blockIndex", H5P_DEFAULT))
+        {
+            d_id = H5Dopen(group_id, "blockIndex", H5P_DEFAULT);
+        }
+        else if(H5Lexists(group_id, "blkidx", H5P_DEFAULT))
+        {
+            d_id = H5Dopen(group_id, "blkidx", H5P_DEFAULT);
+        }
+        
         hsize_t dims[1];
         hid_t s_id = H5Dget_space(d_id);
         H5Sget_simple_extent_dims(s_id, dims, nullptr);

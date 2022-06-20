@@ -68,7 +68,7 @@ int cgef(int argc, char *argv[]) {
     ("r,rand-celltype", "number of random cell type", cxxopts::value<int>()->default_value("0"), "INT")
     ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
-    ("p,patch", "add the patch to cgef", cxxopts::value<int>()->default_value("0"))
+    //("p,patch", "add the patch to cgef", cxxopts::value<int>()->default_value("0"))
     ("n,cnum", "top level cell num", cxxopts::value<int>()->default_value("5000"), "INT")
     ("R,ratio", "other level cell num ratio", cxxopts::value<int>()->default_value("20"), "FLOAT")
     ("a,allocat", "allocation strategy ", cxxopts::value<int>()->default_value("2"), "INT")
@@ -117,10 +117,10 @@ int cgef(int argc, char *argv[]) {
         cgefParam::GetInstance()->m_rawgemstr = result["raw-gem"].as<string>();
     }
 
-    int patch = result["patch"].as<int>();
+    //int patch = result["patch"].as<int>();
     int rand_celltype_num = result["rand-celltype"].as<int>();
     cgefParam::GetInstance()->m_inputstr = result["input-file"].as<string>();
-    cgefParam::GetInstance()->m_intype = (InputType)patch;
+    //cgefParam::GetInstance()->m_intype = (InputType)patch;
     cgefParam::GetInstance()->m_threadcnt = result["threads"].as<int>();
     
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
