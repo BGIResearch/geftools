@@ -1221,7 +1221,6 @@ void cgefCellgem::readBgef_new(const string &strinput)
     H5Tinsert(genememtype, "count", HOFFSET(Gene, count), H5T_NATIVE_UINT);
     H5Dread(gene_did, genememtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_genePtr);
     H5Tclose(genememtype);
-    H5Tclose(strtype);
     H5Sclose(gene_sid);
     H5Dclose(gene_did);
 
@@ -1297,10 +1296,11 @@ void cgefCellgem::readBgef_new(const string &strinput)
 
     hid_t f_attr = H5Aopen(file_id, "omics", H5P_DEFAULT);
     char szbuf[128]={0};
-    H5Aread(f_attr, H5T_NATIVE_CHAR, szbuf);
+    H5Aread(f_attr, strtype, szbuf);
     m_stromics.clear();
     m_stromics.append(szbuf);
     H5Aclose(f_attr);
+    H5Tclose(strtype);
 
     H5Fclose(file_id);
     printf("genecnt:%d geneExpcnt:%d hashcnt:%d\n", m_genecnt, m_geneExpcnt, m_hash_vecdnb.size());

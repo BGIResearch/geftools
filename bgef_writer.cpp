@@ -33,10 +33,10 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose, bool bexon, 
     H5Sclose(gef_dataspace_id);
     H5Aclose(gef_attr);
 
-    hsize_t kind_dims[1] = {stromics.length()};
+    hsize_t kind_dims[1] = {1};
     hid_t k_did = H5Screate_simple(1, kind_dims, nullptr);
-    hid_t k_attr = H5Acreate(file_id_, "omics", H5T_STD_U8LE, k_did, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(k_attr, H5T_NATIVE_CHAR, stromics.c_str());
+    hid_t k_attr = H5Acreate(file_id_, "omics", str32_type_, k_did, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(k_attr, str32_type_, stromics.c_str());
     H5Sclose(k_did);
     H5Aclose(k_attr);
 

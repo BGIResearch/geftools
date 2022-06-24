@@ -484,10 +484,10 @@ void CgefWriter::storeAttr(CellBinAttr & cell_bin_attr) const {
     H5Sclose(gef_dataspace_id);
     H5Aclose(gef_attr);
 
-    hsize_t kind_dims[1] = {cell_bin_attr.omics.size()};
+    hsize_t kind_dims[1] = {1};
     hid_t k_did = H5Screate_simple(1, kind_dims, nullptr);
-    hid_t k_attr = H5Acreate(file_id_, "omics", H5T_STD_U8LE, k_did, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(k_attr, H5T_NATIVE_CHAR, cell_bin_attr.omics.c_str());
+    hid_t k_attr = H5Acreate(file_id_, "omics", str32_type_, k_did, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(k_attr, str32_type_, cell_bin_attr.omics.c_str());
     H5Sclose(k_did);
     H5Aclose(k_attr);
     
