@@ -104,6 +104,7 @@ private:
     
     vector<vector<cellUnit*>> m_vec_vec_cellunit;
     unordered_map<uint16_t, geneUnit*> m_hash_geneunit; //key:gid 
+    string m_stromics{"Transcriptomics"};
 };
 
 #endif

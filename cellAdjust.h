@@ -14,12 +14,6 @@
 #include "opencv2/opencv.hpp"
 using namespace cv;
 
-struct Dnbs
-{
-    Dnbs(uint16_t gid, uint16_t cnt):geneid(gid),midcnt(cnt){};
-    uint16_t geneid;
-    uint16_t midcnt;
-};
 
 struct cellgem_label
 {
@@ -44,12 +38,16 @@ public:
     void readBgef(const string &strinput);
     void readCgef(const string &strinput);
     uint32_t getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem);
+    uint32_t getCellLabelgem_exon(vector<string> &genename, vector<cellgem_label> &vecCellgem);
     void writeCellAdjust(const string &outpath, Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
     bool addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border);
     void writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *dnbptr, unsigned int dnbcnt);
     void writeGene();
     void cgeftogem(const string &strbgef, const string &strcgef, const string &strout);
+    void cgeftogem_exon(const string &strbgef, const string &strcgef, const string &strout);
+    bool bexon(){return m_bexon;}
 private:
+    bool m_bexon = false;
     uint32_t m_genencnt;
     uint32_t m_geneexpcnt;
     uint32_t m_cellcnt;
@@ -58,6 +56,7 @@ private:
     int m_min_x, m_min_y, m_max_x, m_max_y;
     uint32_t m_resolution;
     unordered_map<uint64_t, vector<Dnbs>> m_hash_vecdnb;
+    unordered_map<uint64_t, vector<Dnbs_exon>> m_hash_vecdnb_exon;
     unordered_map<uint32_t, Rect> m_hash_cellrect;
     Mat m_fill_points;
     unsigned int m_block_size[4];

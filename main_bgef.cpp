@@ -16,34 +16,8 @@
 int test(const char *path)
 {
     timer st1("");
-    BgefReader bgef_reader(path, 20, 1);
-    Expression *ptr = bgef_reader.getExpression();
-    long num = bgef_reader.getExpressionNum();
-    st1.showgap("read expression ");
-    vector<Expression> vecexp;
-    vecexp.reserve(100000);
-    for(long i=0;i<num;i++)
-    {
-        if(ptr[i].x > 1000 && ptr[i].y<5000)
-        {
-            vecexp.push_back(ptr[i]);
-        }
-    }
-    st1.showgap("select x>1000 & y<5000 ");
-    printf("find cnt %d\n", vecexp.size());
-    
-
-    int gnum = bgef_reader.getGeneNum();
-    Gene *gptr = bgef_reader.getGene();
-    st1.showgap("read gene ");
-    for(int i=0;i<gnum;i++)
-    {
-        if(memcmp(gptr[i].gene, "Ttr", 3) == 0)
-        {
-            break;
-        }
-    }
-    st1.showgap("find Ttr");
+    BgefReader bgef_reader(path, 200, 1);
+    bgef_reader.getReduceExpression();
 
     printf("end\n");
 
@@ -67,6 +41,7 @@ int bgef(int argc, char *argv[]) {
                  cxxopts::value<std::string>()->default_value(""), "STR")
     ("t,threads", "number of threads", cxxopts::value<int>()->default_value("8"), "INT")
     ("s,stat", "create stat group", cxxopts::value<bool>()->default_value("true"))
+    ("O,omics", "input omics [request]", cxxopts::value<std::string>()->default_value("Transcriptomics"), "STR")
     ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
     ("help", "Print help");
 
@@ -86,6 +61,12 @@ int bgef(int argc, char *argv[]) {
 
     if (result.count("output-file") != 1){
         std::cout << "[ERROR] The -o,--output-file parameter must be given correctly.\n" << std::endl;
+        std::cout << options.help() << std::endl;
+        exit(1);
+    }
+
+    if (result.count("omics") != 1){
+        std::cout << "[ERROR] The -O,--omics parameter must be given correctly.\n" << std::endl;
         std::cout << options.help() << std::endl;
         exit(1);
     }
@@ -128,7 +109,7 @@ int bgef(int argc, char *argv[]) {
 
     opts->thread_ = result["threads"].as<int>();
     opts->verbose_ = result["verbose"].as<bool>();
-    
+    opts->m_stromics = result["omics"].as<string>();
 
     gem2gef(opts);
 //    generateBgef(opts.output_file, opts.input_file, opts.verbose);
@@ -137,10 +118,12 @@ int bgef(int argc, char *argv[]) {
 
 int generateBgef(const string &input_file,
                  const string &bgef_file,
+                 const string &stromics,
                  int n_thread,
                  vector<unsigned int> bin_sizes,
                  vector<int> region,
-                 bool verbose) {
+                 bool verbose,
+                 bool bstat) {
     unsigned long cprev=clock();
     BgefOptions *opts = BgefOptions::GetInstance();
     opts->input_file_ = input_file;
@@ -149,6 +132,24 @@ int generateBgef(const string &input_file,
     opts->region_ = std::move(region);
     opts->thread_ = n_thread;
     opts->verbose_ = verbose;
+    opts->m_stromics = stromics;
+
+    bool b100 = false;
+    for(int bin : opts->bin_sizes_)
+    {
+        if(bin == 100)
+        {
+            b100 = true; //用户指定了bin100
+            opts->m_stattype = 2;
+            break;
+        }
+    }
+    if(!b100 && bstat) //用户没有指定bin100，但是需要生成stat
+    {
+        opts->bin_sizes_.emplace_back(100);
+        opts->m_stattype = 1;
+    }
+    
     gem2gef(opts);
     if(verbose) printCpuTime(cprev, "generateBgef");
     return 0;
@@ -199,7 +200,7 @@ void gem2gef(BgefOptions *opts)
     opts->m_genes_queue.init(opts->map_gene_exp_.size());
     ThreadPool thpool(opts->thread_ * 2);
 
-    BgefWriter bgef_writer(opts->output_file_, opts->verbose_, opts->m_bexon);
+    BgefWriter bgef_writer(opts->output_file_, opts->verbose_, opts->m_bexon, opts->m_stromics);
     bgef_writer.setResolution(resolution);
     
     int genecnt = 0;
@@ -543,7 +544,21 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
             }
         }
     }
-    dnbM.dnb_attr.max_mid = Boxplot(vec_mid);
+
+    int sz = vec_mid.size();
+    sort(vec_mid.begin(), vec_mid.end(), [](const unsigned int a, const unsigned int b){return a<b;});
+    if(bin > 50)
+    {
+        //printf("%d\n", vec_mid[sz-1]);
+        dnbM.dnb_attr.max_mid = vec_mid[sz-1];
+    }
+    else
+    {
+        int limit = sz*0.999;
+        //printf("%d %d %d %d \n", sz, limit, vec_mid[sz-1], vec_mid[limit]);
+        dnbM.dnb_attr.max_mid = vec_mid[limit];
+    }
+    
     dnbM.dnb_attr.number = number;
     bgef_writer.storeDnb(dnbM, bin);
     bgef_writer.storeWholeExon(dnbM, bin);

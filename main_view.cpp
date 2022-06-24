@@ -4,47 +4,10 @@
 
 #include "main_view.h"
 #include "cxxopts.h"
-#include "cellAdjust.h"
-int test1(const char *path)
-{
-    CgefReader cgef_reader = CgefReader(path, true);
-    int cellnum = cgef_reader.getCellNum();
-    short *ptr = cgef_reader.getCellBorders(true, 0);
-
-    
-    // CellData *arryptr = cgef_reader.getCell();
-    // int cellnum = cgef_reader.getCellNum();
-    // for(int i=0;i<cellnum;i++)
-    // {
-    //     if(arryptr[i].gene_count == 0)
-    //     {
-    //         printf("%d\n", i);
-    //     }
-    // }
-
-    printf("end\n");
-    return 0;
-}
-int test2()
-{
-    BgefReader bgef_reader("/ldfssz1/ST_BI/USER/zhaozijian/geftool/build/FP200000364TL_D1.raw.gef",1);
-    Expression *arrptr = bgef_reader.getExpression();
-    int num = bgef_reader.getExpressionNum();
-    int kk = 0;
-    for(int i=0;i<num;i++)
-    {
-        if(arrptr[i].x >= 8857 && arrptr[i].x < 8866  &&
-        arrptr[i].y >= 9071 && arrptr[i].y < 9080)
-        {
-            kk++;
-        }
-    }
-    printf("%d\n",kk);
-    return 0;
-}
+#include "geftogem.h"
 
 int view(int argc, char *argv[]) {
-    //return test1();
+
     cxxopts::Options options("geftools view",
                              "About:  Show the contents of cell bin GEF\n");
     //TODO support restrict gene_list and region for bGEF 
@@ -52,23 +15,24 @@ int view(int argc, char *argv[]) {
         .set_width(120)
         .add_options()
             ("i,input-file", "Input bGEF/cGEF file [request]", cxxopts::value<std::string>(), "FILE")
-            ("o,output-gem", "Output gem file",
+            ("o,output-gem", "Output gem file ",
                     cxxopts::value<std::string>()->default_value("stdout"), "FILE")
-           ("d,data", "get gene exp data",
+           ("d,exp_data", "Input bgef for cgem",
                    cxxopts::value<std::string>()->default_value(""), "FILE")
-            ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
-                         "of two vertex coordinates (minX,maxX,minY,maxY). just support cGEF.",
-                         cxxopts::value<std::string>()->default_value(""), "STR")
-            ("g,genes", "Comma separated list of genes to include (or exclude with \"^\" prefix). just support cGEF.",
-                    cxxopts::value<std::string>(), "[^]STR")
-            ("G,genes-file", "File of genes to include (or exclude with \"^\" prefix)). just support cGEF.",
-                    cxxopts::value<std::string>(), "[^]FILE")
-            ("force-genes", "Only warn about unknown subset genes, just support cGEF.",
-                    cxxopts::value<bool>()->default_value("false"))
+            // ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
+            //              "of two vertex coordinates (minX,maxX,minY,maxY). just support cGEF.",
+            //              cxxopts::value<std::string>()->default_value(""), "STR")
+            // ("g,genes", "Comma separated list of genes to include (or exclude with \"^\" prefix). just support cGEF.",
+            //         cxxopts::value<std::string>(), "[^]STR")
+            // ("G,genes-file", "File of genes to include (or exclude with \"^\" prefix)). just support cGEF.",
+            //         cxxopts::value<std::string>(), "[^]FILE")
+            // ("force-genes", "Only warn about unknown subset genes, just support cGEF.",
+            //         cxxopts::value<bool>()->default_value("false"))
             ("b,bin-size", "Set bin size for bgef file, just support bGEF.", cxxopts::value<int>()->default_value("1"), "INT")
-            ("s,serial-number", "Serial number", cxxopts::value<std::string>(), "STR")
+            ("s,serial-number", "Serial number [request]", cxxopts::value<std::string>(), "STR")
 //            ("t,threads", "number of threads", cxxopts::value<int>()->default_value("1"), "INT")
-            ("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+            //("v,verbose", "Verbose output", cxxopts::value<bool>()->default_value("false"))
+            ("e,exon", "whether or not output exon", cxxopts::value<int>()->default_value("1"), "INT")
             ("help", "Print help");
 
     auto result = options.parse(argc, argv);
@@ -89,7 +53,31 @@ int view(int argc, char *argv[]) {
         std::cerr << options.help() << std::endl;
         exit(1);
     }
+    // if(result.count("output-gem") != 1)
+    // {
+    //     std::cerr << "[ERROR] The -o,--output-gem parameter must be given correctly.\n" << std::endl;
+    //     std::cerr << options.help() << std::endl;
+    //     exit(1);
+    // }
+    bool boutexon = result["exon"].as<int>();
+    string strin = result["input-file"].as<string>();
     string snstr = result["serial-number"].as<string>();
+    string strout = result["output-gem"].as<string>();
+    
+
+    geftogem gem(strout, snstr, boutexon);
+    if(is_bgef(strin))
+    {
+        gem.bgeftogem(strin);
+    }
+    else
+    {
+        string strexp = result["exp_data"].as<string>();
+        gem.cgeftogem(strin, strexp);
+    }
+    
+    return 0;
+
     ViewOptions viewopts;
 
     viewopts.input_file = result["input-file"].as<string>();
@@ -150,19 +138,16 @@ int view(int argc, char *argv[]) {
         bgef_reader.toGem(viewopts.output_gem, snstr);
     }else{
 
-        // CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
+        CgefReader cgef_reader = CgefReader(viewopts.input_file, viewopts.verbose);
 
-        // if(viewopts.restrict_region){
-        //     cgef_reader.restrictRegion(viewopts.region[0],
-        //                                viewopts.region[1],
-        //                                viewopts.region[2],
-        //                                viewopts.region[3]);
-        // }
+        if(viewopts.restrict_region){
+            cgef_reader.restrictRegion(viewopts.region[0],
+                                       viewopts.region[1],
+                                       viewopts.region[2],
+                                       viewopts.region[3]);
+        }
 
-        // cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
-        
-        cellAdjust ca;
-        ca.cgeftogem(strdata, viewopts.input_file, viewopts.output_gem);
+        cgef_reader.toGem(viewopts.output_gem, viewopts.genes, viewopts.force_genes, viewopts.exclude);
     }
 
     if(viewopts.verbose){
@@ -171,8 +156,4 @@ int view(int argc, char *argv[]) {
     }
 
     return 0;
-}
-
-void toGem(){
-
 }

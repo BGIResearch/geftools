@@ -108,7 +108,7 @@ public:
             }
         }
         
-        for(;i<BORDERCNT;i++) //不足补0
+        for(;i<BORDERCNT;i++) //不足补SHRT_MAX
         {
             cptr->m_vecborder.emplace_back(SHRT_MAX);
             cptr->m_vecborder.emplace_back(SHRT_MAX);

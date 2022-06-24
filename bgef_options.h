@@ -54,6 +54,7 @@ public:
     std::vector<Gene> genes_;
     int offset_x_ = 0; // offset of coordinate
     int offset_y_ = 0;
+    string m_stromics; //物种组别
 };
 
 #endif //GENETOH5_COMMANDPARSE_H

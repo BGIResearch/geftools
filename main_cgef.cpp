@@ -117,10 +117,8 @@ int cgef(int argc, char *argv[]) {
         cgefParam::GetInstance()->m_rawgemstr = result["raw-gem"].as<string>();
     }
 
-    //int patch = result["patch"].as<int>();
     int rand_celltype_num = result["rand-celltype"].as<int>();
     cgefParam::GetInstance()->m_inputstr = result["input-file"].as<string>();
-    //cgefParam::GetInstance()->m_intype = (InputType)patch;
     cgefParam::GetInstance()->m_threadcnt = result["threads"].as<int>();
     
     vector<string> block_size_tmp = split(result["block"].as<string>(), ',');
@@ -188,34 +186,6 @@ int generateCgef(const string &cgef_file,
                  int rand_celltype_num,
                  bool verbose) {
     unsigned long cprev=clock();
-    // if(!cgef_file.empty()) //从bgef生成cgef
-    // {
-        // BgefReader common_bin_gef = BgefReader(bgef_file, 1, true);
-        // ExpressionAttr expression_attr = common_bin_gef.getExpressionAttr();
-
-        // unsigned int mask_size[2]; // rows, cols
-        // mask_size[0] = expression_attr.max_y - expression_attr.min_y + 1;
-        // mask_size[1] = expression_attr.max_x - expression_attr.min_x + 1;
-
-        // Mask mask(mask_file, block_size, mask_size);
-        // if(verbose) cprev = printCpuTime(cprev, "Mask init");
-        // cout << "The number of cells (from mask file): " << mask.getCellNum() << endl;
-        // CgefWriter cgef_writer1;
-        // cgef_writer1.setOutput(cgef_file);
-        // cgef_writer1.setRandomCellTypeNum(rand_celltype_num);
-        // cgef_writer1.write(common_bin_gef, mask);
-        // return 0;
-    //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
-    // }
-    // else //为cgef 添加level层次
-    // {
-    //     CgefWriter cgef_writer = CgefWriter(true);
-    //     cgef_writer.setInput(bgef_file);
-    //     cgef_writer.addLevel(allocat, cellnum, ratio, canvas_size, limit_blk);
-    // }
-
-// string str(cgef_file);
-// str.append("_tk");
     CgefWriter cgef_writer(verbose);
     cgef_writer.setOutput(cgef_file);
     cgef_writer.setRandomCellTypeNum(rand_celltype_num);

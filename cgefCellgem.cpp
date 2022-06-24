@@ -303,7 +303,7 @@ void cgefCellgem::readgem_5mask()
     }
 
     CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,
-                cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y};
+                cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y, m_stromics};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -336,7 +336,7 @@ void cgefCellgem::readgem_5()
     m_min_y = cgefParam::GetInstance()->m_min_y;
     m_max_x = cgefParam::GetInstance()->m_max_x;
     m_max_y = cgefParam::GetInstance()->m_max_y;
-    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,0,0};
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,0,0, m_stromics};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -362,7 +362,7 @@ void cgefCellgem::readgem_6mask()
     }
 
     CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,
-            cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y};
+            cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y, m_stromics};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -396,7 +396,7 @@ void cgefCellgem::readgem_6()
     m_max_x = cgefParam::GetInstance()->m_max_x;
     m_max_y = cgefParam::GetInstance()->m_max_y;
 
-    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0};
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0, m_stromics};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -430,7 +430,7 @@ void cgefCellgem::readgem_6type()
     m_max_x = cgefParam::GetInstance()->m_max_x;
     m_max_y = cgefParam::GetInstance()->m_max_y;
 
-    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0};
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0, m_stromics};
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
@@ -440,7 +440,8 @@ void cgefCellgem::writeAttr()
             .version = 2,
             .resolution = cgefParam::GetInstance()->m_resolution,
             .offsetX = 0,
-            .offsetY = 0
+            .offsetY = 0,
+            .omics = m_stromics
     };
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
@@ -1277,23 +1278,30 @@ void cgefCellgem::readBgef_new(const string &strinput)
     }
     free(m_expPtr);
     hid_t attr = H5Aopen(exp_did, "minX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_min_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_min_x));
     attr = H5Aopen(exp_did, "minY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_min_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_min_y));
     attr = H5Aopen(exp_did, "maxX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_max_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_max_x));
     attr = H5Aopen(exp_did, "maxY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_max_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_max_y));
     attr = H5Aopen(exp_did, "resolution", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_resolution));
     printf("minx:%d miny:%d maxx:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, 
     cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_x,
     cgefParam::GetInstance()->m_max_y);
-
     H5Aclose(attr);
     H5Tclose(memtype);
     H5Sclose(exp_sid);
     H5Dclose(exp_did);
+
+    hid_t f_attr = H5Aopen(file_id, "omics", H5P_DEFAULT);
+    char szbuf[128]={0};
+    H5Aread(f_attr, H5T_NATIVE_CHAR, szbuf);
+    m_stromics.clear();
+    m_stromics.append(szbuf);
+    H5Aclose(f_attr);
+
     H5Fclose(file_id);
     printf("genecnt:%d geneExpcnt:%d hashcnt:%d\n", m_genecnt, m_geneExpcnt, m_hash_vecdnb.size());
 }

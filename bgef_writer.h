@@ -26,7 +26,7 @@ class BgefWriter {
     bool verbose_ = false;
     bool m_bexon = false;
   public:
-    BgefWriter(const string& output_filename, bool verbose, bool bexon);
+    BgefWriter(const string& output_filename, bool verbose, bool bexon, const string& stromics);
     ~BgefWriter();
 
     bool storeGene(vector<Expression> &exps, vector<Gene> &genes, DnbAttr &dnbAttr, unsigned int maxexp, int binsize);
