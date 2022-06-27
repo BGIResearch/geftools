@@ -25,21 +25,85 @@ cgefCellgem::~cgefCellgem()
     delete m_thpoolPtr;
 }
 
+void cgefCellgem::gemPreAnalysis(const string &strmask, const string &strinput)
+{
+    if(H5Fis_hdf5(strinput.c_str()))
+    {
+        cgefParam::GetInstance()->m_intype = INPUTTYPE_BGEF_MASK;
+        return;
+    }
+
+    cgefParam::GetInstance()->m_infile = gzopen(strinput.c_str(), "r");
+    gzbuffer(cgefParam::GetInstance()->m_infile, READLEN);
+
+    char buf[128] = {0};
+    while (1)
+    {
+        gzgets(cgefParam::GetInstance()->m_infile, buf, 128);
+        if(memcmp(buf, "geneID", 6) == 0)
+        {
+            break;
+        }
+    }
+    
+    int col = 1;
+    int i = 0;
+    while (buf[i] != 0)
+    {
+        if(buf[i] == '\t')
+        {
+            col++;
+        }
+        i++;
+    }
+    printf("%s %d\n", buf, col);
+    if(col == 4)
+    {
+        cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_MASK;
+    }
+    else if(col == 5)
+    {
+        if(strmask.empty())
+        {
+            cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_5;
+        }
+        else
+        {
+            cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_5MASK;
+        }
+    }
+    else if(col == 6)
+    {
+        if(strmask.empty())
+        {
+            string str(buf);
+            if(str.find("areaID") != string::npos)
+            {
+                cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_6TYPE;
+            }
+            else
+            {
+                cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_6;
+            }
+        }
+        else
+        {
+            cgefParam::GetInstance()->m_intype = INPUTTYPE_GEM_6MASK;
+        }
+    }
+}
+
 void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const string &strinput, const string &strrawgem)
 {
     m_cgefwPtr = cwptr;
-
+    if(!strrawgem.empty())
+    {
+        readxy(strrawgem);
+    }
+    gemPreAnalysis(strmask, strinput);
     switch (cgefParam::GetInstance()->m_intype)
     {
     case INPUTTYPE_BGEF_MASK:
-        // readBgef(strinput);
-        // readmask(strmask);
-        // m_cgefwPtr->m_x_len = m_cols;
-        // m_cgefwPtr->m_y_len = m_rows;
-        // writeAttr();
-        // clabeltocid();
-        // writeGene_bgef();
-        // writeCell_raw();
         readBgef_new(strinput);
         readmask_new(strmask);
         writeAttr();
@@ -48,46 +112,40 @@ void cgefCellgem::writeFile(CgefWriter *cwptr, const string &strmask, const stri
         writeGene_new();
         break;
     case INPUTTYPE_GEM_MASK:
-        readcellgem(strinput);
-        readmask(strmask);
-        m_cgefwPtr->m_x_len = m_cols;
-        m_cgefwPtr->m_y_len = m_rows;
-        writeAttr();
-        clabeltocid();
-        writeGene_raw();
-        writeCell_raw();
+        // readgem_4mask(strinput);
+        // readmask(strmask);
+        // writeAttr();
+        // clabeltocid();
+        // writeGene_raw();
+        // writeCell_raw();
         break;
-    case INPUTTYPE_GEM_TAGMASK:
-        readxy(strrawgem);
+    case INPUTTYPE_GEM_5MASK:
         readmask(strmask);
-        m_cgefwPtr->m_x_len = m_cols;
-        m_cgefwPtr->m_y_len = m_rows;
-        readcellgem(strinput);
-        writeAttr();
+        readgem_5mask();
         writeCell();
         writeGene();
         break;
-    case INPUTTYPE_GEM_LABELMASK:
-        readxy(strrawgem);
+    case INPUTTYPE_GEM_6MASK:
         readmask(strmask);
-        m_cgefwPtr->m_x_len = m_cols;
-        m_cgefwPtr->m_y_len = m_rows;
-        readcellgem(strinput);
-        writeAttr();
+        readgem_6mask();
         writeCell();
         writeGene();
         break;
-    case INPUTTYPE_GEM_AREAID:
-        readcellgem(strinput);
-        writeAttr();
-        getCelldata_celltype();
+    case INPUTTYPE_GEM_5:
+        readgem_5();
+        getCelldata();
         writeCell_celltype();
         writeGene();
         break;
-    case INPUTTYPE_GEM_CELL:
-        readcellgem(strinput);
-        writeAttr();
+    case INPUTTYPE_GEM_6:
+        readgem_6();
         getCelldata();
+        writeCell_celltype();
+        writeGene();
+        break;
+    case INPUTTYPE_GEM_6TYPE:
+        readgem_6type();
+        getCelldata_celltype();
         writeCell_celltype();
         writeGene();
         break;
@@ -116,6 +174,9 @@ void cgefCellgem::readmask(const string &strmask)
     m_rows = img.rows;
     m_cols = img.cols;
     printf("img row:%d col:%d\n", m_rows, m_cols);
+    printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
+                                        cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
+
     assert(m_rows == cgefParam::GetInstance()->m_max_y - cgefParam::GetInstance()->m_min_y+1);
     assert(m_cols == cgefParam::GetInstance()->m_max_x - cgefParam::GetInstance()->m_min_x+1);
 
@@ -180,10 +241,14 @@ void cgefCellgem::readxy(const string &strrawgem)
     cgefParam::GetInstance()->m_infile = gzopen(strrawgem.c_str(), "r");
     gzbuffer(cgefParam::GetInstance()->m_infile, READLEN);
 
-    std::string line;
-    while (readline(cgefParam::GetInstance()->m_infile, line))
+    char buf[128] = {0};
+    while (1)
     {
-        if (line.substr(0, 6) == "geneID") break;
+        gzgets(cgefParam::GetInstance()->m_infile, buf, 128);
+        if(memcmp(buf, "geneID", 6) == 0)
+        {
+            break;
+        }
     }
 
     for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
@@ -193,63 +258,62 @@ void cgefCellgem::readxy(const string &strrawgem)
     }
     m_thpoolPtr->waitTaskDone();
     gzclose(cgefParam::GetInstance()->m_infile);
-    printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
-                                        cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
-
 }
 
-
-void cgefCellgem::readcellgem(const string &strinput)
+void cgefCellgem::readgem_4mask()
 {
     timer st(__FUNCTION__);
-    cgefParam::GetInstance()->m_infile = gzopen(strinput.c_str(), "r");
-    gzbuffer(cgefParam::GetInstance()->m_infile, READLEN);
-
-    std::string line;
-    while (readline(cgefParam::GetInstance()->m_infile, line))
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
     {
-        if (line.substr(0, 6) == "geneID") break;
+        readCellgemTask *rtask = new readCellgemTask_raw();
+        m_thpoolPtr->addTask(rtask);
     }
 
-    switch (cgefParam::GetInstance()->m_intype)
+    m_thpoolPtr->waitTaskDone();
+    gzclose(cgefParam::GetInstance()->m_infile);
+
+    printf("genecnt:%ld \n", cgefParam::GetInstance()->m_map_bgene.size());
+    auto itor = cgefParam::GetInstance()->m_map_bgene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_bgene.end();itor++)
     {
-    case INPUTTYPE_GEM_MASK:
-        for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
-        {
-            readCellgemTask *rtask = new readCellgemTask_raw();
-            m_thpoolPtr->addTask(rtask);
-        }
-        break;
-    case INPUTTYPE_GEM_TAGMASK:
-        for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
-        {
-            readCellgemTask *rtask = new readCellgemTask_tag();
-            m_thpoolPtr->addTask(rtask);
-        }
-        break;
-    case INPUTTYPE_GEM_LABELMASK:
-        for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
-        {
-            readCellgemTask *rtask = new readCellgemTask_labelmask();
-            m_thpoolPtr->addTask(rtask);
-        }
-        break;
-    case INPUTTYPE_GEM_AREAID:
-        for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
-        {
-            readCellgemTask *rtask = new readCellgemTask_areaID();
-            m_thpoolPtr->addTask(rtask);
-        }
-        break;
-    case INPUTTYPE_GEM_CELL:
-        for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
-        {
-            readCellgemTask *rtask = new readCellgemTask_cell();
-            m_thpoolPtr->addTask(rtask);
-        }
-        break;
-    default:
-        printf("err intype %d\n", cgefParam::GetInstance()->m_intype);
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
+    }
+}
+
+void cgefCellgem::readgem_5mask()
+{
+    timer st(__FUNCTION__);
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        readCellgemTask *rtask = new readCellgemTask_5_mask();
+        m_thpoolPtr->addTask(rtask);
+    }
+    m_thpoolPtr->waitTaskDone();
+    gzclose(cgefParam::GetInstance()->m_infile);
+
+    printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
+                        cgefParam::GetInstance()->m_map_gene.size());
+
+    auto itor = cgefParam::GetInstance()->m_map_gene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
+    {
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
+    }
+
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,
+                cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y, m_stromics};
+    m_cgefwPtr->storeAttr(cell_bin_attr);
+}
+
+void cgefCellgem::readgem_5()
+{
+    timer st(__FUNCTION__);
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        readCellgemTask *rtask = new readCellgemTask_5();
+        m_thpoolPtr->addTask(rtask);
     }
 
     m_thpoolPtr->waitTaskDone();
@@ -258,29 +322,116 @@ void cgefCellgem::readcellgem(const string &strinput)
     printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
                                         cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
 
+    printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
+                        cgefParam::GetInstance()->m_map_gene.size());
 
-    if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_MASK)
+    auto itor = cgefParam::GetInstance()->m_map_gene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
     {
-        printf("genecnt:%ld \n", cgefParam::GetInstance()->m_map_bgene.size());
-        auto itor = cgefParam::GetInstance()->m_map_bgene.begin();
-        int idx = 0;
-        for(;itor!=cgefParam::GetInstance()->m_map_bgene.end();itor++)
-        {
-            m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
-        }
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
     }
-    else
-    {
-        printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
-                            cgefParam::GetInstance()->m_map_gene.size());
 
-        auto itor = cgefParam::GetInstance()->m_map_gene.begin();
-        int idx = 0;
-        for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
-        {
-            m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
-        }
+    m_min_x = cgefParam::GetInstance()->m_min_x;
+    m_min_y = cgefParam::GetInstance()->m_min_y;
+    m_max_x = cgefParam::GetInstance()->m_max_x;
+    m_max_y = cgefParam::GetInstance()->m_max_y;
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,0,0, m_stromics};
+    m_cgefwPtr->storeAttr(cell_bin_attr);
+}
+
+void cgefCellgem::readgem_6mask()
+{
+    timer st(__FUNCTION__);
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        readCellgemTask *rtask = new readCellgemTask_6_mask();
+        m_thpoolPtr->addTask(rtask);
     }
+    m_thpoolPtr->waitTaskDone();
+    gzclose(cgefParam::GetInstance()->m_infile);
+
+    printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
+                        cgefParam::GetInstance()->m_map_gene.size());
+
+    auto itor = cgefParam::GetInstance()->m_map_gene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
+    {
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
+    }
+
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution,
+            cgefParam::GetInstance()->m_min_x,cgefParam::GetInstance()->m_min_y, m_stromics};
+    m_cgefwPtr->storeAttr(cell_bin_attr);
+}
+
+void cgefCellgem::readgem_6()
+{
+    timer st(__FUNCTION__);
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        readCellgemTask *rtask = new readCellgemTask_6();
+        m_thpoolPtr->addTask(rtask);
+    }
+
+    m_thpoolPtr->waitTaskDone();
+    gzclose(cgefParam::GetInstance()->m_infile);
+
+    printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
+                                        cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
+
+    printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
+                        cgefParam::GetInstance()->m_map_gene.size());
+
+    auto itor = cgefParam::GetInstance()->m_map_gene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
+    {
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
+    }
+
+    m_min_x = cgefParam::GetInstance()->m_min_x;
+    m_min_y = cgefParam::GetInstance()->m_min_y;
+    m_max_x = cgefParam::GetInstance()->m_max_x;
+    m_max_y = cgefParam::GetInstance()->m_max_y;
+
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0, m_stromics};
+    m_cgefwPtr->storeAttr(cell_bin_attr);
+}
+
+void cgefCellgem::readgem_6type()
+{
+    timer st(__FUNCTION__);
+    for(int i=0;i<cgefParam::GetInstance()->m_threadcnt;i++)
+    {
+        readCellgemTask *rtask = new readCellgemTask_6_type();
+        m_thpoolPtr->addTask(rtask);
+    }
+
+    m_thpoolPtr->waitTaskDone();
+    gzclose(cgefParam::GetInstance()->m_infile);
+
+    printf("minx:%d maxx:%d miny:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_max_x,
+                                        cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_y);
+
+    printf("cellcnt:%ld genecnt:%ld \n", cgefParam::GetInstance()->m_map_cell.size(), 
+                        cgefParam::GetInstance()->m_map_gene.size());
+
+    auto itor = cgefParam::GetInstance()->m_map_gene.begin();
+    int idx = 0;
+    for(;itor!=cgefParam::GetInstance()->m_map_gene.end();itor++)
+    {
+        m_hash_gname2gid.emplace(itor->first, idx++);//gname到geneid的映射
+    }
+
+    m_min_x = cgefParam::GetInstance()->m_min_x;
+    m_min_y = cgefParam::GetInstance()->m_min_y;
+    m_max_x = cgefParam::GetInstance()->m_max_x;
+    m_max_y = cgefParam::GetInstance()->m_max_y;
+
+    CellBinAttr cell_bin_attr = {2, cgefParam::GetInstance()->m_resolution, 0, 0, m_stromics};
+    m_cgefwPtr->storeAttr(cell_bin_attr);
 }
 
 void cgefCellgem::writeAttr()
@@ -288,8 +439,9 @@ void cgefCellgem::writeAttr()
     CellBinAttr cell_bin_attr = {
             .version = 2,
             .resolution = cgefParam::GetInstance()->m_resolution,
-            .offsetX = cgefParam::GetInstance()->m_min_x,
-            .offsetY = cgefParam::GetInstance()->m_min_y
+            .offsetX = 0,
+            .offsetY = 0,
+            .omics = m_stromics
     };
     m_cgefwPtr->storeAttr(cell_bin_attr);
 }
@@ -333,7 +485,7 @@ void cgefCellgem::writeCell()
     timer st(__FUNCTION__);
     unsigned int cid = 0, gid = 0, offcnt = 0; 
     unsigned short gene_count, exp_count, dnb_count, area, cell_type_id;
-
+    uint16_t maxExpmid = 0;
     int cx, cy; //细胞质点
     vector<short> vec_border;
     vec_border.reserve(m_maskcellnum*2*BORDERCNT);
@@ -365,6 +517,7 @@ void cgefCellgem::writeCell()
             {
                 gid = m_hash_gname2gid[itor->first];
                 m_cgefwPtr->cell_exp_list_.emplace_back(gid, itor->second);
+                maxExpmid = std::max(maxExpmid, itor->second);
             }
 
             area = m_stats.at<int>(cdata.l_idx, CC_STAT_AREA);
@@ -414,7 +567,7 @@ void cgefCellgem::writeCell()
     vec_blkidx.emplace_back(cid);
     
     m_cgefwPtr->cell_num_ = cid;
-
+    m_cgefwPtr->max_mid_count_ = maxExpmid;
     int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
 
@@ -440,6 +593,7 @@ void cgefCellgem::writeGene()
     auto itor = cgefParam::GetInstance()->m_map_gene.begin();
     for(;itor != cgefParam::GetInstance()->m_map_gene.end();itor++,i++)
     {
+        max_MID_count = 0;
         cgef_gene *geneptr = itor->second;
         auto itor_g = geneptr->m_map_geneexp.begin();
         for(;itor_g != geneptr->m_map_geneexp.end();itor_g++)
@@ -507,8 +661,8 @@ void cgefCellgem::getCelldata_celltype()
 {
     timer st(__FUNCTION__);
     
-    m_rows = cgefParam::GetInstance()->m_max_y - cgefParam::GetInstance()->m_min_y+1;
-    m_cols = cgefParam::GetInstance()->m_max_x - cgefParam::GetInstance()->m_min_x+1;
+    m_rows = cgefParam::GetInstance()->m_max_y+1;
+    m_cols = cgefParam::GetInstance()->m_max_x+1;
     m_cgefwPtr->m_x_len = m_cols;
     m_cgefwPtr->m_y_len = m_rows;
 
@@ -529,7 +683,7 @@ void cgefCellgem::getCelldata_celltype()
     auto itor = cgefParam::GetInstance()->m_map_cell.begin();
     for(;itor != cgefParam::GetInstance()->m_map_cell.end();itor++)
     {
-        ret = itor->second->getCenter_median(m_block_size, cgefParam::GetInstance()->m_min_x, cgefParam::GetInstance()->m_min_y);
+        ret = itor->second->getCenter_median(m_block_size, 0, 0);
         if(!ret) continue;
         m_vec_veccell[itor->second->m_blkid].emplace_back(0, itor->first); //没有连通域
         assert(itor->first == itor->second->m_celllabel);
@@ -549,7 +703,7 @@ void cgefCellgem::writeCell_celltype()
     timer st(__FUNCTION__);
     unsigned int cid = 0, gid = 0, offcnt = 0; 
     unsigned short gene_count, exp_count, dnb_count, area, cell_type_id;
-
+    uint16_t maxExpmid = 0;
     int cx, cy; //细胞质点
     vector<unsigned int> vec_blkidx;
     vec_blkidx.reserve(m_blocknum+1);
@@ -594,6 +748,7 @@ void cgefCellgem::writeCell_celltype()
             {
                 gid = m_hash_gname2gid[itor->first];
                 m_cgefwPtr->cell_exp_list_.emplace_back(gid, itor->second);
+                maxExpmid = std::max(maxExpmid, itor->second);
             }
 
             area = cellptr->m_area;
@@ -650,13 +805,13 @@ void cgefCellgem::writeCell_celltype()
     vec_blkidx.emplace_back(cid);
     
     m_cgefwPtr->cell_num_ = cid;
-
+    m_cgefwPtr->max_mid_count_ = maxExpmid;
     int effective_rect[4] ={m_min_x, m_min_y, m_max_x, m_max_y};
     m_cgefwPtr->storeCellBorderWithAttr(vec_border.data(), cid, effective_rect);
 
     m_cgefwPtr->storeCell(m_blocknum, vec_blkidx.data(), m_block_size);
     m_cgefwPtr->storeCellExp();
-    if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_AREAID)
+    if(cgefParam::GetInstance()->m_intype == INPUTTYPE_GEM_6TYPE)
     {
         m_cgefwPtr->storeCellTypeList_N();
     }
@@ -1066,7 +1221,6 @@ void cgefCellgem::readBgef_new(const string &strinput)
     H5Tinsert(genememtype, "count", HOFFSET(Gene, count), H5T_NATIVE_UINT);
     H5Dread(gene_did, genememtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_genePtr);
     H5Tclose(genememtype);
-    H5Tclose(strtype);
     H5Sclose(gene_sid);
     H5Dclose(gene_did);
 
@@ -1123,23 +1277,31 @@ void cgefCellgem::readBgef_new(const string &strinput)
     }
     free(m_expPtr);
     hid_t attr = H5Aopen(exp_did, "minX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_min_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_min_x));
     attr = H5Aopen(exp_did, "minY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_min_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_min_y));
     attr = H5Aopen(exp_did, "maxX", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_max_x));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_max_x));
     attr = H5Aopen(exp_did, "maxY", H5P_DEFAULT);
-    H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_max_y));
+    H5Aread(attr, H5T_NATIVE_INT, &(cgefParam::GetInstance()->m_max_y));
     attr = H5Aopen(exp_did, "resolution", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &(cgefParam::GetInstance()->m_resolution));
     printf("minx:%d miny:%d maxx:%d maxy:%d\n", cgefParam::GetInstance()->m_min_x, 
     cgefParam::GetInstance()->m_min_y, cgefParam::GetInstance()->m_max_x,
     cgefParam::GetInstance()->m_max_y);
-
     H5Aclose(attr);
     H5Tclose(memtype);
     H5Sclose(exp_sid);
     H5Dclose(exp_did);
+
+    hid_t f_attr = H5Aopen(file_id, "omics", H5P_DEFAULT);
+    char szbuf[128]={0};
+    H5Aread(f_attr, strtype, szbuf);
+    m_stromics.clear();
+    m_stromics.append(szbuf);
+    H5Aclose(f_attr);
+    H5Tclose(strtype);
+
     H5Fclose(file_id);
     printf("genecnt:%d geneExpcnt:%d hashcnt:%d\n", m_genecnt, m_geneExpcnt, m_hash_vecdnb.size());
 }

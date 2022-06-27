@@ -47,7 +47,7 @@ class BgefReader {
     void openExpressionSpace(int bin_size);
     void openGeneSpace(int bin_size);
     void openWholeExpSpace();
-    Gene *getGene();
+    
     void buildCellInfo();
     void buildCellInfo2();
 
@@ -58,7 +58,7 @@ class BgefReader {
     int getBinSize() const;
     unsigned short getGeneNum() const;
     unsigned int getCellNum();
-
+    Gene *getGene();
     /**
      * @brief Get the number of expression.
      */

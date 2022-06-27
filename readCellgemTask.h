@@ -97,6 +97,45 @@ public:
     int getInfo();
 };
 
+//-------------------------------------------
+class readCellgemTask_5_mask:public readCellgemTask
+{
+public:
+    readCellgemTask_5_mask(){};
+    ~readCellgemTask_5_mask(){};
+    int getInfo();
+};
 
+class readCellgemTask_6_mask:public readCellgemTask
+{
+public:
+    readCellgemTask_6_mask(){};
+    ~readCellgemTask_6_mask(){};
+    int getInfo();
+};
+
+class readCellgemTask_5:public readCellgemTask
+{
+public:
+    readCellgemTask_5(){};
+    ~readCellgemTask_5(){};
+    int getInfo();
+};
+
+class readCellgemTask_6:public readCellgemTask
+{
+public:
+    readCellgemTask_6(){};
+    ~readCellgemTask_6(){};
+    int getInfo();
+};
+
+class readCellgemTask_6_type:public readCellgemTask
+{
+public:
+    readCellgemTask_6_type(){};
+    ~readCellgemTask_6_type(){};
+    int getInfo();
+};
 
 #endif

@@ -985,6 +985,26 @@ Expression *BgefReader::getReduceExpression() {
         reduce_expressions_[cell_indices_[i]].count += expressions_[i].count;
     }
     return reduce_expressions_;
+    // if(expressions_ == nullptr) getExpression();
+    // map<uint64_t, uint32_t> hash_cell;
+    // uint64_t lid = 0;
+    // for(unsigned int i = 0; i < expression_num_; i++)
+    // {
+    //     lid = expressions_[i].x;
+    //     lid = lid <<32 | expressions_[i].y;
+    //     hash_cell[lid] += expressions_[i].count;
+    // }
+
+    // Expression *treduce_expressions_ = (Expression *)calloc(hash_cell.size(), sizeof(Expression));
+    // auto itor = hash_cell.begin();
+    // uint32_t i = 0;
+    // for(;itor!=hash_cell.end();itor++,i++)
+    // {
+    //     treduce_expressions_[i].x = itor->first>>32;
+    //     treduce_expressions_[i].y = itor->first & 0xffffffff;
+    //     treduce_expressions_[i].count = itor->second;
+    // }
+    // return treduce_expressions_;
 }
 
 

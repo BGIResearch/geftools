@@ -36,7 +36,7 @@ public:
     ~cgefCellgem();
     void readmask(const string &strmask);
     void readxy(const string &strrawgem);
-    void readcellgem(const string &strinput);
+    //void readcellgem(const string &strinput);
     void writeFile(CgefWriter *cwptr, const string &strmask, const string &strinput, const string &strrawgem);
     void writeAttr();
     void writeCell();
@@ -46,7 +46,7 @@ public:
     void writeCell_celltype();
     void addCellborder(int cx, int cy, vector<short> &vec_border, uint32_t idx);
 
-    void readcellgem_new();
+    //void readcellgem_new();
 
     void clabeltocid();
     void writeGene_raw();
@@ -61,6 +61,14 @@ public:
     void getCell();
     void writeCell_new();
     void writeGene_new();
+    void gemPreAnalysis(const string &strmask, const string &strinput);
+    void readgem_4mask();
+    void readgem_5mask();
+    void readgem_5();
+    void readgem_6mask();
+    void readgem_6();
+    void readgem_6type();
+
 public:
     unsigned int m_block_size[4] = {0};
     Mat m_stats, m_outimg, m_centroids;
@@ -96,6 +104,7 @@ private:
     
     vector<vector<cellUnit*>> m_vec_vec_cellunit;
     unordered_map<uint16_t, geneUnit*> m_hash_geneunit; //key:gid 
+    string m_stromics{"Transcriptomics"};
 };
 
 #endif

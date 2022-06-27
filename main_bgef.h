@@ -57,6 +57,7 @@ int bgef(int argc, char *argv[]);
  */
 int generateBgef(const string &input_file,
                  const string &bgef_file,
+                 const string &stromics,
                  int n_thread = 8,
                  vector<unsigned int> bin_sizes = vector<unsigned int>(),
                  vector<int> region = vector<int>(),

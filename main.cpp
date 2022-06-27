@@ -36,7 +36,5 @@ int main(int argc, const char* argv[]){
         cerr << "[main] unrecognized command " << argv[1] << endl;
         return 1;
     }
-
-    printTime(prev, "Total Time");
     return ret;
 }

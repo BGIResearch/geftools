@@ -125,9 +125,9 @@ struct BinStatUS {
 
 struct DnbAttr {
     int min_x;
-    unsigned int len_x;
+    int len_x;
     int min_y;
-    unsigned int len_y;
+    int len_y;
     unsigned int max_mid;
     unsigned int max_gene;
     unsigned int max_exon;
@@ -242,6 +242,22 @@ struct CellBinAttr
     unsigned int resolution; ///< Pitch (nm) between neighbor spots
     int offsetX; ///< Minimum value of x-axis coordinate with offset
     int offsetY; ///< Minimum value of y-axis coordinate with offset
+    string omics;
+};
+
+struct Dnbs
+{
+    Dnbs(uint16_t gid, uint16_t cnt):geneid(gid),midcnt(cnt){};
+    uint16_t geneid;
+    uint16_t midcnt;
+};
+
+struct Dnbs_exon
+{
+    Dnbs_exon(uint16_t gid, uint16_t cnt, uint16_t exon):geneid(gid),midcnt(cnt),exon(exon){};
+    uint16_t geneid;
+    uint16_t midcnt;
+    uint16_t exon;
 };
 
 

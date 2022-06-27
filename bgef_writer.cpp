@@ -5,7 +5,7 @@
 #include <algorithm>
 
 
-BgefWriter::BgefWriter(const string &output_filename, bool verbose, bool bexon) {
+BgefWriter::BgefWriter(const string &output_filename, bool verbose, bool bexon, const string& stromics) {
     str32_type_ = H5Tcopy(H5T_C_S1);
     H5Tset_size(str32_type_, 32);
 
@@ -32,6 +32,13 @@ BgefWriter::BgefWriter(const string &output_filename, bool verbose, bool bexon) 
     H5Awrite(gef_attr, H5T_NATIVE_UINT, GEFVERSION);
     H5Sclose(gef_dataspace_id);
     H5Aclose(gef_attr);
+
+    hsize_t kind_dims[1] = {1};
+    hid_t k_did = H5Screate_simple(1, kind_dims, nullptr);
+    hid_t k_attr = H5Acreate(file_id_, "omics", str32_type_, k_did, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(k_attr, str32_type_, stromics.c_str());
+    H5Sclose(k_did);
+    H5Aclose(k_attr);
 
     gene_exp_group_id_ = H5Gcreate(file_id_, "geneExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     whole_exp_group_id_ = H5Gcreate(file_id_, "wholeExp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -96,19 +103,18 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
     H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &exps[0]);
 
     // Create expression attribute
-    ExpressionAttr expAttr{dnbAttr.min_x, dnbAttr.min_y, dnbAttr.min_x+(dnbAttr.len_x-1)*binsize,
-        dnbAttr.min_y+(dnbAttr.len_y-1)*binsize, maxexp};
+    ExpressionAttr expAttr{dnbAttr.min_x, dnbAttr.min_y, dnbAttr.min_x+(dnbAttr.len_x-1)*binsize, dnbAttr.min_y+(dnbAttr.len_y-1)*binsize, maxexp};
     hsize_t dimsAttr[1] = {1};
     hid_t attr;
     dataspace_id = H5Screate_simple(1, dimsAttr, nullptr);
     attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.min_x);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.min_x);
     attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.min_y);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.min_y);
     attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_x);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.max_x);
     attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_y);
+    H5Awrite(attr, H5T_NATIVE_INT, &expAttr.max_y);
     attr = H5Acreate(dataset_id, "maxExp", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &expAttr.max_exp);
     attr = H5Acreate(dataset_id, "resolution", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
@@ -254,14 +260,14 @@ bool BgefWriter::storeDnb(DnbMatrix & dnb_matrix, int binsize){
     dataspace_id = H5Screate_simple(1, dimsAttr, nullptr);
     unsigned int len_x = dnb_matrix.dnb_attr.len_x*binsize;
     unsigned int len_y = dnb_matrix.dnb_attr.len_y*binsize;
-    attr = H5Acreate(dataset_id, "minX", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &dnb_matrix.dnb_attr.min_x);
-    attr = H5Acreate(dataset_id, "lenX", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &len_x);
-    attr = H5Acreate(dataset_id, "minY", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &dnb_matrix.dnb_attr.min_y);
-    attr = H5Acreate(dataset_id, "lenY", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT, &len_y);
+    attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &dnb_matrix.dnb_attr.min_x);
+    attr = H5Acreate(dataset_id, "lenX", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &len_x);
+    attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &dnb_matrix.dnb_attr.min_y);
+    attr = H5Acreate(dataset_id, "lenY", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr, H5T_NATIVE_INT, &len_y);
     attr = H5Acreate(dataset_id, "maxMID", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &dnb_matrix.dnb_attr.max_mid);
     attr = H5Acreate(dataset_id, "maxGene", H5T_STD_U32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);

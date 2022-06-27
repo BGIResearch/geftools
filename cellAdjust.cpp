@@ -62,6 +62,25 @@ void cellAdjust::readBgef(const string &strinput)
     Expression *expPtr = (Expression *) malloc(dims[0] * sizeof(Expression));
     H5Dread(exp_did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expPtr);
 
+    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT))
+    {
+        m_bexon = true;
+        hsize_t edims[1];
+        hid_t did = H5Dopen(file_id, "/geneExp/bin1/exon", H5P_DEFAULT);
+        hid_t sid = H5Dget_space(did);
+        H5Sget_simple_extent_dims(sid, edims, nullptr);
+        assert(edims[0] == m_geneexpcnt);
+        unsigned int *exonPtr = new unsigned int[edims[0]];
+        H5Dread(did, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, exonPtr);
+        H5Sclose(sid);
+        H5Dclose(did);
+        for(int i=0;i<m_geneexpcnt;i++)
+        {
+            expPtr[i].exon = exonPtr[i];
+        }
+        delete []exonPtr;
+    }
+
     hid_t attr = H5Aopen(exp_did, "minX", H5P_DEFAULT);
     H5Aread(attr, H5T_NATIVE_UINT, &m_min_x);
     attr = H5Aopen(exp_did, "minY", H5P_DEFAULT);
@@ -80,26 +99,52 @@ void cellAdjust::readBgef(const string &strinput)
     H5Fclose(file_id);
 
     uint64_t l_id = 0;
-    for(int i=0;i<m_genencnt;i++)
+    if(m_bexon)
     {
-        m_vecgenename.emplace_back(genePtr[i].gene);
-        Expression *ptr = expPtr + genePtr[i].offset;
-        for(int j=0;j<genePtr[i].count;j++)
+        for(int i=0;i<m_genencnt;i++)
         {
-            l_id = ptr[j].x;
-            l_id = (l_id<<32) | ptr[j].y;
-            
-            if(m_hash_vecdnb.find(l_id) == m_hash_vecdnb.end())
+            m_vecgenename.emplace_back(genePtr[i].gene);
+            Expression *ptr = expPtr + genePtr[i].offset;
+            for(int j=0;j<genePtr[i].count;j++)
             {
-                vector<Dnbs> tvec;
-                m_hash_vecdnb.emplace(l_id, tvec);
+                l_id = ptr[j].x;
+                l_id = (l_id<<32) | ptr[j].y;
+                
+                if(m_hash_vecdnb_exon.find(l_id) == m_hash_vecdnb_exon.end())
+                {
+                    vector<Dnbs_exon> tvec;
+                    m_hash_vecdnb_exon.emplace(l_id, tvec);
+                }
+                m_hash_vecdnb_exon[l_id].emplace_back(i, ptr[j].count, ptr[j].exon);
             }
-            m_hash_vecdnb[l_id].emplace_back(i, ptr[j].count);
         }
+        printf("gene:%d geneexp:%d hashcnt:%d\n", m_genencnt, m_geneexpcnt, m_hash_vecdnb_exon.size());
     }
+    else
+    {
+        for(int i=0;i<m_genencnt;i++)
+        {
+            m_vecgenename.emplace_back(genePtr[i].gene);
+            Expression *ptr = expPtr + genePtr[i].offset;
+            for(int j=0;j<genePtr[i].count;j++)
+            {
+                l_id = ptr[j].x;
+                l_id = (l_id<<32) | ptr[j].y;
+                
+                if(m_hash_vecdnb.find(l_id) == m_hash_vecdnb.end())
+                {
+                    vector<Dnbs> tvec;
+                    m_hash_vecdnb.emplace(l_id, tvec);
+                }
+                m_hash_vecdnb[l_id].emplace_back(i, ptr[j].count);
+            }
+        }
+        printf("gene:%d geneexp:%d hashcnt:%d\n", m_genencnt, m_geneexpcnt, m_hash_vecdnb.size());
+    }
+
     free(genePtr);
     free(expPtr);
-    printf("gene:%d geneexp:%d hashcnt:%d\n", m_genencnt, m_geneexpcnt, m_hash_vecdnb.size());
+    
 }
 
 void cellAdjust::readCgef(const string &strinput)
@@ -196,11 +241,12 @@ void cellAdjust::readCgef(const string &strinput)
     H5Aread(attr, H5T_NATIVE_INT, &max_y);
     printf("minx:%d miny:%d maxx:%d maxy:%d\n", min_x, min_y, max_x, max_y);
 
-    // attr = H5Aopen(file_id, "offsetX", H5P_DEFAULT);
-    // H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
+    attr = H5Aopen(file_id, "offsetX", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetX);
 
-    // attr = H5Aopen(file_id, "offsetY", H5P_DEFAULT);
-    // H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
+    attr = H5Aopen(file_id, "offsetY", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT32, &m_offsetY);
+    printf("offsetx:%d offsety:%d\n", m_offsetX, m_offsetY);
     H5Aclose(attr);
     H5Sclose(border_sid);
     H5Dclose(border_id);
@@ -249,6 +295,56 @@ uint32_t cellAdjust::getCellLabelgem(vector<string> &genename, vector<cellgem_la
         x = (itor_s->first) >> 32;
         y = (itor_s->first) & 0xFFFFFFFF;
         for(Dnbs &dnbs : itor_s->second)
+        {
+            vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, 0);
+        }
+    }
+
+    genename.insert(genename.end(), m_vecgenename.begin(), m_vecgenename.end());
+    return vecCellgem.size();
+}
+
+uint32_t cellAdjust::getCellLabelgem_exon(vector<string> &genename, vector<cellgem_label> &vecCellgem)
+{
+    timer st(__FUNCTION__);
+    genename.reserve(m_vecgenename.size());
+    vecCellgem.reserve(m_geneexpcnt);
+
+    uint64_t l_id = 0;
+    vector<Point> vecpoint;
+    int x,y;
+    auto itor = m_hash_cellrect.begin();
+    for(;itor != m_hash_cellrect.end();itor++)
+    {
+        vecpoint.clear();
+        Mat t = m_fill_points(itor->second);
+        findNonZero(t,vecpoint);
+
+        for(Point &pt : vecpoint)
+        {
+            x = pt.x+itor->second.x;
+            y = pt.y+itor->second.y;
+            l_id = x;
+            l_id = (l_id << 32) | y;
+            auto dnb_itor = m_hash_vecdnb_exon.find(l_id);
+            if(dnb_itor!= m_hash_vecdnb_exon.end())
+            {
+                for(Dnbs_exon &dnbs : dnb_itor->second)
+                {
+                    vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, itor->first+1);
+                }
+                m_hash_vecdnb_exon.erase(l_id);
+            }
+        }
+    }
+    printf("%d\n", m_hash_vecdnb_exon.size());
+
+    auto itor_s = m_hash_vecdnb_exon.begin();
+    for(;itor_s != m_hash_vecdnb_exon.end();itor_s++)
+    {
+        x = (itor_s->first) >> 32;
+        y = (itor_s->first) & 0xFFFFFFFF;
+        for(Dnbs_exon &dnbs : itor_s->second)
         {
             vecCellgem.emplace_back(dnbs.geneid, x, y, dnbs.midcnt, 0);
         }
@@ -518,46 +614,3 @@ void cellAdjust::writeCellAdjust(const string &outpath, Cell *cellptr, int cellc
     delete m_cgefwPtr;
 }
 
-
-void cellAdjust::cgeftogem(const string &strbgef, const string &strcgef, const string &strout)
-{
-    timer st(__FUNCTION__);
-    readBgef(strbgef);
-    readCgef(strcgef);
-
-    fstream fout(strout.c_str(), ios_base::out);
-    stringstream sstrout;
-    sstrout<<"#geneName\tx\ty\tcount\tcellID"<<'\n';
-
-    uint64_t l_id = 0;
-    vector<Point> vecpoint;
-    int x,y;
-    auto itor = m_hash_cellrect.begin();
-    for(;itor != m_hash_cellrect.end();itor++)
-    {
-        vecpoint.clear();
-        Mat t = m_fill_points(itor->second);
-        findNonZero(t,vecpoint);
-
-        sstrout.clear();
-        sstrout.str("");
-        for(Point &pt : vecpoint)
-        {
-            x = pt.x+itor->second.x;
-            y = pt.y+itor->second.y;
-            l_id = x;
-            l_id = (l_id << 32) | y;
-            auto dnb_itor = m_hash_vecdnb.find(l_id);
-            if(dnb_itor!= m_hash_vecdnb.end())
-            {
-                for(Dnbs &dnbs : dnb_itor->second)
-                {
-                    sstrout<<m_vecgenename[dnbs.geneid]<<'\t'<<x<<'\t'<<y<<'\t'<<dnbs.midcnt<<'\t'<<itor->first<<'\n';
-                }
-                m_hash_vecdnb.erase(l_id);
-            }
-        }
-        fout<<sstrout.str();
-    }
-    fout.close();
-}
