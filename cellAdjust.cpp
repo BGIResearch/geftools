@@ -62,7 +62,7 @@ void cellAdjust::readBgef(const string &strinput)
     Expression *expPtr = (Expression *) malloc(dims[0] * sizeof(Expression));
     H5Dread(exp_did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, expPtr);
 
-    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT))
+    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT)>0)
     {
         m_bexon = true;
         hsize_t edims[1];

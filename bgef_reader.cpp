@@ -30,20 +30,25 @@ KHASH_MAP_INIT_INT64(m64, unsigned int)
 std::mutex getdataTask::m_mtx;
 
 BgefReader::BgefReader(const string &filename, int bin_size, int n_thread, bool verbose) {
-    hid_t fapl_id = H5Pcreate (H5P_FILE_ACCESS);
-    H5Pset_fclose_degree(fapl_id, H5F_CLOSE_STRONG);
-    file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, fapl_id);
-    H5Pclose(fapl_id);
+    file_id_ = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    printf("path:%s bin:%d\n", filename.c_str(), bin_size);
+    if(file_id_ < 0)
+    {
+        printf("H5Fopen error\n");
+        exit(1);
+    }
     bin_size_ = bin_size;
     verbose_ = verbose;
     n_thread_ = n_thread;
 
+
     char binName[128]={0};
     sprintf(binName, "/geneExp/bin%d", bin_size_);
-    if(H5Lexists(file_id_, binName, H5P_DEFAULT)){
+    if(H5Lexists(file_id_, binName, H5P_DEFAULT)>0){
         openExpressionSpace(bin_size_);
         openGeneSpace(bin_size_);
     }else{
+        m_bgenerate = true;
         openExpressionSpace(1);
         openGeneSpace(1);
         generateGeneExp(bin_size_, n_thread);
@@ -1079,9 +1084,10 @@ void BgefReader::getExpAttr(int *data)
 ////////////////////////////
 unsigned int *BgefReader::getGeneExon()
 {
+    if(m_bgenerate) return nullptr;
     char dname[128]={0};
     sprintf(dname, "/geneExp/bin%d/exon", bin_size_);
-    if(H5Lexists(file_id_, dname, H5P_DEFAULT))
+    if(H5Lexists(file_id_, dname, H5P_DEFAULT)>0)
     {
         if(m_exonPtr) return m_exonPtr;
 

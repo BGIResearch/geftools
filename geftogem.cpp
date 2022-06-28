@@ -68,7 +68,7 @@ void geftogem::getBgefExp(hid_t file_id)
 
     int l = sprintf(buf, "/geneExp/bin%d/exon", m_bin);
     buf[l]='\0';
-    if(H5Lexists(file_id, buf, H5P_DEFAULT))
+    if(H5Lexists(file_id, buf, H5P_DEFAULT)>0)
     {
         m_bexon = true;
         hsize_t edims[1];

@@ -868,7 +868,7 @@ void cgefCellgem::readBgef(const string &strinput)
     m_expPtr = (Expression *) calloc(dims[0], sizeof(Expression));
     H5Dread(exp_did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_expPtr);
 
-    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT))
+    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT)>0)
     {
         m_bexon = true;
         hsize_t edims[1];
@@ -1240,7 +1240,7 @@ void cgefCellgem::readBgef_new(const string &strinput)
     m_expPtr = (Expression *) calloc(dims[0], sizeof(Expression));
     H5Dread(exp_did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, m_expPtr);
 
-    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT))
+    if(H5Lexists(file_id, "/geneExp/bin1/exon", H5P_DEFAULT)>0)
     {
         m_bexon = true;
         hsize_t edims[1];
@@ -1294,12 +1294,15 @@ void cgefCellgem::readBgef_new(const string &strinput)
     H5Sclose(exp_sid);
     H5Dclose(exp_did);
 
-    hid_t f_attr = H5Aopen(file_id, "omics", H5P_DEFAULT);
-    char szbuf[128]={0};
-    H5Aread(f_attr, strtype, szbuf);
-    m_stromics.clear();
-    m_stromics.append(szbuf);
-    H5Aclose(f_attr);
+    if(H5Aexists(file_id, "omics"))
+    {
+        hid_t f_attr = H5Aopen(file_id, "omics", H5P_DEFAULT);
+        char szbuf[128]={0};
+        H5Aread(f_attr, strtype, szbuf);
+        m_stromics.clear();
+        m_stromics.append(szbuf);
+        H5Aclose(f_attr);
+    }
     H5Tclose(strtype);
 
     H5Fclose(file_id);

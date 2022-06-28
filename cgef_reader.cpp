@@ -117,11 +117,11 @@ hid_t CgefReader::openCellDataset(hid_t group_id) {
     else
     {
         hid_t d_id = 0;
-        if(H5Lexists(group_id, "blockIndex", H5P_DEFAULT))
+        if(H5Lexists(group_id, "blockIndex", H5P_DEFAULT)>0)
         {
             d_id = H5Dopen(group_id, "blockIndex", H5P_DEFAULT);
         }
-        else if(H5Lexists(group_id, "blkidx", H5P_DEFAULT))
+        else if(H5Lexists(group_id, "blkidx", H5P_DEFAULT)>0)
         {
             d_id = H5Dopen(group_id, "blkidx", H5P_DEFAULT);
         }

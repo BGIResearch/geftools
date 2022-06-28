@@ -21,7 +21,7 @@ using namespace std;
 using namespace cv;
 
 const int READLEN = 256*1024;
-const unsigned int GEFVERSION[3] = {0,6,8};
+const unsigned int GEFVERSION[3] = {0,6,10};
 const int BORDERCNT = 32;
 
 

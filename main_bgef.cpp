@@ -17,7 +17,7 @@ int test(const char *path)
 {
     timer st1("");
     BgefReader bgef_reader(path, 200, 1);
-    bgef_reader.getReduceExpression();
+    Expression * ptr = bgef_reader.getExpression();
 
     printf("end\n");
 

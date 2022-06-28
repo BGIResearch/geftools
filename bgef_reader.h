@@ -50,7 +50,7 @@ class BgefReader {
     
     void buildCellInfo();
     void buildCellInfo2();
-
+    bool m_bgenerate = false;
   public:
     BgefReader(const string &filename, int bin_size, int n_thread = 1, bool verbose = false);
     virtual ~BgefReader();
