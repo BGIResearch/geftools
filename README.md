@@ -43,8 +43,15 @@ Command: bgef          Generate common bin GEF(.bgef) according to gem file or b
   -r, --region STR        Restrict to a rectangular region. The region is represented by the comma-separated list of
                           two vertex coordinates (minX,maxX,minY,maxY) (default: "")
   -t, --threads INT       number of threads (default: 8)
+  -s, --stat    BOOL      create stat group (default: true)
+  -O, --omics   STR       input omics[request]
   -v, --verbose           Verbose output
       --help              Print help
+```
+
+Create bgef example:
+```text
+  ./geftools bgef -i xxx.bgef/xxx.bgem -b 1,10,20 -o xx.cgef -t 5 -O Transcriptomics
 ```
 
 
@@ -55,24 +62,37 @@ Generate cell bin GEF (.cgef) according to common bin GEF (.bgef) file and mask 
   -m, --mask-file FILE    input mask file [request]
   -o, --output-file FILE  output cell bin GEF file (.cgef) [request]
   -b, --block FILE        Pre block size (default: 256,256)
+  -t, --threads INT       number of threads
   -v, --verbose           Verbose output
       --help              Print help
+```
+
+Create cgef example:
+```text
+  ./geftools cgef -i xxx.bgef -m xxx.tif -o xx.cgef -t 5
 ```
 
 
 ### geftools view [OPTION...]
 Show the contents of cell bin GEF
 ```text
--i, --input-file FILE     Input cell bin GEF file [request]
--o, --output-gem FILE     Output cell bin gem file (default: stdout)
--m, --output-mask FILE    Output border of polygons to mask format file (default: "")
--r, --region STR          Restrict to a rectangular region. The region is represented by the comma-separated list of
-two vertex coordinates (minX,minY,maxX,maxY) (default: "")
--g, --genes [^]STR        Comma separated list of genes to include (or exclude with "^" prefix)
--G, --genes-file [^]FILE  File of genes to include (or exclude with "^" prefix))
---force-genes         Only warn about unknown subset genes
--v, --verbose             Verbose output
---help                Print help
+  -i, --input-file FILE     Input bGEF/cGEF file [request]
+  -o, --output-gem FILE     Output gem file (default: stdout)
+  -d, --exp_data FILE       Input bGEF file to get exp_data.
+  -b, --bin-size INT        Set bin size for bgef file, just support bGEF.
+  -s, --serial-number STR   Input Serial number [request]
+  -e, --exon INT            whether or not output exon (default: 1)
+  --help                Print help
+```
+
+Create bgem example:
+```text
+  ./geftools view -i xxx.bgef -o xxx.gem -s SS200000135TL_D1 
+```
+
+Create cgem example:
+```text
+  ./geftools view -i xxx.cgef -d xxx.bgef -o xxx.gem -s SS200000135TL_D1 
 ```
 
 
