@@ -439,8 +439,8 @@ void cgefCellgem::writeAttr()
     CellBinAttr cell_bin_attr = {
             .version = 2,
             .resolution = cgefParam::GetInstance()->m_resolution,
-            .offsetX = 0,
-            .offsetY = 0,
+            .offsetX = cgefParam::GetInstance()->m_min_x,
+            .offsetY = cgefParam::GetInstance()->m_min_y,
             .omics = m_stromics
     };
     m_cgefwPtr->storeAttr(cell_bin_attr);

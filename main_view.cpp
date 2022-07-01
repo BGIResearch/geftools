@@ -62,12 +62,12 @@ int view(int argc, char *argv[]) {
     string strin = result["input-file"].as<string>();
     string snstr = result["serial-number"].as<string>();
     string strout = result["output-gem"].as<string>();
-    
 
     geftogem gem(strout, snstr, boutexon);
     if(is_bgef(strin))
     {
-        gem.bgeftogem(strin);
+        int bin_size = result["bin-size"].as<int>();
+        gem.bgeftogem(strin, bin_size);
     }
     else
     {
