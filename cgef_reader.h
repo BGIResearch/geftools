@@ -252,6 +252,10 @@ class CgefReader {
     {
         return m_ver_tool;
     }
+
+    void getfiltereddata(vector<int> &region, vector<string> &genelist,
+                    vector<string> &vec_gene, vector<unsigned long long> &uniq_cells,
+                    unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count);
 };
 
 #endif //GEFTOOLS_CGEF_READER_H

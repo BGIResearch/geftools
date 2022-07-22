@@ -40,7 +40,8 @@ public:
     std::vector<int> region_;
 
     std::unordered_map<std::string, std::vector<Expression>> map_gene_exp_;
-    std::vector<GeneErank> vec_bin100_;
+    //std::vector<GeneErank> vec_bin100_;
+    std::vector<GeneStat> m_vec_bin100;
     unsigned long total_umicnt_ = 0;
 
     gzFile infile_;

@@ -26,8 +26,8 @@ union Coordinate {
  * @brief Expression struct
  */
 struct Expression {
-    Expression(int x, int y, unsigned int count):
-    x(x),y(y),count(count){};
+    Expression(int x, int y, unsigned int count, unsigned int exon=0):
+    x(x),y(y),count(count), exon(exon){};
     int x; ///< dnb coordinates x
     int y; ///< dnb coordinates x
     unsigned int count; ///< expression count (MIDcount)
@@ -87,6 +87,13 @@ struct GeneStat
         mid_count = m;
         E10 = e;
     }
+    GeneStat(const char* g, unsigned int m, float e)
+    {
+        int len = strlen(g);
+        memcpy(gene, g, len);
+        mid_count = m;
+        E10 = e;
+    }
     char gene[32] = {0};
     unsigned int mid_count;
     float E10;
@@ -142,15 +149,15 @@ struct DnbMatrix {
     unsigned int *pexon32;
 };
 
-struct GeneErank
-{
-    GeneErank(const char *ptr):geneid(ptr){};
-    const char *geneid;
-    unsigned long umicnt;
-    float e10;
-    //float c50;
-    char attribute[10];
-};
+// struct GeneErank
+// {
+//     GeneErank(const char *ptr):geneid(ptr){};
+//     const char *geneid;
+//     unsigned long umicnt;
+//     float e10;
+//     //float c50;
+//     char attribute[10];
+// };
 
 /**
  * @brief Describe the Cell dataset in the cell bin GEF file

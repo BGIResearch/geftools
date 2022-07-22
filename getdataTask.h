@@ -14,8 +14,9 @@
 class getdataTask:public ITask
 {
 public:
-    getdataTask(unsigned short gene_id, Gene * gene, Expression * expression, vector<Expression> &vecexp):
-    m_gene_id(gene_id),m_genePtr(gene),m_expPtr(expression),m_vecExp(vecexp)
+    getdataTask(unsigned short gene_id, Gene * gene, Expression * expression, 
+                        unordered_map<string, vector<Expression>> &hashexp):
+    m_gene_id(gene_id),m_genePtr(gene),m_expPtr(expression),m_hashExp(hashexp)
     {
 
     }
@@ -43,7 +44,8 @@ public:
 
         {
             std::lock_guard<std::mutex> tlock(m_mtx);
-            m_vecExp.insert(m_vecExp.end(), exps.begin(), exps.end());
+            string str(m_genePtr[m_gene_id].gene);
+            m_hashExp.emplace(str, std::move(exps));
         }
     }
 private:
@@ -51,7 +53,7 @@ private:
     unsigned int m_min_x, m_min_y, m_max_x, m_max_y;
     Gene *m_genePtr = nullptr;
     Expression *m_expPtr = nullptr;
-    vector<Expression> &m_vecExp;
+    unordered_map<string, vector<Expression>> &m_hashExp;
     static std::mutex m_mtx;
 };
 

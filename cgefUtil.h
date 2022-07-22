@@ -86,7 +86,7 @@ public:
         return true;
     }
 
-    bool getCenter_median(unsigned int *block_size, int offx, int offy) //中位数
+    bool getCenter_median(int *block_size, int offx, int offy) //中位数
     {
         int sz = m_vecPoint.size();
         if(sz<3) return false;

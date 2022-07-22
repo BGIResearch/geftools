@@ -442,3 +442,44 @@ void geftogem::cgef2gem_exon()
         delete pout;
     }
 }
+
+void geftogem::bgeftocgem(const string &strmask, const string &strbgef)
+{
+    m_bin = 1;
+    readBgef(strbgef);
+    getdnb();
+    readmask(strmask);
+
+    if(m_bexon && m_boutexon)
+    {
+        cgef2gem_exon();
+    }
+    else
+    {
+        cgef2gem();
+    }
+}
+
+void geftogem::readmask(const string &strmask)
+{
+    cv::Mat img = cv::imread(strmask, -1);
+    assert(!img.empty());
+    assert(img.rows == m_max_y - m_min_y+1);
+    assert(img.cols == m_max_x - m_min_x+1);
+    printf("img row:%d col:%d\n", img.rows, img.cols);
+
+    Mat stats, centroids;
+    uint32_t labelcnt = connectedComponentsWithStats(img, m_fill_points, stats, centroids);
+
+    int x, y, w, h;
+    for(uint32_t i=1;i<labelcnt;i++)
+    {
+        x = stats.at<int>(i, CC_STAT_LEFT);
+        y = stats.at<int>(i, CC_STAT_TOP);
+        w = stats.at<int>(i, CC_STAT_WIDTH);
+        h = stats.at<int>(i, CC_STAT_HEIGHT);
+        Rect rtmp(x, y, w, h);
+
+        m_hash_cellrect.emplace(i-1, rtmp);
+    }
+}

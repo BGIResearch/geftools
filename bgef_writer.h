@@ -4,8 +4,8 @@
     Created by huangzhibo on 2021/01/24.
 */
 
-#ifndef GEFTOOLS_CGEF_WRITER_H
-#define GEFTOOLS_CGEF_WRITER_H
+#ifndef GEFTOOLS_BGEF_WRITER_H
+#define GEFTOOLS_BGEF_WRITER_H
 
 #include "hdf5.h"
 #include "utils.h"

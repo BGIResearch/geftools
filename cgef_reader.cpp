@@ -977,3 +977,159 @@ short* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
         return m_borderdataPtr_s;
     }
 }
+
+void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
+                vector<string> &vec_gene, vector<unsigned long long> &uniq_cells,
+                unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count)
+{
+    int min_x = region[0];
+    int max_x = region[1];
+    int min_y = region[2];
+    int max_y = region[3];
+
+    CellData *cdata = loadCell();
+    GeneData *gdata = loadGene();
+
+    if(genelist.empty()&& (!region.empty()))
+    {
+        hid_t memtype = getMemtypeOfCellExpData();
+        CellExpData* cell_exp_data = (CellExpData*)malloc(expression_num_ * sizeof(CellExpData));
+        H5Dread(cell_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_exp_data);
+
+        unsigned long long uniq_cell_id;
+        uint32_t idx = 0, gid = 0, cid = 0;
+        map<uint32_t, uint32_t> gidmap;//新旧gid对照
+        for(uint32_t i=0;i<cell_num_;i++)
+        {
+            if(cdata[i].x < min_x || cdata[i].x >= max_x || 
+               cdata[i].y < min_y || cdata[i].y >= max_y){
+                continue;
+            }
+
+            uint32_t j = cdata[i].offset;
+            for(;j<cdata[i].gene_count;j++,idx++)
+            {
+                if(gidmap.find(cell_exp_data[j].gene_id) == gidmap.end())
+                {
+                    gene_ind[idx] = gid;
+                    string str(gdata[cell_exp_data[j].gene_id].gene_name);
+                    vec_gene.emplace_back(std::move(str));
+                    gidmap.emplace(cell_exp_data[j].gene_id, gid++);
+                }
+                else
+                {
+                    gene_ind[idx] = gidmap[cell_exp_data[j].gene_id];
+                }
+                
+                count[idx] = cell_exp_data[j].count;
+                cell_ind[idx] = cid;
+            }
+            uniq_cell_id = cdata[i].x;
+            uniq_cell_id = (uniq_cell_id << 32) | cdata[i].y;
+            uniq_cells.emplace_back(uniq_cell_id);
+            cid++;
+        }
+        free(cell_exp_data);
+    }
+    else if(region.empty() && !(genelist.empty()))
+    {
+        set<string> gset;
+        for(string &str : genelist)
+        {
+            gset.insert(str);
+        }
+        hid_t memtype = getMemtypeOfGeneExpData();
+        GeneExpData* gene_exp_data = (GeneExpData*)malloc(expression_num_ * sizeof(GeneExpData));
+        H5Dread(gene_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_exp_data);
+
+        unsigned long long uniq_cell_id;
+        uint32_t idx = 0, gid = 0, cid = 0, oldcid = 0;
+        map<uint32_t, uint32_t> cidmap;//新旧cid对照
+
+        for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
+        {
+            string str(gdata[gene_id].gene_name);
+            if(gset.find(str) != gset.end())
+            {
+                vec_gene.emplace_back(std::move(str));
+                uint32_t j = gdata[gene_id].offset;
+                for(;j<gdata[gene_id].cell_count;j++,idx++)
+                {
+                    oldcid = gene_exp_data[j].cell_id;
+                    if(cidmap.find(oldcid) == cidmap.end())
+                    {
+                        cell_ind[idx] = cid;
+                        cidmap.emplace(oldcid, cid++);
+
+                        uniq_cell_id = cdata[oldcid].x;
+                        uniq_cell_id = (uniq_cell_id << 32) | cdata[oldcid].y;
+                        uniq_cells.emplace_back(uniq_cell_id);
+                    }
+                    else
+                    {
+                        cell_ind[idx] = cidmap[oldcid];
+                    }
+
+                    count[idx] = gene_exp_data[j].count;
+                    gene_ind[idx] = gid;
+                }
+                gid++;
+            }
+        }
+
+        free(gene_exp_data);
+    }
+    else
+    {
+        set<string> gset;
+        for(string &str : genelist)
+        {
+            gset.insert(str);
+        }
+        hid_t memtype = getMemtypeOfGeneExpData();
+        GeneExpData* gene_exp_data = (GeneExpData*)malloc(expression_num_ * sizeof(GeneExpData));
+        H5Dread(gene_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_exp_data);
+
+        unsigned long long uniq_cell_id;
+        uint32_t idx = 0, gid = 0, cid = 0, oldcid = 0;
+        map<uint32_t, uint32_t> cidmap;//新旧cid对照
+        for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
+        {
+            string str(gdata[gene_id].gene_name);
+            if(gset.find(str) != gset.end())
+            {
+                vec_gene.emplace_back(std::move(str));
+                uint32_t j = gdata[gene_id].offset;
+                for(;j<gdata[gene_id].cell_count;j++)
+                {
+                    oldcid = gene_exp_data[j].cell_id;
+                    if(cdata[oldcid].x < min_x || cdata[oldcid].x >= max_x || 
+                        cdata[oldcid].y < min_y || cdata[oldcid].y >= max_y)
+                    {
+                        continue;
+                    }
+
+                    if(cidmap.find(oldcid) == cidmap.end())
+                    {
+                        cell_ind[idx] = cid;
+                        cidmap.emplace(oldcid, cid++);
+
+                        uniq_cell_id = cdata[oldcid].x;
+                        uniq_cell_id = (uniq_cell_id << 32) | cdata[oldcid].y;
+                        uniq_cells.emplace_back(uniq_cell_id);
+                    }
+                    else
+                    {
+                        cell_ind[idx] = cidmap[oldcid];
+                    }
+
+                    count[idx] = gene_exp_data[j].count;
+                    gene_ind[idx] = gid;
+                    idx++;
+                }
+                gid++;
+            }
+        }
+        free(gene_exp_data);
+    }
+}

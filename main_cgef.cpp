@@ -53,8 +53,19 @@ int ctest(const char *path)
     return 0;
 }
 
+int ctest2(const char *path)
+{
+    cellAdjust ca;
+    ca.readBgef(path);
+    vector<int> tmp{480,2680,520,2560,880,1680,920,1600,1200,1680,1320,1720,1800,1960,2120,3800,2120,3880,2000,3880,1240,3840,1000,3800,960,3760,600,3040,480,2760,480,2720};
+    vector<vector<int>> vec;
+    vec.emplace_back(std::move(tmp));
+    ca.getRegionGenedata(vec);
+    ca.createRegionGef("zzk.bgef");
+}
+
 int cgef(int argc, char *argv[]) {
-    //return ctest(argv[2]);
+    return ctest2(argv[1]);
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");

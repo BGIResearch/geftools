@@ -6,6 +6,7 @@
  * @Description: file content
  */
 #include "dnb_merge_task.h"
+#include <assert.h>
 
 mutex DnbMergeTask::m_mutex;
 
@@ -48,6 +49,7 @@ void DnbMergeTask::doTask_nor()
                 {
                     y = exp.y;
                     col = x*y_len + y;
+
                     // printf("x %d y %d ylen %d col %d\n", x, y, y_len, col);
                     pmatrix[col].mid_count += exp.count;
                     pmatrix[col].gene_count += 1;

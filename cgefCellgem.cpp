@@ -683,7 +683,7 @@ void cgefCellgem::getCelldata_celltype()
     auto itor = cgefParam::GetInstance()->m_map_cell.begin();
     for(;itor != cgefParam::GetInstance()->m_map_cell.end();itor++)
     {
-        ret = itor->second->getCenter_median(m_block_size, 0, 0);
+        ret = itor->second->getCenter_median((int*)m_block_size, 0, 0);
         if(!ret) continue;
         m_vec_veccell[itor->second->m_blkid].emplace_back(0, itor->first); //没有连通域
         assert(itor->first == itor->second->m_celllabel);

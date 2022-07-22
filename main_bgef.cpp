@@ -9,17 +9,14 @@
 #include "read_task.h"
 #include "dnb_merge_task.h"
 #include "bin_task.h"
-#include "special_bin.h"
 #include "utils.h"
 #include "timer.h"
 
 int test(const char *path)
 {
     timer st1("");
-    BgefReader bgef_reader(path, 200, 1);
-    Expression * ptr = bgef_reader.getExpression();
-
-    printf("end\n");
+    BgefReader br(path, 1);
+    br.getCellNum();
 
     return 0;
 }
@@ -298,12 +295,7 @@ void gem2gef(BgefOptions *opts)
 
             if(bin == 100)
             {
-                GeneErank erank(pgeneinfo->geneid);
-                erank.umicnt = pgeneinfo->umicnt;
-                erank.e10 = pgeneinfo->e10;
-                //erank.c50 = pgeneinfo->c50;
-                opts->total_umicnt_ += pgeneinfo->umicnt;
-                opts->vec_bin100_.emplace_back(erank);
+                opts->m_vec_bin100.emplace_back(pgeneinfo->geneid, pgeneinfo->umicnt, pgeneinfo->e10);
             }
             delete pgeneinfo;
             genecnt++;
@@ -498,20 +490,21 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
     unsigned long cprev =clock();
     if(bin == 100)
     {
-        vector<pair<string, unsigned int>> geneCnts;
-        sortGeneByCnt(opts->map_gene_exp_, geneCnts);
-        
-        std::vector<float> vec_e10_result;
-        SpecialBin sbin;
-        sbin.calcE10(geneCnts, vec_e10_result);
 
-        vector<GeneStat> geneStat;
-        size_t sz = geneCnts.size();
-        geneStat.reserve(sz);
-        for (int i = 0; i < sz; ++i){
-            geneStat.emplace_back(geneCnts[i].first, geneCnts[i].second, vec_e10_result[i]);
-        }
+        vector<GeneStat> &geneStat = opts->m_vec_bin100;
+        std::sort(geneStat.begin(), geneStat.end(), [](const GeneStat& p1, const GeneStat& p2){
+            if (p1.mid_count > p2.mid_count)
+                return true;
+            else if (p1.mid_count == p2.mid_count)
+            {
+                int ret = strcmp(p1.gene, p2.gene);
+                return ret < 0;
+            }
+            else
+                return false;
+        });
         bgef_writer.storeStat(geneStat);
+
         if(opts->m_stattype != 2)
         {
             return;
@@ -564,14 +557,4 @@ void writednb(BgefOptions *opts, BgefWriter &bgef_writer, int bin)
     bgef_writer.storeWholeExon(dnbM, bin);
 
     if(opts->verbose_) printCpuTime(cprev, "writednb");
-}
-
-
-
-void StereoDataToGef(const string &output_file, int binsize, int sz, unsigned long *cellptr)
-{
-    for(int i=0;i<sz;i++)
-    {
-        printf("%ld\n", cellptr[i]);
-    }
 }

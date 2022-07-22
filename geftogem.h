@@ -15,7 +15,7 @@ public:
 
     void bgeftogem(const string &strbgef, int binsize = 1);
     void cgeftogem(const string &strcgef, const string &strbgef);
-
+    void bgeftocgem(const string &strmask, const string &strbgef);
 private:
     void readBgef(const string &strinput);
     void readCgef(const string &strinput);
@@ -25,6 +25,7 @@ private:
     void bgef2gem();
     void cgef2gem();
     void cgef2gem_exon();
+    void readmask(const string &strmask);
 private:
     bool m_bexon = false;
     bool m_boutexon = true;

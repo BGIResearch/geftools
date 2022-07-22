@@ -38,7 +38,6 @@ public:
     void readBgef(const string &strinput);
     void readCgef(const string &strinput);
     uint32_t getCellLabelgem(vector<string> &genename, vector<cellgem_label> &vecCellgem);
-    uint32_t getCellLabelgem_exon(vector<string> &genename, vector<cellgem_label> &vecCellgem);
     void writeCellAdjust(const string &outpath, Cell *cellptr, int cellcnt, DnbExpression *dnbptr, int dnbcnt);
     bool addborder(unsigned int cid, vector<Point> &vecPoint, vector<Point> &border, vector<short> &vec_border);
     void writeCell(Cell *cellptr, unsigned int cellcnt, DnbExpression *dnbptr, unsigned int dnbcnt);
@@ -46,6 +45,8 @@ public:
     void cgeftogem(const string &strbgef, const string &strcgef, const string &strout);
     void cgeftogem_exon(const string &strbgef, const string &strcgef, const string &strout);
     bool bexon(){return m_bexon;}
+    void createRegionGef(const string &strout);
+    void getRegionGenedata(vector<vector<int>> &m_vecpos);
 private:
     bool m_bexon = false;
     uint32_t m_genencnt;
@@ -55,7 +56,6 @@ private:
     vector<string> m_vecgenename;
     int m_min_x, m_min_y, m_max_x, m_max_y;
     uint32_t m_resolution;
-    unordered_map<uint64_t, vector<Dnbs>> m_hash_vecdnb;
     unordered_map<uint64_t, vector<Dnbs_exon>> m_hash_vecdnb_exon;
     unordered_map<uint32_t, Rect> m_hash_cellrect;
     Mat m_fill_points;
@@ -63,6 +63,11 @@ private:
     CellData *m_cell_arrayptr = nullptr;
     CgefWriter *m_cgefwPtr = nullptr;
     map<uint32_t, vector<GeneExpData>> m_map_gene;
+    BgefOptions *m_bgefopts = nullptr;
+
+    char m_szomics[32]={0};
+    int m_maxx = 0, m_maxy = 0;
+    hid_t m_bgeffile_id = 0;
 };
 
 

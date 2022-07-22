@@ -14,10 +14,9 @@ int view(int argc, char *argv[]) {
         .set_width(120)
         .add_options()
             ("i,input-file", "Input bGEF/cGEF file [request]", cxxopts::value<std::string>(), "FILE")
-            ("o,output-gem", "Output gem file ",
-                    cxxopts::value<std::string>()->default_value("stdout"), "FILE")
-           ("d,exp_data", "Input bgef for cgem",
-                   cxxopts::value<std::string>()->default_value(""), "FILE")
+            ("o,output-gem", "Output gem file ", cxxopts::value<std::string>()->default_value("stdout"), "FILE")
+            ("d,exp_data", "Input bgef for cgem", cxxopts::value<std::string>()->default_value(""), "FILE")
+            ("m,mask-file", "input mask file ", cxxopts::value<std::string>(), "FILE")
             // ("r,region", "Restrict to a rectangular region. The region is represented by the comma-separated list "
             //              "of two vertex coordinates (minX,maxX,minY,maxY). just support cGEF.",
             //              cxxopts::value<std::string>()->default_value(""), "STR")
@@ -52,12 +51,7 @@ int view(int argc, char *argv[]) {
         std::cerr << options.help() << std::endl;
         exit(1);
     }
-    // if(result.count("output-gem") != 1)
-    // {
-    //     std::cerr << "[ERROR] The -o,--output-gem parameter must be given correctly.\n" << std::endl;
-    //     std::cerr << options.help() << std::endl;
-    //     exit(1);
-    // }
+
     bool boutexon = result["exon"].as<int>();
     string strin = result["input-file"].as<string>();
     string snstr = result["serial-number"].as<string>();
@@ -66,13 +60,30 @@ int view(int argc, char *argv[]) {
     geftogem gem(strout, snstr, boutexon);
     if(is_bgef(strin))
     {
-        int bin_size = result["bin-size"].as<int>();
-        gem.bgeftogem(strin, bin_size);
+        if(result.count("mask-file") != 1)
+        {
+            int bin_size = result["bin-size"].as<int>();
+            gem.bgeftogem(strin, bin_size);
+        }
+        else
+        {
+            string strmask = result["mask-file"].as<string>();
+            gem.bgeftocgem(strmask, strin);
+        }
     }
     else
     {
-        string strexp = result["exp_data"].as<string>();
-        gem.cgeftogem(strin, strexp);
+        if (result.count("exp_data") == 1)
+        {
+            string strexp = result["exp_data"].as<string>();
+            gem.cgeftogem(strin, strexp);
+        }
+        else
+        {
+            std::cerr << "[ERROR] The -d,--exp_data parameter must be given correctly.\n" << std::endl;
+            std::cerr << options.help() << std::endl;
+            exit(1);
+        }
     }
     
     return 0;

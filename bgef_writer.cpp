@@ -135,7 +135,7 @@ bool BgefWriter::storeGene(vector<Expression>& exps, vector<Gene>& genes, DnbAtt
     dataspace_id = H5Screate_simple(rank, dims, nullptr);
     dataset_id = H5Dcreate(gene_exp_bin_group_id, "gene", filetype, dataspace_id, H5P_DEFAULT,
         H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, filetype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &genes[0]);
+    H5Dwrite(dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &genes[0]);
 
     // Create gene attribute
     // m_dataspace_id = H5Screate_simple(1, dimsAttr, NULL);
@@ -315,7 +315,7 @@ bool BgefWriter::storeWholeExon(DnbMatrix & dnb_matrix, int binsize)
     // Create attribute
     hsize_t dimsAttr[1] = {1};
     hid_t attr_sid = H5Screate_simple(1, dimsAttr, nullptr);
-    hid_t attr = H5Acreate(dataset_id, "maxExtron", H5T_STD_U32LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t attr = H5Acreate(dataset_id, "maxExon", H5T_STD_U32LE, attr_sid, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_UINT, &(dnb_matrix.dnb_attr.max_exon));
     
     H5Sclose(attr_sid);

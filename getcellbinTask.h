@@ -37,7 +37,7 @@ public:
 
         cellUnit *cptr = new cellUnit(cx, cy, area, m_label, m_cgefPtr->m_block_size);
         uint64_t l_id = 0;
-
+//vector<Point> tpoint;
         vector<Point> vecpoint;
         Mat t = m_cgefPtr->m_outimg(m_rect);
         findNonZero(t,vecpoint);
@@ -52,6 +52,7 @@ public:
             if(itor != m_cgefPtr->m_hash_vecdnb.end())
             {
                 cptr->add(itor->second);
+                //tpoint.emplace_back(x,y);
             }
         }
 
@@ -78,7 +79,23 @@ public:
             getborder(cptr);
         }
 
+// vector<Point> tmpborder;
+// approx(tpoint, tmpborder);
+// int sz = tmpborder.size();
+
         m_cgefPtr->m_cellqueuePtr->addqueue(cptr);
+    }
+
+    void approx(vector<Point> &in, vector<Point> &out)
+    {
+        double epsilon = 0.01 * arcLength(in, true);
+        approxPolyDP(in, out, epsilon, true);
+        if(out.size() > BORDERCNT)
+        {
+            in.swap(out);
+            out.clear();
+            approx(in, out);
+        }
     }
 
     void getborder(cellUnit *cptr)
@@ -89,10 +106,9 @@ public:
         if(sz > BORDERCNT)
         {
             vector<Point> tmpborder;
-            double epsilon = 0.01 * arcLength(m_vecpoint, true);
-            approxPolyDP(m_vecpoint, tmpborder, epsilon, true);
-
+            approx(m_vecpoint, tmpborder);
             sz = tmpborder.size();
+            assert(sz <= BORDERCNT);
             for(;i<sz;i++)
             {
                 cptr->m_vecborder.emplace_back(tmpborder[i].x - cptr->m_cx);

@@ -1013,32 +1013,67 @@ Expression *BgefReader::getReduceExpression() {
 }
 
 
-void BgefReader::getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsigned int max_x, unsigned int max_y, 
-                                    std::string &strgene , vector<Expression> &outExp)
+void BgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
+                                 vector<string> &vec_gene, vector<unsigned long long> &uniq_cells,
+                                 unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count)
 {
-    unsigned long cprev=clock();
+    int min_x = region[0];
+    int max_x = region[1];
+    int min_y = region[2];
+    int max_y = region[3];
+
     Gene * gene = getGene();
     Expression * expression = getExpression();
 
-    if(strgene.empty())
+    unordered_map<string, vector<Expression>> hash_exp;
+
+    if(genelist.empty()&& (!region.empty()))
     {
         ThreadPool tpool(n_thread_);
         for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
         {
-            getdataTask *ptask = new getdataTask(gene_id, gene, expression, outExp);
+            getdataTask *ptask = new getdataTask(gene_id, gene, expression, hash_exp);
             ptask->setRange(min_x, min_y, max_x, max_y);
             tpool.addTask(ptask);
         }
         tpool.waitTaskDone();
     }
-    else
+    else if(region.empty() && !(genelist.empty()))
     {
+        set<string> gset;
+        for(string &str : genelist)
+        {
+            gset.insert(str);
+        }
         for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
         {
-            if(strgene.length() == strlen(gene[gene_id].gene) && 
-                memcmp(strgene.c_str(), gene[gene_id].gene, strgene.length()) == 0)
+            string str(gene[gene_id].gene);
+            if(gset.find(str) != gset.end())
             {
-                outExp.reserve(gene[gene_id].count);
+                vector<Expression> tmp;
+                hash_exp.emplace(str, std::move(tmp));
+                unsigned int end = gene[gene_id].offset + gene[gene_id].count;
+                for(unsigned int i = gene[gene_id].offset; i < end; i++)
+                {
+                    hash_exp[str].emplace_back(expression[i]);
+                }
+            }
+        }
+    }
+    else
+    {
+        set<string> gset;
+        for(string &str : genelist)
+        {
+            gset.insert(str);
+        }
+        for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
+        {
+            string str(gene[gene_id].gene);
+            if(gset.find(str) != gset.end())
+            {
+                vector<Expression> tmp;
+                hash_exp.emplace(str, std::move(tmp));
                 unsigned int end = gene[gene_id].offset + gene[gene_id].count;
                 for(unsigned int i = gene[gene_id].offset; i < end; i++){
                     Expression &exp = expression[i];
@@ -1046,16 +1081,44 @@ void BgefReader::getGeneExpInRegion(unsigned int min_x,unsigned int min_y, unsig
                         continue;
                     }
 
-                    outExp.emplace_back(exp);
+                    hash_exp[str].emplace_back(expression[i]);
                 }
-
-                break;
             }
         }
     }
 
-    printCpuTime(cprev, "getGeneExpInRegion");
+    unsigned long long uniq_cell_id;
+    uint32_t index = 0, i=0, gid = 0;
+    std::unordered_map<unsigned long long, uint32_t> hash_map;
+
+    auto itor = hash_exp.begin();
+    for(;itor != hash_exp.end();itor++)
+    {
+        vec_gene.emplace_back(itor->first);
+        vector<Expression> &tmp = itor->second;
+        for(Expression &expData : tmp)
+        {
+            uniq_cell_id = expData.x;
+            uniq_cell_id = (uniq_cell_id << 32) | expData.y;
+
+            if(hash_map.find(uniq_cell_id) != hash_map.end())
+            {
+                cell_ind[i] = hash_map[uniq_cell_id];
+            }
+            else
+            {
+                cell_ind[i] = index;
+                uniq_cells.emplace_back(uniq_cell_id);
+                hash_map.emplace(uniq_cell_id, index++);
+            }
+            count[i] = expData.count;
+            gene_ind[i] = gid;
+            i++;
+        }
+        gid++;
+    }
 }
+
 
 void BgefReader::getOffset(int *data)
 {

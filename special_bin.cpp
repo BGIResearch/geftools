@@ -93,25 +93,25 @@ double SpecialBin::findppf(std::vector<float> &vec, float p) //已知概率求�
 
 int SpecialBin::calcE10(vector<pair<string, unsigned int>>& geneCnts, std::vector<float> &vec_e10_result)
 {
-    map<string, int> genePos;
-    int i = 0;
-    for (auto& p : geneCnts)
-        genePos[p.first] = i++;
+    // map<string, int> genePos;
+    // int i = 0;
+    // for (auto& p : geneCnts)
+    //     genePos[p.first] = i++;
 
-    std::stringstream ss;
-    ss.setf(std::ios::fixed);
-    ss.precision(2);
-    vec_e10_result.resize(geneCnts.size());
-    auto itor_rank = m_pcmd->vec_bin100_.begin();
-    for(;itor_rank != m_pcmd->vec_bin100_.end();itor_rank++)
-    {
-        auto pos = genePos.find(itor_rank->geneid);
-        if (pos == genePos.end()) continue;
+    // std::stringstream ss;
+    // ss.setf(std::ios::fixed);
+    // ss.precision(2);
+    // vec_e10_result.resize(geneCnts.size());
+    // auto itor_rank = m_pcmd->vec_bin100_.begin();
+    // for(;itor_rank != m_pcmd->vec_bin100_.end();itor_rank++)
+    // {
+    //     auto pos = genePos.find(itor_rank->geneid);
+    //     if (pos == genePos.end()) continue;
 
-        ss.str("");
-        ss << itor_rank->e10;
-        vec_e10_result[pos->second] = stof(ss.str());
-    }
+    //     ss.str("");
+    //     ss << itor_rank->e10;
+    //     vec_e10_result[pos->second] = stof(ss.str());
+    // }
     return 0;
 }
 
