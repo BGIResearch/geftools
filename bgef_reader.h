@@ -195,7 +195,7 @@ class BgefReader {
 
     void getfiltereddata(vector<int> &region, vector<string> &genelist,
                         vector<string> &vec_gene, vector<unsigned long long> &uniq_cells,
-                        unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count);
+                        vector<unsigned int> &cell_ind, vector<unsigned int> &gene_ind, vector<unsigned int> &count);
 
     void getOffset(int *data);
     void getExpAttr(int *data);

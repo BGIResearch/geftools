@@ -37,7 +37,7 @@ public:
 
         cellUnit *cptr = new cellUnit(cx, cy, area, m_label, m_cgefPtr->m_block_size);
         uint64_t l_id = 0;
-//vector<Point> tpoint;
+//FILE *f = fopen("point","w");
         vector<Point> vecpoint;
         Mat t = m_cgefPtr->m_outimg(m_rect);
         findNonZero(t,vecpoint);
@@ -52,10 +52,10 @@ public:
             if(itor != m_cgefPtr->m_hash_vecdnb.end())
             {
                 cptr->add(itor->second);
-                //tpoint.emplace_back(x,y);
+                //fprintf(f,"%d %d\n", x, y);
             }
         }
-
+//fclose(f);
         // for(int i=m_rect.x;i<m_rect.x+m_rect.width;i++)
         // {
         //     for(int j=m_rect.y;j<m_rect.y+m_rect.height;j++)
@@ -78,10 +78,6 @@ public:
         {
             getborder(cptr);
         }
-
-// vector<Point> tmpborder;
-// approx(tpoint, tmpborder);
-// int sz = tmpborder.size();
 
         m_cgefPtr->m_cellqueuePtr->addqueue(cptr);
     }

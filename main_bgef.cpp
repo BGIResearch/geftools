@@ -16,7 +16,14 @@ int test(const char *path)
 {
     timer st1("");
     BgefReader br(path, 1);
-    br.getCellNum();
+    vector<int> region;
+    vector<string> genelist={"Pharaoh_ant_13172", "Pharaoh_ant_15152", "ND-24","Pharaoh_ant_15157"};
+    vector<string> vec_gene;
+    vector<unsigned long long> uniq_cells;
+    vector<unsigned int> cell_ind;
+    vector<unsigned int> gene_ind;
+    vector<unsigned int> count;
+    br.getfiltereddata(region, genelist, vec_gene, uniq_cells, cell_ind, gene_ind, count);
 
     return 0;
 }
@@ -130,6 +137,13 @@ int generateBgef(const string &input_file,
     opts->thread_ = n_thread;
     opts->verbose_ = verbose;
     opts->m_stromics = stromics;
+    opts->range_[0] = INT_MAX;
+    opts->range_[1] = 0;
+    opts->range_[2] = INT_MAX;
+    opts->range_[3] = 0;
+    opts->offset_x_ = 0;
+    opts->offset_y_ = 0;
+
 
     bool b100 = false;
     for(int bin : opts->bin_sizes_)
@@ -373,10 +387,24 @@ int mRead(BgefOptions *opts) //多线程读
         if (line.substr(0, 6) == "geneID") break;
     }
 
+    int col = 1;
+    for(char ch : line)
+    {
+        if (ch == '\t')
+        {
+            col++;
+        }
+    }
+    printf("%s %d\n", line.c_str(), col);
+    if(col == 5)
+    {
+        opts->m_bexon = true;
+    }
+
     ThreadPool thpool(opts->thread_);
     for(int i=0;i<opts->thread_;i++)
     {
-        auto *rtask = new ReadTask();
+        auto *rtask = new ReadTask(opts->m_bexon);
         thpool.addTask(rtask);
     }
 

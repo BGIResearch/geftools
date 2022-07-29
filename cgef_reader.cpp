@@ -980,12 +980,16 @@ short* CgefReader::getCellBorders(bool ball, unsigned int cell_id)
 
 void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
                 vector<string> &vec_gene, vector<unsigned long long> &uniq_cells,
-                unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count)
+                vector<unsigned int> &cell_ind, vector<unsigned int> &gene_ind, vector<unsigned int> &count)
 {
-    int min_x = region[0];
-    int max_x = region[1];
-    int min_y = region[2];
-    int max_y = region[3];
+    int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
+    if(!region.empty())
+    {
+        min_x = region[0];
+        max_x = region[1];
+        min_y = region[2];
+        max_y = region[3];
+    }
 
     CellData *cdata = loadCell();
     GeneData *gdata = loadGene();
@@ -997,7 +1001,7 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
         H5Dread(cell_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_exp_data);
 
         unsigned long long uniq_cell_id;
-        uint32_t idx = 0, gid = 0, cid = 0;
+        uint32_t gid = 0, cid = 0;
         map<uint32_t, uint32_t> gidmap;//新旧gid对照
         for(uint32_t i=0;i<cell_num_;i++)
         {
@@ -1006,23 +1010,23 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
                 continue;
             }
 
-            uint32_t j = cdata[i].offset;
-            for(;j<cdata[i].gene_count;j++,idx++)
+            CellExpData *cptr = cell_exp_data + cdata[i].offset;
+            for(uint32_t j = 0;j<cdata[i].gene_count;j++)
             {
-                if(gidmap.find(cell_exp_data[j].gene_id) == gidmap.end())
+                if(gidmap.find(cptr[j].gene_id) == gidmap.end())
                 {
-                    gene_ind[idx] = gid;
-                    string str(gdata[cell_exp_data[j].gene_id].gene_name);
+                    gene_ind.push_back(gid);
+                    string str(gdata[cptr[j].gene_id].gene_name);
                     vec_gene.emplace_back(std::move(str));
-                    gidmap.emplace(cell_exp_data[j].gene_id, gid++);
+                    gidmap.emplace(cptr[j].gene_id, gid++);
                 }
                 else
                 {
-                    gene_ind[idx] = gidmap[cell_exp_data[j].gene_id];
+                    gene_ind.push_back(gidmap[cptr[j].gene_id]);
                 }
                 
-                count[idx] = cell_exp_data[j].count;
-                cell_ind[idx] = cid;
+                count.push_back(cptr[j].count);
+                cell_ind.push_back(cid);
             }
             uniq_cell_id = cdata[i].x;
             uniq_cell_id = (uniq_cell_id << 32) | cdata[i].y;
@@ -1043,7 +1047,7 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
         H5Dread(gene_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_exp_data);
 
         unsigned long long uniq_cell_id;
-        uint32_t idx = 0, gid = 0, cid = 0, oldcid = 0;
+        uint32_t gid = 0, cid = 0, oldcid = 0;
         map<uint32_t, uint32_t> cidmap;//新旧cid对照
 
         for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
@@ -1052,13 +1056,13 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
             if(gset.find(str) != gset.end())
             {
                 vec_gene.emplace_back(std::move(str));
-                uint32_t j = gdata[gene_id].offset;
-                for(;j<gdata[gene_id].cell_count;j++,idx++)
+                GeneExpData *gptr = gene_exp_data + gdata[gene_id].offset;
+                for(uint32_t j = 0;j<gdata[gene_id].cell_count;j++)
                 {
-                    oldcid = gene_exp_data[j].cell_id;
+                    oldcid = gptr[j].cell_id;
                     if(cidmap.find(oldcid) == cidmap.end())
                     {
-                        cell_ind[idx] = cid;
+                        cell_ind.push_back(cid);
                         cidmap.emplace(oldcid, cid++);
 
                         uniq_cell_id = cdata[oldcid].x;
@@ -1067,11 +1071,11 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
                     }
                     else
                     {
-                        cell_ind[idx] = cidmap[oldcid];
+                        cell_ind.push_back(cidmap[oldcid]);
                     }
 
-                    count[idx] = gene_exp_data[j].count;
-                    gene_ind[idx] = gid;
+                    count.push_back(gptr[j].count);
+                    gene_ind.push_back(gid);
                 }
                 gid++;
             }
@@ -1091,7 +1095,7 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
         H5Dread(gene_exp_dataset_id_, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, gene_exp_data);
 
         unsigned long long uniq_cell_id;
-        uint32_t idx = 0, gid = 0, cid = 0, oldcid = 0;
+        uint32_t gid = 0, cid = 0, oldcid = 0;
         map<uint32_t, uint32_t> cidmap;//新旧cid对照
         for(unsigned short gene_id = 0; gene_id < gene_num_; gene_id++)
         {
@@ -1099,10 +1103,10 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
             if(gset.find(str) != gset.end())
             {
                 vec_gene.emplace_back(std::move(str));
-                uint32_t j = gdata[gene_id].offset;
-                for(;j<gdata[gene_id].cell_count;j++)
+                GeneExpData *gptr = gene_exp_data + gdata[gene_id].offset;
+                for(uint32_t j=0;j<gdata[gene_id].cell_count;j++)
                 {
-                    oldcid = gene_exp_data[j].cell_id;
+                    oldcid = gptr[j].cell_id;
                     if(cdata[oldcid].x < min_x || cdata[oldcid].x >= max_x || 
                         cdata[oldcid].y < min_y || cdata[oldcid].y >= max_y)
                     {
@@ -1111,7 +1115,7 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
 
                     if(cidmap.find(oldcid) == cidmap.end())
                     {
-                        cell_ind[idx] = cid;
+                        cell_ind.push_back(cid);
                         cidmap.emplace(oldcid, cid++);
 
                         uniq_cell_id = cdata[oldcid].x;
@@ -1120,12 +1124,12 @@ void CgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
                     }
                     else
                     {
-                        cell_ind[idx] = cidmap[oldcid];
+                        cell_ind.push_back(cidmap[oldcid]);
                     }
 
-                    count[idx] = gene_exp_data[j].count;
-                    gene_ind[idx] = gid;
-                    idx++;
+                    
+                    count.push_back(gptr[j].count);
+                    gene_ind.push_back(gid);
                 }
                 gid++;
             }

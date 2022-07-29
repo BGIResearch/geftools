@@ -562,6 +562,7 @@ void cellAdjust::createRegionGef(const string &out)
     herr_t idx = H5Literate(gid, H5_INDEX_NAME, H5_ITER_INC, NULL, file_info, &group_names);
     H5Gclose(gid);
 
+    m_bgefopts->bin_sizes_.clear();
     for(string &str : group_names)
     {
         int bin = std::stoi(str.substr(3));
@@ -763,6 +764,7 @@ void cellAdjust::getRegionGenedata(vector<vector<int>> &m_vecpos)
 {
     timer st(__FUNCTION__);
     m_bgefopts = BgefOptions::GetInstance();
+    m_bgefopts->map_gene_exp_.clear();
     int num = m_vecpos.size();
     uint64_t l_id = 0;
     vector<Point> non_zerovecpoint;
@@ -825,6 +827,8 @@ void cellAdjust::getRegionGenedata(vector<vector<int>> &m_vecpos)
         }
     }
 
+    m_bgefopts->expressions_.clear();
+    m_bgefopts->genes_.clear();
     m_bgefopts->expressions_.reserve(totalSize);
     m_bgefopts->genes_.reserve(m_bgefopts->map_gene_exp_.size());
 }

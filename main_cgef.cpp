@@ -6,6 +6,7 @@
 #include "cgefParam.h"
 #include "cgefCellgem.h"
 #include "cellAdjust.h"
+#include "cgef_reader.h"
 
 int ctest(const char *path)
 {
@@ -55,17 +56,107 @@ int ctest(const char *path)
 
 int ctest2(const char *path)
 {
-    cellAdjust ca;
-    ca.readBgef(path);
-    vector<int> tmp{480,2680,520,2560,880,1680,920,1600,1200,1680,1320,1720,1800,1960,2120,3800,2120,3880,2000,3880,1240,3840,1000,3800,960,3760,600,3040,480,2760,480,2720};
-    vector<vector<int>> vec;
-    vec.emplace_back(std::move(tmp));
-    ca.getRegionGenedata(vec);
-    ca.createRegionGef("zzk.bgef");
+    // CgefReader cr(path);
+    // vector<int> region={0,10000,0,10000};
+    // vector<string> genelist={"AC240274.1","AC145212.1","KDM5D","TTTY14","LINC00278"};
+    // vector<string> vec_gene;
+    // vector<unsigned long long> uniq_cells;
+    // vector<unsigned int> cell_ind;
+    // vector<unsigned int> gene_ind;
+    // vector<unsigned int> count;
+
+    // cr.getfiltereddata(region, genelist, vec_gene, uniq_cells, cell_ind, gene_ind, count);
+
+
+
+    return 0;
+}
+
+int split2int(char *str, const char *d, int *arry)
+{
+    int i = 0;
+    char *p = strtok(str, d);
+    while (p)
+    {
+        if(memcmp(p, "not exists", 10) == 0)
+        {
+            arry[i++]=USHRT_MAX;
+        }
+        else
+        {
+            arry[i++]=atoi(p);
+        }
+        p = strtok(NULL, d);
+    }
+    return i;
+}
+
+int change(const char *gef, const char *gem)
+{
+    std::map<uint32_t, uint16_t> map_cid_cluster;
+    int cid_i = 0;
+    int clu_i = 0;
+    FILE *fgem = fopen(gem, "r");
+    if(fgem)
+    {
+        char buf[128]={0};
+        fgets(buf, 128, fgem);
+        int count = 0;
+        char *p = strtok(buf, "\t");
+        while (p)
+        {
+            if(memcmp(p,"CellID", 6) == 0)
+            {
+                cid_i = count;
+            }
+            else if(memcmp(p,"Cellcluster", 11) == 0)
+            {
+                clu_i = count;
+            }
+            p = strtok(NULL, "\t");
+            count++;
+        }
+        printf("%s %d %d\n", buf, cid_i, clu_i);
+
+        int arry[10]; 
+        while (fgets(buf, 128, fgem)!=NULL)
+        {
+            split2int(buf, "\t", arry);
+            if(map_cid_cluster.find(arry[cid_i]) == map_cid_cluster.end())
+            {
+                map_cid_cluster.emplace(arry[cid_i], arry[clu_i]);
+            }
+        }
+        fclose(fgem);
+        printf("read gem end\n");
+        hid_t fid = H5Fopen(gef, H5F_ACC_RDWR, H5P_DEFAULT);
+        hid_t cell_dataset_id = H5Dopen(fid, "/cellBin/cell", H5P_DEFAULT);
+
+        hsize_t dims[1];
+        hid_t sid = H5Dget_space(cell_dataset_id);
+        H5Sget_simple_extent_dims(sid, dims, nullptr);
+
+        hid_t memtype = getMemtypeOfCellData();
+        CellData *cell_array = (CellData *) malloc(dims[0] * sizeof(CellData));
+        H5Dread(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_array);
+
+        for(int i=0;i<dims[0];i++)
+        {
+            cell_array[i].cluster_id = map_cid_cluster[cell_array[i].id];
+        }
+
+        H5Dwrite(cell_dataset_id, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, cell_array);
+
+        H5Sclose(sid);
+        H5Tclose(memtype);
+        H5Dclose(cell_dataset_id);
+        H5Fclose(fid);
+        free(cell_array);
+    }
 }
 
 int cgef(int argc, char *argv[]) {
-    return ctest2(argv[1]);
+    //return change(argv[1], argv[2]);
     cxxopts::Options options("geftools cgef",
                        "About:  Generate cell bin GEF (.cgef) according to"
                        " common bin GEF (.bgef) file and mask file\n");

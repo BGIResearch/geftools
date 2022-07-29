@@ -27,7 +27,7 @@ typedef struct
 class ReadTask:public ITask
 {
 public:
-    ReadTask();
+    ReadTask(bool bexon);
     ~ReadTask();
     void doTask();
 private:
@@ -35,7 +35,9 @@ private:
     int cuttail(char *pbuf);
     int getGeneInfo();
     int mergeGeneinfo();
+    int getGeneInfo_exon();
 private:
+    bool m_bexon = false;
     int m_buflen = 0;
     int min_x = INT_MAX, min_y = INT_MAX, max_x = 0, max_y = 0;
     char *m_pbuf = nullptr;

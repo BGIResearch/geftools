@@ -11,8 +11,9 @@ string ReadTask::m_leftstr;
 mutex ReadTask::m_readmtx;
 mutex ReadTask::m_mergemtx;
 
-ReadTask::ReadTask()
+ReadTask::ReadTask(bool bexon)
 {
+    m_bexon = bexon;
     m_pcmd = BgefOptions::GetInstance();
     m_pbuf = new char[READLEN];
 }
@@ -25,15 +26,31 @@ ReadTask::~ReadTask()
 void ReadTask::doTask()
 {
     RLen rlen{0,0};
-    while (true)
+    if(m_bexon)
     {
-        readbuf(rlen);
-        getGeneInfo();
-        if(rlen.reallen < rlen.readlen) //file end
+        while (true)
         {
-            break;
+            readbuf(rlen);
+            getGeneInfo_exon();
+            if(rlen.reallen < rlen.readlen) //file end
+            {
+                break;
+            }
         }
     }
+    else
+    {
+        while (true)
+        {
+            readbuf(rlen);
+            getGeneInfo();
+            if(rlen.reallen < rlen.readlen) //file end
+            {
+                break;
+            }
+        }
+    }
+
 
     mergeGeneinfo();
 }
@@ -160,4 +177,56 @@ int ReadTask::mergeGeneinfo()
         vec.insert(vec.end(), itor->second.begin(), itor->second.end());
     }
     return 0;
+}
+
+int ReadTask::getGeneInfo_exon()
+{
+    int i = 0, k = 0;
+    char *ptr = m_pbuf;
+    std::string geneid;
+    Expression expression{0,0,0, 0};
+    for(;i<m_buflen;i++)
+    {
+        if(m_pbuf[i] == '\t' || m_pbuf[i] == '\n')
+        {
+            switch (k)
+            {
+            case 0:
+                geneid.clear();
+                geneid.append(ptr, &m_pbuf[i]-ptr);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 1:
+                expression.x = atoi(ptr);
+                min_x = std::min(expression.x, min_x);
+                max_x = std::max(expression.x, max_x);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 2:
+                expression.y = atoi(ptr);
+                min_y = std::min(expression.y, min_y);
+                max_y = std::max(expression.y, max_y);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 3:
+                expression.count = atoi(ptr);
+                k++;
+                ptr = &m_pbuf[i+1];
+                break;
+            case 4:
+                expression.exon = atoi(ptr);
+                k = 0;
+                ptr = &m_pbuf[i+1];
+                m_map_gege[geneid].push_back(expression);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    return m_map_gege.size();
 }

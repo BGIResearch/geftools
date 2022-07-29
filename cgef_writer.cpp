@@ -274,13 +274,13 @@ void CgefWriter::storeCell(unsigned int block_num, unsigned int * block_index, c
     attr = H5Acreate(dataset_id, "medianArea", H5T_IEEE_F32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_FLOAT, &cell_attr_.median_area);
     attr = H5Acreate(dataset_id, "minX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.min_x);
+    H5Awrite(attr, H5T_NATIVE_INT32, &cell_attr_.min_x);
     attr = H5Acreate(dataset_id, "maxX", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.max_x);
+    H5Awrite(attr, H5T_NATIVE_INT32, &cell_attr_.max_x);
     attr = H5Acreate(dataset_id, "minY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.min_y);
+    H5Awrite(attr, H5T_NATIVE_INT32, &cell_attr_.min_y);
     attr = H5Acreate(dataset_id, "maxY", H5T_STD_I32LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(attr, H5T_NATIVE_UINT32, &cell_attr_.max_y);
+    H5Awrite(attr, H5T_NATIVE_INT32, &cell_attr_.max_y);
     attr = H5Acreate(dataset_id, "minGeneCount", H5T_STD_U16LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);
     H5Awrite(attr, H5T_NATIVE_USHORT, &cell_attr_.min_gene_count);
     attr = H5Acreate(dataset_id, "minExpCount", H5T_STD_U16LE, attr_dataspace, H5P_DEFAULT, H5P_DEFAULT);

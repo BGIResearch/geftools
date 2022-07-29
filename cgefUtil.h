@@ -86,7 +86,7 @@ public:
         return true;
     }
 
-    bool getCenter_median(int *block_size, int offx, int offy) //中位数
+    bool getCenter_median(unsigned int *block_size, int offx, int offy) //中位数
     {
         int sz = m_vecPoint.size();
         if(sz<3) return false;
@@ -103,15 +103,15 @@ public:
         std::sort(vecy.begin(), vecy.end(), [](int a, int b){return a<b;});
 
         int pos = ceil( (sz + 1)*1.0 /2 );
-        m_center.x = ceil (vecx[pos-2]*0.5+vecx[pos-1]*0.5) - offx;
-        m_center.y = ceil (vecy[pos-2]*0.5+vecy[pos-1]*0.5) - offy;
+        m_center.x = ceil (vecx[pos-2]*0.5+vecx[pos-1]*0.5);
+        m_center.y = ceil (vecy[pos-2]*0.5+vecy[pos-1]*0.5);
         
-        m_blkid = m_center.x/block_size[0] + (m_center.y/block_size[1])*block_size[2];
+        m_blkid = (m_center.x-offx)/block_size[0] + ((m_center.y-offy)/block_size[1])*block_size[2];
         assert(m_blkid < block_size[2] * block_size[3]);
         return true;
     }
 
-    bool getCenter_border(unsigned int *block_size)//凸多边形
+    bool getCenter_border(unsigned int *block_size, int offx, int offy)//凸多边形
     {
         if(m_vecPoint.size() <3) return false;
         vector<Point> tmp, hull;
@@ -141,7 +141,7 @@ public:
             
         }
 
-        m_blkid = m_center.x/block_size[0] + (m_center.y/block_size[1])*block_size[2];
+        m_blkid = (m_center.x-offx)/block_size[0] + ((m_center.y-offy)/block_size[1])*block_size[2];
         assert(m_blkid < block_size[2] * block_size[3]);
         return true;
     }
@@ -151,7 +151,7 @@ public:
     Point m_center;
     vector<Point> m_vecPoint;
     vector<Point> m_border;
-    int m_blkid = 0;
+    uint32_t m_blkid = 0;
     int m_celllabel = 0;
     unsigned short expcnt = 0; //细胞umi之和
     unsigned short dnbcnt = 0; //细胞所有坐标点个数 >= gene个数

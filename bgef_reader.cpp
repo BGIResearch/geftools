@@ -847,6 +847,9 @@ int BgefReader::generateGeneExp(int bin_size, int n_thread) {
     H5Aread(attr, H5T_NATIVE_UINT, &(expression_attr_.resolution));
 
     opts_ = BgefOptions::GetInstance();
+    opts_->bin_sizes_.clear();
+    opts_->range_.clear();
+    opts_->map_gene_exp_.clear();
     opts_->bin_sizes_.emplace_back(bin_size);
     auto& dnb_attr = opts_->dnbmatrix_.dnb_attr;
 
@@ -1015,12 +1018,16 @@ Expression *BgefReader::getReduceExpression() {
 
 void BgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
                                  vector<string> &vec_gene, vector<unsigned long long> &uniq_cells,
-                                 unsigned int * cell_ind, unsigned int * gene_ind, unsigned int * count)
+                                 vector<unsigned int> &cell_ind, vector<unsigned int> &gene_ind, vector<unsigned int> &count)
 {
-    int min_x = region[0];
-    int max_x = region[1];
-    int min_y = region[2];
-    int max_y = region[3];
+    int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
+    if(!region.empty())
+    {
+        min_x = region[0];
+        max_x = region[1];
+        min_y = region[2];
+        max_y = region[3];
+    }
 
     Gene * gene = getGene();
     Expression * expression = getExpression();
@@ -1088,7 +1095,7 @@ void BgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
     }
 
     unsigned long long uniq_cell_id;
-    uint32_t index = 0, i=0, gid = 0;
+    uint32_t index = 0,gid = 0;
     std::unordered_map<unsigned long long, uint32_t> hash_map;
 
     auto itor = hash_exp.begin();
@@ -1103,17 +1110,16 @@ void BgefReader::getfiltereddata(vector<int> &region, vector<string> &genelist,
 
             if(hash_map.find(uniq_cell_id) != hash_map.end())
             {
-                cell_ind[i] = hash_map[uniq_cell_id];
+                cell_ind.push_back(hash_map[uniq_cell_id]);
             }
             else
             {
-                cell_ind[i] = index;
+                cell_ind.push_back(index);
                 uniq_cells.emplace_back(uniq_cell_id);
                 hash_map.emplace(uniq_cell_id, index++);
             }
-            count[i] = expData.count;
-            gene_ind[i] = gid;
-            i++;
+            count.push_back(expData.count);
+            gene_ind.push_back(gid);
         }
         gid++;
     }
